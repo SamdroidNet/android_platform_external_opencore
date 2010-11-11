@@ -194,12 +194,6 @@ PVMFMP3FFParserNode::~PVMFMP3FFParserNode()
         RemoveFromScheduler();
     }
 
-    if (iDurationCalcAO)
-    {
-        OSCL_DELETE(iDurationCalcAO);
-        iDurationCalcAO = NULL;
-    }
-
     // Unbind the download progress clock
     iDownloadProgressClock.Unbind();
     // Release the download progress interface, if any
@@ -706,7 +700,7 @@ void PVMFMP3FFParserNode::CompleteInit(PVMFStatus aStatus)
     {
         if (!iSubNodeCmdVec.empty())
         {
-            iSubNodeCmdVec.front().iSubNodeContainer->CommandDone(PVMFSuccess, NULL, NULL);
+            iSubNodeCmdVec.front().iSubNodeContainer->CommandDone(aStatus, NULL, NULL);
         }
         else
         {
@@ -1158,6 +1152,25 @@ PVMFStatus PVMFMP3FFParserNode::DoPrepare(PVMFMP3FFParserNodeCommand& aCmd)
             // Data is not available, autopause the track.
             iAutoPaused = true;
             PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_DEBUG, (0, "PVMFMP3FFParserNode::DoPrepare() - Auto Pause Triggered, TS = %d", ts));
+        }
+    }
+    else
+    {
+        // enable the duration scanner for local playback only
+        if (!iDurationCalcAO)
+        {
+            int32 leavecode = 0;
+            OSCL_TRY(leavecode, iDurationCalcAO = OSCL_NEW(PVMp3DurationCalculator,
+                                                  (OsclActiveObject::EPriorityIdle, iMP3File, this)));
+            if (leavecode || !iDurationCalcAO)
+            {
+                PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,
+                                (0, "PVMFMP3FFParserNode::DoInit() Duration Scan is disabled. DurationCalcAO not created"));
+            }
+            else
+            {
+                iDurationCalcAO->ScheduleAO();
+            }
         }
     }
     return PVMFSuccess;
@@ -1700,6 +1713,10 @@ void PVMFMP3FFParserNode::Run()
                 }
             }
             LOGINFO((0, "PVMFMP3FFParserNode::Run() CheckForMP3HeaderAvailability() failed %d", cmdStatus));
+        }
+        else if (PVMFFailure == cmdStatus)
+        {
+            CompleteInit(cmdStatus);
         }
         return;
     }
@@ -2407,14 +2424,14 @@ PVMFStatus PVMFMP3FFParserNode::ParseFile()
 
     if (mp3Err == MP3_INSUFFICIENT_DATA)
     {
-        return PVMFPending;
+        return PVMFErrUnderflow;
     }
     else if (mp3Err == MP3_END_OF_FILE ||
              mp3Err != MP3_SUCCESS)
     {
         SetState(EPVMFNodeError);
         ReportErrorEvent(PVMFErrResource);
-        return PVMFErrUnderflow;
+        return PVMFFailure;
     }
 
     // Find out what the largest frame in the file is. This information is used
@@ -2510,10 +2527,17 @@ void PVMFMP3FFParserNode::ReleaseTrack()
  */
 void PVMFMP3FFParserNode::CleanupFileSource()
 {
-    if (iDurationCalcAO && iDurationCalcAO->IsBusy())
+    if (iDurationCalcAO)
     {
-        iDurationCalcAO->Cancel();
+        if (iDurationCalcAO->IsBusy())
+        {
+            iDurationCalcAO->Cancel();
+        }
+
+        OSCL_DELETE(iDurationCalcAO);
+        iDurationCalcAO = NULL;
     }
+
     if (iMP3File)
     {
         OSCL_DELETE(iMP3File);
@@ -2991,12 +3015,11 @@ PVMFStatus PVMFMP3FFParserNode::ReleaseNodeMetadataValues(Oscl_Vector<PvmiKvp, O
         return PVMFErrArgument;
     }
 
-    if (end >= aValueList.size())
-        // Go through the specified values and free it
-        for (uint32 i = start; i < end; i++)
-        {
-            iMP3File->ReleaseMetadataValue(aValueList[i]);
-        }
+    // Go through the specified values and free it
+    for (uint32 i = start; i < end; i++)
+    {
+        iMP3File->ReleaseMetadataValue(aValueList[i]);
+    }
     return PVMFSuccess;
 }
 
@@ -3842,6 +3865,10 @@ OSCL_EXPORT_REF void PVMFCPMContainerMp3::CPMCommandCompleted(const PVMFCmdResp&
                 //if CPM comes back as PVMFErrNotSupported then by pass rest of the CPM
                 //sequence. Fake success here so that node doesnt treat this as an error
                 status = iContainer->CheckForMP3HeaderAvailability();
+                if (status == PVMFPending)
+                {
+                    return;
+                }
             }
             else if (status == PVMFSuccess)
             {
@@ -4381,7 +4408,6 @@ PVMFStatus PVMFMP3FFParserNode::SetupParserObject()
 #if PV_HAS_SHOUTCAST_SUPPORT_ENABLED
             if (iSourceFormat == PVMF_MIME_DATA_SOURCE_SHOUTCAST_URL && iSCSPFactory != NULL && iSCSP != NULL)
             {
-
                 dsFactory = iSCSPFactory;
                 iSCSP->RequestMetadataUpdates(iDataStreamSessionID, *this, iMetadataBufSize, iMetadataBuf);
             }
@@ -4407,7 +4433,7 @@ PVMFStatus PVMFMP3FFParserNode::SetupParserObject()
     }
 
     // enable the duration scanner for local playback only
-    if (!iDataStreamFactory)
+    if (!iDataStreamFactory && !iDurationCalcAO)
     {
         int32 leavecode = 0;
         OSCL_TRY(leavecode, iDurationCalcAO = OSCL_NEW(PVMp3DurationCalculator,

@@ -18,26 +18,34 @@
 #ifndef PVMF_EVENT_HANDLING_H_INCLUDED
 #define PVMF_EVENT_HANDLING_H_INCLUDED
 
-
+#ifndef OSCL_BASE_H_INCLUDED
 #include "oscl_base.h"
-#include "oscl_mem_auto_ptr.h"
-#include "oscl_mem_basic_functions.h"
-#include "pvmf_return_codes.h"
-#include "pv_interface.h"
+#endif
 
+#ifndef OSCL_MEM_AUTO_PTR_H
+#include "oscl_mem_auto_ptr.h"
+#endif
+
+#ifndef PVMF_RETURN_CODES_H_INCLUDED
+#include "pvmf_return_codes.h"
+#endif
+
+#ifndef PV_INTERFACE_H
+#include "pv_interface.h"
+#endif
 
 /**
-   Identifies the specific observer session
+Identifies the specific observer session
 **/
 typedef int32 PVMFSessionId;
 
 /**
-   Identifies the specific API/command that was invoked
+Identifies the specific API/command that was invoked
 **/
 typedef int32 PVMFCommandType;
 
 /**
-   A unique command id identifying an invocation of any command
+A unique command id identifying an invocation of any command
 **/
 typedef int32 PVMFCommandId;
 
@@ -47,16 +55,16 @@ typedef enum
     PVMFErrorEvent,
     PVMFInfoEvent,
     PVMFEventLast
-} PVMFEventCategory;
+}PVMFEventCategory;
 
 /**
-   Identifies the type of event (error & informational)
+Identifies the type of event (error & informational)
 **/
 typedef int32 PVMFEventType;
 
 
 /**
-   The base class for PVMF callback events
+The base class for PVMF callback events
 **/
 class PVMFEventBase
 {
@@ -64,11 +72,10 @@ class PVMFEventBase
         PVMFEventBase() {}
 
         virtual ~PVMFEventBase() {};
-
         /**
-         * @return the event's category.
-         */
-        OSCL_IMPORT_REF virtual PVMFEventCategory IsA() const = 0;
+        What type of event is this ?
+        **/
+        virtual PVMFEventCategory IsA() = 0;
 };
 
 /**
@@ -77,7 +84,7 @@ class PVMFEventBase
  * PVMFCmdResp class is used to pass completion status on previously issued
  * commands
  **/
-class OSCL_IMPORT_REF PVMFCmdResp : public PVMFEventBase
+class PVMFCmdResp : public PVMFEventBase
 {
     public:
         /**
@@ -134,7 +141,10 @@ class OSCL_IMPORT_REF PVMFCmdResp : public PVMFEventBase
 
         virtual ~PVMFCmdResp() {}
 
-        OSCL_IMPORT_REF virtual PVMFEventCategory IsA() const;
+        PVMFEventCategory IsA()
+        {
+            return PVMFCmdRespEvent;
+        }
 
         /**
          * @return Returns the unique ID associated with a command of this type.
@@ -167,8 +177,8 @@ class OSCL_IMPORT_REF PVMFCmdResp : public PVMFEventBase
          *
          *
          * @return Returns additional data asociated with the command/event.  This is to be interpreted
-         based on the type and the return status
-        */
+                   based on the type and the return status
+         */
         OsclAny* GetEventData()const
         {
             return iEventData;
@@ -182,8 +192,8 @@ class OSCL_IMPORT_REF PVMFCmdResp : public PVMFEventBase
          *
          * @param1 - (uint32) length of event data in bytes.
          * @return PVMFSuccess, if length of event data can be set.
-         PVMFFailure, if length of event data can't be set.
-        */
+                   PVMFFailure, if length of event data can't be set.
+         */
         PVMFStatus SetEventDataLen(uint32 aEventDataLength)
         {
             PVMFStatus status = PVMFFailure;
@@ -203,10 +213,10 @@ class OSCL_IMPORT_REF PVMFCmdResp : public PVMFEventBase
          * with the removal of event data, length if event data wont be needed either.
          *
          * @param1 - bool& aEventDataLenAvailable
-         *           false - length of event data(in bytes) is not available
-         *           true - length of event data(in bytes) is available
+         *			 false - length of event data(in bytes) is not available
+         *			 true - length of event data(in bytes) is available
          * @param2 - uint32& aEventDataLength
-         *           length of eventdata in bytes
+         *			 length of eventdata in bytes
          */
         void GetEventDataLen(bool& aEventDataLenAvailable, uint32& aEventDataLength)const
         {
@@ -250,7 +260,7 @@ class OSCL_IMPORT_REF PVMFCmdResp : public PVMFEventBase
  * event
  **/
 #define PVMF_ASYNC_EVENT_LOCAL_BUF_SIZE 16
-class OSCL_IMPORT_REF PVMFAsyncEvent : public PVMFEventBase
+class PVMFAsyncEvent : public PVMFEventBase
 {
     public:
         PVMFAsyncEvent(PVMFEventCategory aEventCategory,
@@ -264,7 +274,10 @@ class OSCL_IMPORT_REF PVMFAsyncEvent : public PVMFEventBase
                 , iContext(aContext)
                 , iEventData(aEventData)
         {
-            oscl_memset(iLocalBuffer, 0, PVMF_ASYNC_EVENT_LOCAL_BUF_SIZE);
+            for (uint32 i = 0;i < PVMF_ASYNC_EVENT_LOCAL_BUF_SIZE;i++)
+            {
+                iLocalBuffer[i] = 0;
+            }
             iEventDataLengthAvailable = false;
             iEventDataLength = 0;
         }
@@ -273,8 +286,8 @@ class OSCL_IMPORT_REF PVMFAsyncEvent : public PVMFEventBase
                        PVMFEventType aEventType,
                        OsclAny* aContext,
                        OsclAny* aEventData,
-                       const void* aLocalBuffer,
-                       const size_t aLocalBufferSize) :
+                       uint8* aLocalBuffer,
+                       uint32 aLocalBufferSize) :
                 iEventCategory(aEventCategory)
                 , iEventType(aEventType)
                 , iEventExtInterface(NULL)
@@ -282,15 +295,18 @@ class OSCL_IMPORT_REF PVMFAsyncEvent : public PVMFEventBase
                 , iContext(aContext)
                 , iEventData(aEventData)
         {
+            OSCL_ASSERT(aLocalBufferSize <= PVMF_ASYNC_EVENT_LOCAL_BUF_SIZE);
+            if (iLocalBufferSize > PVMF_ASYNC_EVENT_LOCAL_BUF_SIZE)
+            {
+                iLocalBufferSize = PVMF_ASYNC_EVENT_LOCAL_BUF_SIZE;
+            }
+
             if (aLocalBuffer)
             {
-                OSCL_ASSERT(iLocalBufferSize <= PVMF_ASYNC_EVENT_LOCAL_BUF_SIZE);
-                if (iLocalBufferSize > PVMF_ASYNC_EVENT_LOCAL_BUF_SIZE)
+                for (uint32 i = 0;i < iLocalBufferSize;i++)
                 {
-                    iLocalBufferSize = PVMF_ASYNC_EVENT_LOCAL_BUF_SIZE;
+                    iLocalBuffer[i] = aLocalBuffer[i];
                 }
-
-                oscl_memcpy(iLocalBuffer, aLocalBuffer, iLocalBufferSize);
             }
             iEventDataLengthAvailable = false;
             iEventDataLength = 0;
@@ -308,7 +324,10 @@ class OSCL_IMPORT_REF PVMFAsyncEvent : public PVMFEventBase
                 , iContext(aContext)
                 , iEventData(aEventData)
         {
-            oscl_memset(iLocalBuffer, 0, PVMF_ASYNC_EVENT_LOCAL_BUF_SIZE);
+            for (uint32 i = 0;i < PVMF_ASYNC_EVENT_LOCAL_BUF_SIZE;i++)
+            {
+                iLocalBuffer[i] = 0;
+            }
             iEventDataLengthAvailable = false;
             iEventDataLength = 0;
         }
@@ -318,8 +337,8 @@ class OSCL_IMPORT_REF PVMFAsyncEvent : public PVMFEventBase
                        OsclAny* aContext,
                        PVInterface* aEventExtInterface,
                        OsclAny* aEventData,
-                       const void* aLocalBuffer,
-                       const size_t aLocalBufferSize) :
+                       uint8* aLocalBuffer,
+                       uint32 aLocalBufferSize) :
                 iEventCategory(aEventCategory)
                 , iEventType(aEventType)
                 , iEventExtInterface(aEventExtInterface)
@@ -327,15 +346,18 @@ class OSCL_IMPORT_REF PVMFAsyncEvent : public PVMFEventBase
                 , iContext(aContext)
                 , iEventData(aEventData)
         {
+            OSCL_ASSERT(aLocalBufferSize <= PVMF_ASYNC_EVENT_LOCAL_BUF_SIZE);
+            if (iLocalBufferSize > PVMF_ASYNC_EVENT_LOCAL_BUF_SIZE)
+            {
+                iLocalBufferSize = PVMF_ASYNC_EVENT_LOCAL_BUF_SIZE;
+            }
+
             if (aLocalBuffer)
             {
-                OSCL_ASSERT(iLocalBufferSize <= PVMF_ASYNC_EVENT_LOCAL_BUF_SIZE);
-                if (iLocalBufferSize > PVMF_ASYNC_EVENT_LOCAL_BUF_SIZE)
+                for (uint32 i = 0;i < iLocalBufferSize;i++)
                 {
-                    iLocalBufferSize = PVMF_ASYNC_EVENT_LOCAL_BUF_SIZE;
+                    iLocalBuffer[i] = aLocalBuffer[i];
                 }
-
-                oscl_memcpy(iLocalBuffer, aLocalBuffer, iLocalBufferSize);
             }
             iEventDataLengthAvailable = false;
             iEventDataLength = 0;
@@ -343,7 +365,10 @@ class OSCL_IMPORT_REF PVMFAsyncEvent : public PVMFEventBase
 
         virtual ~PVMFAsyncEvent() {}
 
-        OSCL_IMPORT_REF virtual PVMFEventCategory IsA() const;
+        PVMFEventCategory IsA()
+        {
+            return iEventCategory;
+        }
 
         /**
          * @return Returns the unique type identifier of the event.
@@ -376,8 +401,8 @@ class OSCL_IMPORT_REF PVMFAsyncEvent : public PVMFEventBase
          *
          * @param1 - (uint32) length of event data in bytes.
          * @return PVMFSuccess, if length of event data can be set.
-         PVMFFailure, if length of event data can't be set.
-        */
+                   PVMFFailure, if length of event data can't be set.
+         */
         PVMFStatus SetEventDataLen(uint32 aEventDataLength)
         {
             PVMFStatus status = PVMFFailure;
@@ -397,10 +422,10 @@ class OSCL_IMPORT_REF PVMFAsyncEvent : public PVMFEventBase
          * with the removal of event data, length if event data wont be needed either.
          *
          * @param1 - bool& aEventDataLenAvailable
-         *           false - length of event data(in bytes) is not available
-         *           true - length of event data(in bytes) is available
+         *			 false - length of event data(in bytes) is not available
+         *			 true - length of event data(in bytes) is available
          * @param2 - uint32& aEventDataLength
-         *           length of eventdata in bytes
+         *			 length of eventdata in bytes
          */
         void GetEventDataLen(bool& aEventDataLenAvailable, uint32& aEventDataLength)const
         {
@@ -416,15 +441,13 @@ class OSCL_IMPORT_REF PVMFAsyncEvent : public PVMFEventBase
         /**
          * @return Returns the size of the local data asociated with the event.
          */
-        size_t GetLocalBufferSize() const
+        int32 GetLocalBufferSize() const
         {
             return iLocalBufferSize;
         }
 
         /**
          * @return Returns the local data asociated with the event.
-         * TODO: This is a const method returning a non const ref to some
-         * internal array.
          */
         uint8* GetLocalBuffer() const
         {
@@ -432,8 +455,8 @@ class OSCL_IMPORT_REF PVMFAsyncEvent : public PVMFEventBase
         }
 
         /**
-         * @return Returns the opaque data associated with the callback type.
-         */
+        * @return Returns the opaque data associated with the callback type.
+        */
         const OsclAny* GetContext()const
         {
             return iContext;
@@ -452,7 +475,7 @@ class OSCL_IMPORT_REF PVMFAsyncEvent : public PVMFEventBase
         PVMFEventType iEventType;
         PVInterface*  iEventExtInterface;
         uint8 iLocalBuffer[PVMF_ASYNC_EVENT_LOCAL_BUF_SIZE];
-        size_t iLocalBufferSize;
+        uint32 iLocalBufferSize;
         OsclAny* iContext;
         /**
          * We STRONGLY DISCOURAGE use of this. This field will be deprecated
@@ -464,3 +487,5 @@ class OSCL_IMPORT_REF PVMFAsyncEvent : public PVMFEventBase
 };
 
 #endif // PVMF_EVENT_HANDLING_H_INCLUDED
+
+

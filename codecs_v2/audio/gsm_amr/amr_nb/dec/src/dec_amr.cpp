@@ -445,7 +445,7 @@ Word16 Decoder_amr_reset(Decoder_amrState *state, enum Mode mode)
     state->voicedHangover = 0;
     if (mode != MRDTX)
     {
-        for (i = 0; i < EXC_ENERGY_HIST_LEN; i++)
+        for (i = 0;i < EXC_ENERGY_HIST_LEN;i++)
         {
             state->excEnergyHist[i] = 0;
         }
@@ -618,10 +618,10 @@ int Decoder_amr (
        if ((sub(frame_type, RX_NO_DATA) == 0) ||
            (sub(frame_type, RX_ONSET) == 0))
        {
-      build_CN_param(&st->nodataSeed,
-             prmno[mode],
-             bitno[mode],
-             parm);
+	  build_CN_param(&st->nodataSeed,
+			 prmno[mode],
+			 bitno[mode],
+			 parm);
        }
     }
     else if (sub(frame_type, RX_SPEECH_DEGRADED) == 0)
@@ -1633,7 +1633,7 @@ void Decoder_amr(
             {
                 if (st->old_T0 < PIT_MAX)
                 {                               /* Graceful pitch */
-                    st->old_T0 += 0;            /* degradation    */
+                    st->old_T0 += 1;            /* degradation    */
                 }
                 T0 = st->old_T0;
                 T0_frac = 0;

@@ -16604,7 +16604,7 @@ void pvplayer_async_test_setplaybackafterprepare::CommandCompleted(const PVCmdRe
             if (aResponse.GetCmdStatus() == PVMFSuccess)
             {
                 iState = STATE_REMOVEDATASINK_TEXT;
-                //  iState=STATE_RESET;
+                //	iState=STATE_RESET;
                 RunIfNotReady();
             }
             else
@@ -16751,10 +16751,10 @@ void pvplayer_async_test_setplaybackafterprepare::HandleInformationalEvent(const
                 fprintf(file, " PVMFInfoPositionStatus: %d\n", aPos2);
 
                 /*
-                                if ( !(aPos1.iPosValue.millisec_value <= aPos2 + 50) )
-                                {
-                                    PVPATB_TEST_IS_TRUE(false);
-                                }
+                				if ( !(aPos1.iPosValue.millisec_value <= aPos2 + 50) )
+                				{
+                					PVPATB_TEST_IS_TRUE(false);
+                				}
                 */
             }
         }
@@ -17473,7 +17473,6 @@ void pvplayer_async_test_multipauseseekresume::HandleInformationalEvent(const PV
 #include "pvmf_local_data_source.h"
 #include "oscl_scheduler.h"
 #include "OMX_Core.h"
-#include "pv_omxcore.h"
 #include "oscl_mem_audit.h"
 
 //test observer function for the 2nd instance.
@@ -17502,7 +17501,7 @@ void pvplayer_async_test_multiple_instance::InThread(pvplayer_async_test_multipl
 {
     //Init Oscl
     OsclMem::Init();
-    OMX_MasterInit();
+    OMX_Init();
     PVLogger::Init();
     OsclScheduler::Init("pvplayer_async_test_multiple_instance");
 
@@ -17533,7 +17532,7 @@ void pvplayer_async_test_multiple_instance::InThread(pvplayer_async_test_multipl
     //Cleanup Oscl.
     OsclScheduler::Cleanup();
     PVLogger::Cleanup();
-    OMX_MasterDeinit();
+    OMX_Deinit();
     //note: there's no memory leak check here since
     //this thread exits before the main thread.
     OsclMem::Cleanup();
@@ -17818,7 +17817,7 @@ void pvplayer_async_test_multiple_instance::Run()
                 if (!iChildThreadExit)
                 {
                     fprintf(file, "Waiting on 2nd instance to exit...\n");
-                    for (uint32 i = 0; !iChildThreadExit && i < 20; i++)
+                    for (uint32 i = 0;!iChildThreadExit && i < 20;i++)
                         OsclThread::SleepMillisec(1000);
                 }
                 //make sure child thread exited within the allowed time
@@ -18173,7 +18172,7 @@ void pvplayer_async_test_multiple_instance::PrintMetadata()
     if (iParentInstance)
         return;
 
-    for (uint32 i = 0; i < iMetadataValueList.size(); i++)
+    for (uint32 i = 0;i < iMetadataValueList.size();i++)
     {
         if (!iMetadataValueList[i].key)
         {
@@ -18188,7 +18187,7 @@ void pvplayer_async_test_multiple_instance::PrintMetadata()
             OSCL_HeapString<OsclMemAllocator> ostr;
             char buf[2];
             buf[1] = '\0';
-            for (uint32 j = 0;; j++)
+            for (uint32 j = 0;;j++)
             {
                 if (iMetadataValueList[i].value.pWChar_value[j] == '\0')
                     break;
@@ -18606,7 +18605,7 @@ void pvplayer_async_test_multiple_thread::ThreadSafeQueueDataAvailable(ThreadSaf
 {
     if (aQueue == &iThreadSafeCommandQueue)
     {
-        for (uint32 ndata = 1; ndata;)
+        for (uint32 ndata = 1;ndata;)
         {
             ThreadSafeQueueId id;
             OsclAny* data;
@@ -18621,7 +18620,7 @@ void pvplayer_async_test_multiple_thread::ThreadSafeQueueDataAvailable(ThreadSaf
     }
     if (aQueue == &iThreadSafeErrorQueue)
     {
-        for (uint32 ndata = 1; ndata;)
+        for (uint32 ndata = 1;ndata;)
         {
             ThreadSafeQueueId id;
             OsclAny* data;
@@ -18636,7 +18635,7 @@ void pvplayer_async_test_multiple_thread::ThreadSafeQueueDataAvailable(ThreadSaf
     }
     if (aQueue == &iThreadSafeInfoQueue)
     {
-        for (uint32 ndata = 1; ndata;)
+        for (uint32 ndata = 1;ndata;)
         {
             ThreadSafeQueueId id;
             OsclAny* data;
@@ -19042,7 +19041,7 @@ void pvplayer_async_test_multiple_thread::HandleInformationalEvent(const PVAsync
 
 void pvplayer_async_test_multiple_thread::PrintMetadata()
 {
-    for (uint32 i = 0; i < iMetadataValueList.size(); i++)
+    for (uint32 i = 0;i < iMetadataValueList.size();i++)
     {
         if (!iMetadataValueList[i].key)
         {
@@ -19057,7 +19056,7 @@ void pvplayer_async_test_multiple_thread::PrintMetadata()
             OSCL_HeapString<OsclMemAllocator> ostr;
             char buf[2];
             buf[1] = '\0';
-            for (uint32 j = 0;; j++)
+            for (uint32 j = 0;;j++)
             {
                 if (iMetadataValueList[i].value.pWChar_value[j] == '\0')
                     break;

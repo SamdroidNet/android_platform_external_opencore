@@ -64,12 +64,6 @@ class PVA_FF_AMRSampleEntry : public PVA_FF_SampleEntry
             }
         }
 
-        void setAudioEncodeParams(PVMP4FFComposerAudioEncodeParams &audioParams)
-        {
-            _reserved2 = audioParams.numberOfChannels;
-            _reserved3 = audioParams.bitsPerSample;
-        }
-
     private:
         virtual void recomputeSize();
         void init();

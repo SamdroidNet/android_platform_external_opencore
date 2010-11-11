@@ -30,7 +30,7 @@
 
 /*! \file oscl_file_native.h
     \brief The file oscl_file_native.h defines the class OsclNativeFile.
-    This is the porting layer for basic file I/O operations.
+	This is the porting layer for basic file I/O operations.
 */
 
 #ifndef OSCL_FILE_NATIVE_H_INCLUDED
@@ -122,8 +122,9 @@ class OsclNativeFile : public HeapBase
         void ReadAsyncCancel();
 
     private:
+/* SYS.LSI Start */
         int32 OpenFileOrSharedFd(const char *filename, const char *openmode);
-
+/* SYS.LSI End */
         //current open mode
         uint32 iMode;
 
@@ -132,13 +133,23 @@ class OsclNativeFile : public HeapBase
 
         //native file object.
         FILE* iFile;
+#if ENABLE_MEMORY_PLAYBACK
+        // memory block
+        void* membase;
+        long long memoffset;
+        long long memlen;
+        int mempos;
+        int memcpyfailed;
+#endif
 
+/* SYS.LSI Start */
 #ifdef ENABLE_SHAREDFD_PLAYBACK
         int  iSharedFd;
         long long iSharedFileOffset;
         long long iSharedFileSize;
         long long iSharedFilePosition;
 #endif
+/* SYS.LSI End */
 };
 
 #endif // OSCL_FILE_NATIVE_H_INCLUDED

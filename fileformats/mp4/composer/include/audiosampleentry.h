@@ -23,7 +23,6 @@
 
 #include "sampleentry.h"
 #include "esdatom.h"
-#include "a_atomdefs.h"
 
 
 class PVA_FF_AudioSampleEntry : public PVA_FF_SampleEntry
@@ -93,12 +92,6 @@ class PVA_FF_AudioSampleEntry : public PVA_FF_SampleEntry
         void writeMaxSampleSize(MP4_AUTHOR_FF_FILE_IO_WRAP *_afp)
         {
             _pes->writeMaxSampleSize(_afp);
-        }
-
-        void setAudioEncodeParams(PVMP4FFComposerAudioEncodeParams &audioParams)
-        {
-            _reserved2 = audioParams.numberOfChannels;
-            _reserved3 = audioParams.bitsPerSample;
         }
 
     private:

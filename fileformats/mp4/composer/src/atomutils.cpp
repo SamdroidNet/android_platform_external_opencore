@@ -235,9 +235,8 @@ PVA_FF_AtomUtils::renderByteData(MP4_AUTHOR_FF_FILE_IO_WRAP *fp, uint32 length, 
 void
 PVA_FF_AtomUtils::setTime(uint32 &ulTime)
 {
-    // 2082844800 is number of seconds from Jan 1, 1904 to Jan 1, 1970.
-    // time() returns the seconds since Jan 1, 1970.
-    ulTime = uint32(time(NULL) + 2082844800 );
+    // This fp not correct, it needs to adjust to base 1904 rather 1970.
+    ulTime = uint32(time(NULL));
 }
 
 
@@ -283,7 +282,7 @@ void PVA_FF_AtomUtils::seekToEnd(MP4_AUTHOR_FF_FILE_IO_WRAP *fp)
 
 void PVA_FF_AtomUtils::rewindFilePointerByN(MP4_AUTHOR_FF_FILE_IO_WRAP *fp, uint32 n)
 {
-    fp->_filePtr->Seek((-1 *(int32) n), Oscl_File::SEEKCUR);
+    fp->_filePtr->Seek((-1 * (int32) n), Oscl_File::SEEKCUR);
 }
 
 int32 PVA_FF_AtomUtils::getCurrentFilePosition(MP4_AUTHOR_FF_FILE_IO_WRAP *fp)

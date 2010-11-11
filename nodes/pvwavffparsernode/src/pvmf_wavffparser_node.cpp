@@ -626,7 +626,7 @@ bool PVMFWAVFFParserNode::RetrieveTrackData(PVWAVFFNodeTrackPortInfo& aTrackPort
     {
         if (errcode == OsclErrNoResources)
         {
-            aTrackPortInfo.iTrackDataMemoryPool->notifyfreechunkavailable(aTrackPortInfo);  // Enable flag to receive event when next deallocate() is called on pool
+            aTrackPortInfo.iTrackDataMemoryPool->notifyfreechunkavailable(aTrackPortInfo);	// Enable flag to receive event when next deallocate() is called on pool
             return false;
         }
         else if (errcode == OsclErrNoMemory)
@@ -665,7 +665,7 @@ bool PVMFWAVFFParserNode::RetrieveTrackData(PVWAVFFNodeTrackPortInfo& aTrackPort
 
     else
     {
-        aTrackPortInfo.iMediaDataMemPool->notifyfreechunkavailable(aTrackPortInfo);     // Enable flag to receive event when next deallocate() is called on pool
+        aTrackPortInfo.iMediaDataMemPool->notifyfreechunkavailable(aTrackPortInfo);		// Enable flag to receive event when next deallocate() is called on pool
         return false;
     }
 
@@ -1840,7 +1840,7 @@ PVMFStatus PVMFWAVFFParserNode::GetMediaPresentationInfo(PVMFMediaPresentationIn
 
     uint32 duration_sec = wavinfo.NumSamples / wavinfo.SampleRate;
     uint32 duration_msec = wavinfo.NumSamples % wavinfo.SampleRate;
-    uint32 duration = (duration_msec * 1000) / wavinfo.SampleRate + duration_sec * 1000 ;
+    uint32 duration = (duration_msec * 1000) / wavinfo.NumSamples + duration_sec * 1000 ;
 
     aInfo.setDurationValue(duration);
     // Current version of WAV parser is limited to 1 channel
@@ -1998,7 +1998,7 @@ void PVMFWAVFFParserNode::DoSetDataSourcePosition(PVMFWAVFFNodeCommand& aCmd)
     // see if targetNPT is greater than or equal to clip duration.
     uint32 duration_sec = wavinfo.NumSamples / wavinfo.SampleRate;
     uint32 duration_msec = wavinfo.NumSamples % wavinfo.SampleRate;
-    uint32 duration = (duration_msec * 1000) / wavinfo.SampleRate + duration_sec * 1000 ;
+    uint32 duration = (duration_msec * 1000) / wavinfo.NumSamples + duration_sec * 1000 ;
     uint32 tempTargetNPT = targetNPT;
     if (tempTargetNPT >= duration)
     {
@@ -2581,7 +2581,7 @@ PVMFStatus PVMFWAVFFParserNode::DoGetNodeMetadataValue(PVMFWAVFFNodeCommand& aCm
                     {
                         uint32 duration_sec = wavinfo.NumSamples / wavinfo.SampleRate;
                         uint32 duration_msec = wavinfo.NumSamples % wavinfo.SampleRate;
-                        uint32 duration = (duration_msec * 1000) / wavinfo.SampleRate + duration_sec * 1000 ;
+                        uint32 duration = (duration_msec * 1000) / wavinfo.NumSamples + duration_sec * 1000 ;
                         KeyVal.value.uint32_value = duration;
                     }
                     // Set the length and capacity
@@ -3077,7 +3077,7 @@ PVMFStatus PVMFWAVFFParserNode::PushBackMetadataKeys(PVMFMetadataList *&aKeyList
 {
     int32 leavecode = 0;
     OSCL_TRY(leavecode, aKeyListPtr->push_back(iAvailableMetadataKeys[aLcv]));
-    OSCL_FIRST_CATCH_ANY(leavecode, PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR, (0, "PVMFRMFFParserNode::DoGetMetadataKeys() Memory allocation failure when copying metadata key")); return PVMFErrNoMemory);
+    OSCL_FIRST_CATCH_ANY(leavecode,	PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR, (0, "PVMFRMFFParserNode::DoGetMetadataKeys() Memory allocation failure when copying metadata key"));return PVMFErrNoMemory);
 
     return PVMFSuccess;
 }

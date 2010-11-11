@@ -66,23 +66,55 @@
 #if USE_DYNAMIC_LOAD_OMX_COMPONENTS
 // until dynamic registry - register all components
 // unconditionally - may error out at load time
+/* Mobile Media Lab. Start */
+#if USE_DMC_OMX
+OMX_ERRORTYPE SMp4vdRegister();
+OMX_ERRORTYPE S264dRegister();
+OMX_ERRORTYPE S263dRegister();
+OMX_ERRORTYPE SVc1dRegister();
 
+OMX_ERRORTYPE SMp4veRegister();
+OMX_ERRORTYPE S263eRegister();
+OMX_ERRORTYPE S264eRegister();
+#else
 OMX_ERRORTYPE Mpeg4Register();
 OMX_ERRORTYPE H263Register();
 OMX_ERRORTYPE AvcRegister();
 OMX_ERRORTYPE WmvRegister();
-OMX_ERRORTYPE AacRegister();
-OMX_ERRORTYPE AmrRegister();
-OMX_ERRORTYPE Mp3Register();
-OMX_ERRORTYPE WmaRegister();
-
-OMX_ERRORTYPE AmrEncRegister();
 OMX_ERRORTYPE Mpeg4EncRegister();
 OMX_ERRORTYPE H263EncRegister();
 OMX_ERRORTYPE AvcEncRegister();
+#endif /* #if USE_DMC_OMX */
+/* Mobile Media Lab. End */
+OMX_ERRORTYPE AacRegister();
+OMX_ERRORTYPE AmrRegister();
+OMX_ERRORTYPE Mp3Register();
+OMX_ERRORTYPE Wma_ssRegister();
+OMX_ERRORTYPE Ac3Register();
+OMX_ERRORTYPE WmaRegister();
+OMX_ERRORTYPE G711Register();
+OMX_ERRORTYPE EvrcRegister();
+OMX_ERRORTYPE G729Register();
+
+OMX_ERRORTYPE AmrEncRegister();
+OMX_ERRORTYPE G711EncRegister();
 OMX_ERRORTYPE AacEncRegister();
+OMX_ERRORTYPE EvrcEncRegister();
+OMX_ERRORTYPE G729EncRegister();
+OMX_ERRORTYPE Mp3EncRegister();
 
+#else
 
+/* Mobile Media Lab. Start */
+#if USE_DMC_OMX
+OMX_ERRORTYPE SMp4vdRegister();
+OMX_ERRORTYPE S264dRegister();
+OMX_ERRORTYPE S263dRegister();
+OMX_ERRORTYPE SVc1dRegister();
+
+OMX_ERRORTYPE SMp4veRegister();
+OMX_ERRORTYPE S263eRegister();
+OMX_ERRORTYPE S264eRegister();
 #else
 
 #if REGISTER_OMX_M4V_COMPONENT
@@ -100,6 +132,19 @@ OMX_ERRORTYPE AvcRegister();
 #if REGISTER_OMX_WMV_COMPONENT
 OMX_ERRORTYPE WmvRegister();
 #endif
+#if REGISTER_OMX_M4VENC_COMPONENT
+OMX_ERRORTYPE Mpeg4EncRegister();
+#endif
+
+#if REGISTER_OMX_H263ENC_COMPONENT
+OMX_ERRORTYPE H263EncRegister();
+#endif
+
+#if REGISTER_OMX_AVCENC_COMPONENT
+OMX_ERRORTYPE AvcEncRegister();
+#endif
+#endif /* #if USE_DMC_OMX */
+/* Mobile Media Lab. End */
 
 #if REGISTER_OMX_AAC_COMPONENT
 OMX_ERRORTYPE AacRegister();
@@ -112,6 +157,24 @@ OMX_ERRORTYPE AmrRegister();
 #if REGISTER_OMX_MP3_COMPONENT
 OMX_ERRORTYPE Mp3Register();
 #endif
+#if REGISTER_OMX_WMA_SS_COMPONENT
+OMX_ERRORTYPE Wma_ssRegister();
+#endif
+#if REGISTER_OMX_AC3_COMPONENT
+OMX_ERRORTYPE Ac3Register();
+#endif
+
+#if REGISTER_OMX_G711_COMPONENT
+OMX_ERRORTYPE G711Register();
+#endif
+
+#if REGISTER_OMX_EVRC_COMPONENT
+OMX_ERRORTYPE EvrcRegister();
+#endif
+
+#if REGISTER_OMX_G729_COMPONENT
+OMX_ERRORTYPE G729Register();
+#endif
 
 #if REGISTER_OMX_WMA_COMPONENT
 OMX_ERRORTYPE WmaRegister();
@@ -121,16 +184,20 @@ OMX_ERRORTYPE WmaRegister();
 OMX_ERRORTYPE AmrEncRegister();
 #endif
 
-#if REGISTER_OMX_M4VENC_COMPONENT
-OMX_ERRORTYPE Mpeg4EncRegister();
+#if REGISTER_OMX_G711ENC_COMPONENT
+OMX_ERRORTYPE G711EncRegister();
 #endif
 
-#if REGISTER_OMX_H263ENC_COMPONENT
-OMX_ERRORTYPE H263EncRegister();
+#if REGISTER_OMX_EVRCENC_COMPONENT
+OMX_ERRORTYPE EvrcEncRegister();
 #endif
 
-#if REGISTER_OMX_AVCENC_COMPONENT
-OMX_ERRORTYPE AvcEncRegister();
+#if REGISTER_OMX_MP3ENC_COMPONENT
+OMX_ERRORTYPE Mp3EncRegister();
+#endif
+
+#if REGISTER_OMX_G729ENC_COMPONENT
+ OMX_ERRORTYPE G729EncRegister();
 #endif
 
 #if REGISTER_OMX_AACENC_COMPONENT
@@ -187,6 +254,37 @@ static OMX_ERRORTYPE _OMX_Init()
 
 #if USE_DYNAMIC_LOAD_OMX_COMPONENTS
 //unconditional registration
+
+	/* Mobile Media Lab. Start */
+#if USE_DMC_OMX
+	Status = SMp4vdRegister();
+	if (Status != OMX_ErrorNone)
+		return Status;
+
+	Status = S263dRegister();
+	if (Status != OMX_ErrorNone)
+		return Status;
+
+	Status = S264dRegister();
+	if (Status != OMX_ErrorNone)
+		return Status;	
+
+	Status = SVc1dRegister();
+	if (Status != OMX_ErrorNone)
+		return Status;	
+
+	Status = SMp4veRegister();
+	if (Status != OMX_ErrorNone)
+		return Status;	
+
+	Status = S263eRegister();
+	if (Status != OMX_ErrorNone)
+		return Status;	
+
+	Status = S264eRegister();
+	if (Status != OMX_ErrorNone)
+		return Status;	
+#else
     // MPEG4
     Status = Mpeg4Register();
     if (Status != OMX_ErrorNone)
@@ -208,6 +306,23 @@ static OMX_ERRORTYPE _OMX_Init()
     if (Status != OMX_ErrorNone)
         return Status;
 
+    //MPEG4 Encoder
+    Status = Mpeg4EncRegister();
+    if (Status != OMX_ErrorNone)
+        return Status;
+
+    //H263 Encoder
+    Status = H263EncRegister();
+    if (Status != OMX_ErrorNone)
+        return Status;
+
+    //H264/AVC Encoder
+    Status = AvcEncRegister();
+    if (Status != OMX_ErrorNone)
+        return Status;	
+#endif /* #if USE_DMC_OMX */
+/* Mobile Media Lab. End */
+
     // AAC
     Status = AacRegister();
     if (Status != OMX_ErrorNone)
@@ -222,6 +337,28 @@ static OMX_ERRORTYPE _OMX_Init()
     Status = Mp3Register();
     if (Status != OMX_ErrorNone)
         return Status;
+    Status = Wma_ssRegister();
+    if (Status != OMX_ErrorNone)
+        return Status;
+    Status = Ac3Register();
+    if (Status != OMX_ErrorNone)
+        return Status;
+
+	//G711    
+    Status = G711Register();
+    if (Status != OMX_ErrorNone)
+        return Status;
+	
+    // EVRC
+    Status = EvrcRegister();
+    if (Status != OMX_ErrorNone)
+        return Status;
+
+    // G729
+    Status = G729Register();
+    if (Status != OMX_ErrorNone)
+        return Status;
+
 
     // WMA
     Status = WmaRegister();
@@ -233,18 +370,23 @@ static OMX_ERRORTYPE _OMX_Init()
     if (Status != OMX_ErrorNone)
         return Status;
 
-    //MPEG4 Encoder
-    Status = Mpeg4EncRegister();
+    //G711 ENCODER
+    Status = G711EncRegister();
     if (Status != OMX_ErrorNone)
         return Status;
 
-    //H263 Encoder
-    Status = H263EncRegister();
+    //EVRC Encoder
+    Status = EvrcEncRegister();
     if (Status != OMX_ErrorNone)
         return Status;
 
-    //H264/AVC Encoder
-    Status = AvcEncRegister();
+    //G729 ENCODER
+    Status = G729EncRegister();
+    if (Status != OMX_ErrorNone)
+        return Status;
+
+    //MP3 ENCODER
+	Status = Mp3EncRegister();
     if (Status != OMX_ErrorNone)
         return Status;
 
@@ -256,6 +398,37 @@ static OMX_ERRORTYPE _OMX_Init()
 
 #else
     // REGISTER COMPONENT TYPES (ONE BY ONE)
+	/* Mobile Media Lab. Start */
+#if USE_DMC_OMX
+	Status = SMp4vdRegister();
+	if (Status != OMX_ErrorNone)
+        return Status;
+
+	Status = S263dRegister();
+	if (Status != OMX_ErrorNone)
+		return Status;
+
+	Status = S264dRegister();
+	if (Status != OMX_ErrorNone)
+		return Status;	
+
+	Status = SVc1dRegister();
+	if (Status != OMX_ErrorNone)
+		return Status;	
+
+	Status = SMp4veRegister();
+    if (Status != OMX_ErrorNone)
+        return Status;
+
+	Status = S263eRegister();
+	if (Status != OMX_ErrorNone)
+		return Status;	
+
+	Status = S264eRegister();
+	if (Status != OMX_ErrorNone)
+		return Status;	
+#else
+
 #if REGISTER_OMX_M4V_COMPONENT
     // MPEG4
     Status = Mpeg4Register();
@@ -284,6 +457,29 @@ static OMX_ERRORTYPE _OMX_Init()
         return Status;
 #endif
 
+#if REGISTER_OMX_M4VENC_COMPONENT
+    //MPEG4 Encoder
+    Status = Mpeg4EncRegister();
+    if (Status != OMX_ErrorNone)
+        return Status;
+#endif
+
+#if REGISTER_OMX_H263ENC_COMPONENT
+    //H263 Encoder
+    Status = H263EncRegister();
+    if (Status != OMX_ErrorNone)
+        return Status;
+#endif
+#if REGISTER_OMX_AVCENC_COMPONENT
+    //H264/AVC Encoder
+    Status = AvcEncRegister();
+    if (Status != OMX_ErrorNone)
+        return Status;
+#endif	
+
+#endif /* #if USE_DMC_OMX */
+/* Mobile Media Lab. End */
+
 #if REGISTER_OMX_AAC_COMPONENT
     // AAC
     Status = AacRegister();
@@ -305,6 +501,41 @@ static OMX_ERRORTYPE _OMX_Init()
         return Status;
 #endif
 
+#if REGISTER_OMX_WMA_SS_COMPONENT
+	// WMA_SS
+    Status = Wma_ssRegister();
+    if (Status != OMX_ErrorNone)
+        return Status;
+#endif
+
+#if REGISTER_OMX_AC3_COMPONENT
+    // AC3
+    Status = Ac3Register();
+    if (Status != OMX_ErrorNone)
+        return Status;
+#endif
+
+#if REGISTER_OMX_G711_COMPONENT
+    // G711
+    Status = G711Register();
+    if (Status != OMX_ErrorNone)
+        return Status;
+#endif
+
+#if REGISTER_OMX_EVRC_COMPONENT
+    // EVRC
+    Status = EvrcRegister();
+    if (Status != OMX_ErrorNone)
+        return Status;
+#endif
+
+#if REGISTER_OMX_G729_COMPONENT
+    // G729
+    Status = G729Register();
+    if (Status != OMX_ErrorNone)
+        return Status;
+#endif
+
 #if REGISTER_OMX_WMA_COMPONENT
     // WMA
     Status = WmaRegister();
@@ -319,24 +550,32 @@ static OMX_ERRORTYPE _OMX_Init()
         return Status;
 #endif
 
-#if REGISTER_OMX_M4VENC_COMPONENT
-    //MPEG4 Encoder
-    Status = Mpeg4EncRegister();
+#if REGISTER_OMX_G711ENC_COMPONENT
+    //G711 ENCODER
+    Status = G711EncRegister();
+    if (Status != OMX_ErrorNone)
+       return Status;
+#endif
+
+#if REGISTER_OMX_EVRCENC_COMPONENT
+    //EVRC ENCODER
+    Status = EvrcEncRegister();
     if (Status != OMX_ErrorNone)
         return Status;
 #endif
 
-#if REGISTER_OMX_H263ENC_COMPONENT
-    //H263 Encoder
-    Status = H263EncRegister();
+#if REGISTER_OMX_G729ENC_COMPONENT
+    //G729 ENCODER
+    Status = G729EncRegister();
     if (Status != OMX_ErrorNone)
-        return Status;
+       return Status;
 #endif
-#if REGISTER_OMX_AVCENC_COMPONENT
-    //H264/AVC Encoder
-    Status = AvcEncRegister();
+
+#if REGISTER_OMX_MP3ENC_COMPONENT
+    //MP3 ENCODER
+    Status = Mp3EncRegister();
     if (Status != OMX_ErrorNone)
-        return Status;
+       return Status;
 #endif
 
 #if REGISTER_OMX_AACENC_COMPONENT
@@ -359,14 +598,6 @@ static void _Try_OMX_Create(int32& aError, OMXGlobalData*& aData)
 {
     OSCL_TRY(aError, aData = OSCL_NEW(OMXGlobalData, ()););
 }
-
-#if (USE_DYNAMIC_LOAD_OMX_COMPONENTS == 0)
-// in case of static build - just redirect master omx core call to local pv core call
-OSCL_EXPORT_REF OMX_ERRORTYPE OMX_MasterInit()
-{
-    return OMX_Init();
-}
-#endif
 
 OSCL_EXPORT_REF OMX_ERRORTYPE OMX_Init()
 {
@@ -543,14 +774,6 @@ static void _Try_Data_Cleanup(int32 &aError, OMXGlobalData* aData)
     OSCL_TRY(aError, OSCL_DELETE(aData););
 }
 
-#if (USE_DYNAMIC_LOAD_OMX_COMPONENTS == 0)
-// in case of static build - just redirect master omx core call to local pv core call
-OSCL_EXPORT_REF OMX_ERRORTYPE OMX_MasterDeinit()
-{
-    return OMX_Deinit();
-}
-#endif
-
 OSCL_EXPORT_REF OMX_ERRORTYPE OMX_Deinit()
 {
     OMX_ERRORTYPE status = OMX_ErrorNone;
@@ -646,18 +869,6 @@ static void _Cleanup_Component(ProxyApplication_OMX* aProxyTerm, OMX_OUT OMX_HAN
     }
 
     OsclSingletonRegistry::registerInstanceAndUnlock(data, OSCL_SINGLETON_ID_OMX, error);
-}
-#endif
-
-#if (USE_DYNAMIC_LOAD_OMX_COMPONENTS == 0)
-// in case of static build - just redirect master omx core call to local pv core call
-OSCL_EXPORT_REF OMX_ERRORTYPE OMX_APIENTRY OMX_MasterGetHandle(OMX_OUT OMX_HANDLETYPE* pHandle,
-        OMX_IN  OMX_STRING cComponentName,
-        OMX_IN  OMX_PTR pAppData,
-        OMX_IN  OMX_CALLBACKTYPE* pCallBacks)
-{
-
-    return OMX_GetHandle(pHandle,cComponentName,pAppData,pCallBacks);
 }
 #endif
 
@@ -900,13 +1111,6 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OMX_APIENTRY OMX_GetHandle(OMX_OUT OMX_HANDLETYPE*
     return ErrorType;
 }
 
-#if (USE_DYNAMIC_LOAD_OMX_COMPONENTS == 0)
-// in case of static build - just redirect master omx core call to local pv core call
-OSCL_EXPORT_REF OMX_ERRORTYPE OMX_APIENTRY OMX_MasterFreeHandle(OMX_IN OMX_HANDLETYPE hComponent)
-{
-    return OMX_FreeHandle(hComponent);
-}
-#endif
 
 OSCL_EXPORT_REF OMX_ERRORTYPE OMX_APIENTRY OMX_FreeHandle(OMX_IN OMX_HANDLETYPE hComponent)
 {
@@ -1003,17 +1207,6 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OMX_APIENTRY OMX_FreeHandle(OMX_IN OMX_HANDLETYPE 
 
 }
 
-#if (USE_DYNAMIC_LOAD_OMX_COMPONENTS == 0)
-// in case of static build - just redirect master omx core call to local pv core call
-OSCL_EXPORT_REF OMX_ERRORTYPE OMX_APIENTRY OMX_MasterComponentNameEnum(
-    OMX_OUT OMX_STRING cComponentName,
-    OMX_IN  OMX_U32 nNameLength,
-    OMX_IN  OMX_U32 nIndex)
-{
-    return OMX_ComponentNameEnum(cComponentName,nNameLength,nIndex);
-}
-#endif
-
 //This is a method to be called directly under testapp thread
 OSCL_EXPORT_REF OMX_ERRORTYPE OMX_APIENTRY OMX_ComponentNameEnum(
     OMX_OUT OMX_STRING cComponentName,
@@ -1051,18 +1244,6 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OMX_APIENTRY OMX_ComponentNameEnum(
 
 }
 
-#if (USE_DYNAMIC_LOAD_OMX_COMPONENTS == 0)
-// in case of static build - just redirect master omx core call to local pv core call
-OSCL_EXPORT_REF OMX_ERRORTYPE OMX_MasterSetupTunnel(
-    OMX_IN  OMX_HANDLETYPE hOutput,
-    OMX_IN  OMX_U32 nPortOutput,
-    OMX_IN  OMX_HANDLETYPE hInput,
-    OMX_IN  OMX_U32 nPortInput)
-{
-    return OMX_SetupTunnel(hOutput,nPortOutput,hInput,nPortInput);
-}
-#endif
-
 OSCL_EXPORT_REF OMX_ERRORTYPE OMX_SetupTunnel(
     OMX_IN  OMX_HANDLETYPE hOutput,
     OMX_IN  OMX_U32 nPortOutput,
@@ -1077,15 +1258,6 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OMX_SetupTunnel(
 }
 
 
-#if (USE_DYNAMIC_LOAD_OMX_COMPONENTS == 0)
-// in case of static build - just redirect master omx core call to local pv core call
-OSCL_EXPORT_REF OMX_ERRORTYPE OMX_MasterGetContentPipe(
-    OMX_OUT OMX_HANDLETYPE *hPipe,
-    OMX_IN OMX_STRING szURI)
-{
-    return OMX_GetContentPipe(hPipe,szURI);
-}
-#endif
 
 OSCL_EXPORT_REF OMX_ERRORTYPE OMX_GetContentPipe(
     OMX_OUT OMX_HANDLETYPE *hPipe,
@@ -1101,17 +1273,6 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OMX_GetContentPipe(
 /////////////// Given a compName, find the component and then return its role(s)
 ///////////////// It's the caller's responsibility to provide enough space for the role(s)
 ////////////////////////////////////////////////////////////////////////////
-#if (USE_DYNAMIC_LOAD_OMX_COMPONENTS == 0)
-// in case of static build - just redirect master omx core call to local pv core call
-OSCL_EXPORT_REF OMX_ERRORTYPE OMX_MasterGetRolesOfComponent(
-    OMX_IN      OMX_STRING compName,
-    OMX_INOUT   OMX_U32* pNumRoles,
-    OMX_OUT     OMX_U8** roles)
-{
-    return OMX_GetRolesOfComponent(compName, pNumRoles, roles);
-}
-#endif
-
 OSCL_EXPORT_REF OMX_ERRORTYPE OMX_GetRolesOfComponent(
     OMX_IN      OMX_STRING compName,
     OMX_INOUT   OMX_U32* pNumRoles,
@@ -1169,21 +1330,10 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OMX_GetRolesOfComponent(
 //////////// so it may need to make the call twice. Once to find number of components, and 2nd time
 //////////// to find their actual names
 //////////////////////////////////////////////////////////////////////////////////
-#if (USE_DYNAMIC_LOAD_OMX_COMPONENTS == 0)
-// in case of static build - just redirect master omx core call to local pv core call
-OSCL_EXPORT_REF OMX_ERRORTYPE OMX_MasterGetComponentsOfRole(
-    OMX_IN      OMX_STRING role,
-    OMX_INOUT   OMX_U32 *pNumComps,
-    OMX_INOUT   OMX_U8  **compNames)
-{
-    return OMX_GetComponentsOfRole(role, pNumComps, compNames);
-}
-#endif
-
 OSCL_EXPORT_REF OMX_ERRORTYPE OMX_GetComponentsOfRole(
-    OMX_IN      OMX_STRING role,
-    OMX_INOUT   OMX_U32 *pNumComps,
-    OMX_INOUT   OMX_U8  **compNames)
+    OMX_IN		OMX_STRING role,
+    OMX_INOUT	OMX_U32	*pNumComps,
+    OMX_INOUT	OMX_U8	**compNames)
 {
     int32 error;
 

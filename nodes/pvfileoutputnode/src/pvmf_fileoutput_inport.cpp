@@ -282,7 +282,11 @@ bool PVMFFileOutputInPort::IsFormatSupported(PVMFFormatType aFmt)
             (aFmt == PVMF_MIME_PCM8) ||
             (aFmt == PVMF_MIME_PCM16) ||
             (aFmt == PVMF_MIME_YUV420) ||
-            (aFmt == PVMF_MIME_3GPP_TIMEDTEXT))
+            (aFmt == PVMF_MIME_3GPP_TIMEDTEXT) ||
+            (aFmt == PVMF_MIME_G711) ||
+            (aFmt == PVMF_MIME_EVRC) ||
+            (aFmt == PVMF_MIME_G729) ||
+            (aFmt == PVMF_MIME_MP3))
     {
         return true;
     }
@@ -343,7 +347,7 @@ OSCL_EXPORT_REF PVMFStatus PVMFFileOutputInPort::getParametersSync(PvmiMIOSessio
 
     if (pv_mime_strcmp(identifier, INPUT_FORMATS_CAP_QUERY) == 0)
     {
-        num_parameter_elements = 17;
+        num_parameter_elements = 21;
         status = AllocateKvp(parameters, (PvmiKeyType)INPUT_FORMATS_VALTYPE, num_parameter_elements);
         if (status != PVMFSuccess)
         {
@@ -368,6 +372,10 @@ OSCL_EXPORT_REF PVMFStatus PVMFFileOutputInPort::getParametersSync(PvmiMIOSessio
             parameters[14].value.pChar_value = (char*)PVMF_MIME_H264_VIDEO;
             parameters[15].value.pChar_value = (char*)PVMF_MIME_3GPP_TIMEDTEXT;
             parameters[16].value.pChar_value = (char*)PVMF_MIME_AMRWB_IETF;
+            parameters[17].value.pChar_value = (char*)PVMF_MIME_G711;
+            parameters[18].value.pChar_value = (char*)PVMF_MIME_EVRC;
+            parameters[19].value.pChar_value = (char*)PVMF_MIME_G729;
+            parameters[20].value.pChar_value = (char*)PVMF_MIME_MP3;
         }
     }
     else if (pv_mime_strcmp(identifier, INPUT_FORMATS_CUR_QUERY) == 0)

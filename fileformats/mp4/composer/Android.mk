@@ -39,7 +39,6 @@ LOCAL_SRC_FILES := \
  	src/mediainformationheaderatom.cpp \
  	src/movieatom.cpp \
  	src/movieheaderatom.cpp \
- 	src/mpeg4bitrateatom.cpp \
  	src/mpeg4file.cpp \
  	src/mpeg4mediaheaderatom.cpp \
  	src/mpegsampleentry.cpp \

@@ -16,7 +16,7 @@
  * -------------------------------------------------------------------
  */
 /*! \file oscl_file_native.cpp
-    \brief This file contains file io APIs
+	\brief This file contains file io APIs
 */
 
 #include "oscl_file_native.h"
@@ -24,19 +24,10 @@
 #include "oscl_utf8conv.h"
 #include "oscl_int64_utils.h"
 
-#ifdef ENABLE_SHAREDFD_PLAYBACK
-#undef LOG_TAG
-#define LOG_TAG "OsclNativeFile"
-#include <utils/Log.h>
-#endif
 #include "oscl_mem.h"
 #include "oscl_file_types.h"
 #include "oscl_file_handle.h"
 
-// FIXME:
-// Is 100 milliseconds a good choice for writing out a single
-// compressed video frame?
-static const int FILE_WRITER_SPEED_TOLERANCE_IN_MILLISECONDS = 100;
 
 OsclNativeFile::OsclNativeFile()
 {
@@ -44,10 +35,15 @@ OsclNativeFile::OsclNativeFile()
     iMode = 0;
 
     iFile = 0;
+#if ENABLE_MEMORY_PLAYBACK
+    membase = NULL;
+#endif
+
+/* SYS.LSI Start */
 #ifdef ENABLE_SHAREDFD_PLAYBACK
     iSharedFd = -1;
 #endif
-
+/* SYS.LSI End */
 }
 
 OsclNativeFile::~OsclNativeFile()
@@ -74,53 +70,9 @@ int32  OsclNativeFile::Open(const OsclFileHandle& aHandle, uint32 mode
     return 0;
 }
 
-static void OpenModeToString(uint32 mode, char mode_str[4])
-{
-    uint32 index = 0;
-
-    if (mode & Oscl_File::MODE_READWRITE)
-    {
-        if (mode & Oscl_File::MODE_APPEND)
-        {
-            mode_str[index++] = 'a';
-            mode_str[index++] = '+';
-        }
-        else
-        {
-            mode_str[index++] = 'w';
-            mode_str[index++] = '+';
-        }
-    }
-    else if (mode & Oscl_File::MODE_APPEND)
-    {
-        mode_str[index++] = 'a';
-        mode_str[index++] = '+';
-    }
-    else if (mode & Oscl_File::MODE_READ)
-    {
-        mode_str[index++] = 'r';
-    }
-    else if (mode & Oscl_File::MODE_READ_PLUS)
-    {
-        mode_str[index++] = 'r';
-        mode_str[index++] = '+';
-    }
-
-    if (mode & Oscl_File::MODE_TEXT)
-    {
-        mode_str[index++] = 't';
-    }
-    else
-    {
-        mode_str[index++] = 'b';
-    }
-
-    mode_str[index++] = '\0';
-}
-
+/* SYS.LSI Start */
 int32 OsclNativeFile::OpenFileOrSharedFd(
-    const char *filename, const char *openmode)
-{
+        const char *filename, const char *openmode) {
 #ifdef ENABLE_SHAREDFD_PLAYBACK
     int fd;
     long long offset;
@@ -146,6 +98,7 @@ int32 OsclNativeFile::OpenFileOrSharedFd(
 
     return 0;
 }
+/* SYS.LSI End */
 
 int32 OsclNativeFile::Open(const oscl_wchar *filename, uint32 mode
                            , const OsclNativeFileParams& params
@@ -161,8 +114,48 @@ int32 OsclNativeFile::Open(const oscl_wchar *filename, uint32 mode
         if (!filename || *filename == '\0') return -1; // Null string not supported in fopen, error out
 
         char openmode[4];
+        uint32 index = 0;
 
-        OpenModeToString(mode, openmode);
+        if (mode & Oscl_File::MODE_READWRITE)
+        {
+            if (mode & Oscl_File::MODE_APPEND)
+            {
+                openmode[index++] = 'a';
+                openmode[index++] = '+';
+            }
+            else
+            {
+                openmode[index++] = 'w';
+                openmode[index++] = '+';
+            }
+        }
+        else if (mode & Oscl_File::MODE_APPEND)
+        {
+            openmode[index++] = 'a';
+            openmode[index++] = '+';
+        }
+        else if (mode & Oscl_File::MODE_READ)
+        {
+            openmode[index++] = 'r';
+        }
+        else if (mode & Oscl_File::MODE_READ_PLUS)
+        {
+            openmode[index++] = 'r';
+            openmode[index++] = '+';
+        }
+
+
+
+        if (mode & Oscl_File::MODE_TEXT)
+        {
+            openmode[index++] = 't';
+        }
+        else
+        {
+            openmode[index++] = 'b';
+        }
+
+        openmode[index++] = '\0';
 
 #ifdef _UNICODE
         oscl_wchar convopenmode[4];
@@ -182,9 +175,27 @@ int32 OsclNativeFile::Open(const oscl_wchar *filename, uint32 mode
         {
             return -1;
         }
-        return OpenFileOrSharedFd(convfilename, openmode);
+#if ENABLE_MEMORY_PLAYBACK
+        void* base;
+        long long offset;
+        long long len;
+        if (sscanf(convfilename, "mem://%p:%lld:%lld", &base, &offset, &len) == 3)
+        {
+            membase = base;
+            memoffset = offset;
+            memlen = len;
+            mempos = 0;
+        }
+        else
 #endif
+        {
+/* SYS.LSI Start */
+            return OpenFileOrSharedFd(convfilename, openmode);
+/* SYS.LSI End */
+        }
+        return 0;
     }
+#endif
 
 }
 
@@ -195,16 +206,75 @@ int32 OsclNativeFile::Open(const char *filename, uint32 mode
     iMode = mode;
     iOpenFileHandle = false;
 
-    OSCL_UNUSED_ARG(fileserv);
-    OSCL_UNUSED_ARG(params);
+    {
+        OSCL_UNUSED_ARG(fileserv);
+        OSCL_UNUSED_ARG(params);
 
-    if (!filename || *filename == '\0') return -1; // Null string not supported in fopen, error out
+        if (!filename || *filename == '\0') return -1; // Null string not supported in fopen, error out
 
-    char openmode[4];
+        char openmode[4];
+        uint32 index = 0;
 
-    OpenModeToString(mode, openmode);
+        if (mode & Oscl_File::MODE_READWRITE)
+        {
+            if (mode & Oscl_File::MODE_APPEND)
+            {
+                openmode[index++] = 'a';
+                openmode[index++] = '+';
+            }
+            else
+            {
+                openmode[index++] = 'w';
+                openmode[index++] = '+';
 
-    return OpenFileOrSharedFd(filename, openmode);
+            }
+        }
+        else if (mode & Oscl_File::MODE_APPEND)
+        {
+            openmode[index++] = 'a';
+            openmode[index++] = '+';
+        }
+        else if (mode & Oscl_File::MODE_READ)
+        {
+            openmode[index++] = 'r';
+        }
+        else if (mode & Oscl_File::MODE_READ_PLUS)
+        {
+            openmode[index++] = 'r';
+            openmode[index++] = '+';
+        }
+
+        if (mode & Oscl_File::MODE_TEXT)
+        {
+            openmode[index++] = 't';
+        }
+        else
+        {
+            openmode[index++] = 'b';
+        }
+
+        openmode[index++] = '\0';
+#if ENABLE_MEMORY_PLAYBACK
+        void* base;
+        long long offset;
+        long long len;
+        if (sscanf(filename, "mem://%p:%lld:%lld", &base, &offset, &len) == 3)
+        {
+            membase = (void*)base;
+            memoffset = offset;
+            memlen = len;
+            mempos = 0;
+        }
+        else
+#endif
+        {
+/* SYS.LSI Start */
+	    return OpenFileOrSharedFd(filename, openmode);
+/* SYS.LSI End */
+        }
+
+        return 0;
+    }
 
 }
 
@@ -242,6 +312,7 @@ int32 OsclNativeFile::Close()
             closeret = fclose(iFile);
             iFile = NULL;
         }
+/* SYS.LSI Start */
 #ifdef ENABLE_SHAREDFD_PLAYBACK
         else if (iSharedFd >= 0)
         {
@@ -249,6 +320,14 @@ int32 OsclNativeFile::Close()
             // since it might still be shared by another OsclFileNative, and
             // will be closed by the playerdriver when we're done with it.
             closeret = 0;
+        }
+#endif
+/* SYS.LSI End */
+#if ENABLE_MEMORY_PLAYBACK
+        else if (membase != NULL)
+        {
+            membase = NULL;
+            return 0;
         }
 #endif
         else
@@ -260,35 +339,51 @@ int32 OsclNativeFile::Close()
     return closeret;
 }
 
-
 uint32 OsclNativeFile::Read(OsclAny *buffer, uint32 size, uint32 numelements)
 {
+/* SYS.LSI Start */
 #ifdef ENABLE_SHAREDFD_PLAYBACK
-    if (iSharedFd >= 0)
-    {
+    if (iSharedFd >= 0) {
         // restore position, no locking is needed because all access to the
         // shared filedescriptor is done by the same thread.
         lseek64(iSharedFd, iSharedFilePosition + iSharedFileOffset, SEEK_SET);
         uint32 count = size * numelements;
-        if (iSharedFilePosition + count > iSharedFileSize)
-        {
+        if (iSharedFilePosition + count > iSharedFileSize) {
             count = iSharedFileSize - iSharedFilePosition;
         }
         ssize_t numread = read(iSharedFd, buffer, count);
         // unlock
         long long curpos = lseek64(iSharedFd, 0, SEEK_CUR);
-        if (curpos >= 0)
-        {
+        if (curpos >= 0) {
             iSharedFilePosition = curpos - iSharedFileOffset;
         }
-        if (numread < 0)
-        {
+        if (numread < 0) {
             return numread;
         }
         return numread / size;
     }
 #endif
+/* SYS.LSI End */
 
+#if ENABLE_MEMORY_PLAYBACK
+    if (membase)
+    {
+        int req = size * numelements;
+        if (mempos + req > memlen)
+        {
+            req = memlen - mempos;
+        }
+
+        memcpyfailed = 0;
+        memcpy(buffer, ((char*)membase) + memoffset + mempos, req);
+        if (memcpyfailed)
+        {
+            return 0;
+        }
+        mempos += req;
+        return req / size;
+    }
+#endif
     if (iFile)
     {
         return fread(buffer, OSCL_STATIC_CAST(int32, size), OSCL_STATIC_CAST(int32, numelements), iFile);
@@ -323,21 +418,19 @@ uint32 OsclNativeFile::GetReadAsyncNumElements()
 
 uint32 OsclNativeFile::Write(const OsclAny *buffer, uint32 size, uint32 numelements)
 {
+/* SYS.LSI Start */
 #ifdef ENABLE_SHAREDFD_PLAYBACK
     if (iSharedFd >= 0)
         return 0;
 #endif
+/* SYS.LSI End */
+#if ENABLE_MEMORY_PLAYBACK
+    if (membase)
+        return 0;
+#endif
     if (iFile)
     {
-        struct timeval startTimeVal, endTimeVal;
-        gettimeofday(&startTimeVal, NULL);
-        uint32 items = fwrite(buffer, OSCL_STATIC_CAST(int32, size), OSCL_STATIC_CAST(int32, numelements), iFile);
-        gettimeofday(&endTimeVal, NULL);
-        long long timeInMicroSeconds = (endTimeVal.tv_sec - startTimeVal.tv_sec) * 1000000LL + (endTimeVal.tv_usec - startTimeVal.tv_usec);
-        if (timeInMicroSeconds/1000 > FILE_WRITER_SPEED_TOLERANCE_IN_MILLISECONDS) {
-            LOGW("writing %d bytes takes too long (%lld micro seconds)", items, timeInMicroSeconds);
-        }
-        return items;
+        return fwrite(buffer, OSCL_STATIC_CAST(int32, size), OSCL_STATIC_CAST(int32, numelements), iFile);
     }
     return 0;
 }
@@ -346,6 +439,7 @@ int32 OsclNativeFile::Seek(TOsclFileOffset offset, Oscl_File::seek_type origin)
 {
 
     {
+/* SYS.LSI Start */
 #ifdef ENABLE_SHAREDFD_PLAYBACK
         if (iSharedFd >= 0)
         {
@@ -358,6 +452,25 @@ int32 OsclNativeFile::Seek(TOsclFileOffset offset, Oscl_File::seek_type origin)
             if (newpos > iSharedFileSize) // is this valid?
                 newpos = iSharedFileSize;
             iSharedFilePosition = newpos;
+            return 0;
+        }
+#endif
+/* SYS.LSI End */
+#if ENABLE_MEMORY_PLAYBACK
+        if (membase)
+        {
+            int newpos = mempos;
+            if (origin == Oscl_File::SEEKCUR)
+                newpos = mempos + offset;
+            else if (origin == Oscl_File::SEEKSET)
+                newpos = offset;
+            else if (origin == Oscl_File::SEEKEND)
+                newpos = memlen + offset;
+            if (newpos < 0)
+                return EINVAL;
+            if (newpos > memlen) // is this valid?
+                newpos = memlen;
+            mempos = newpos;
             return 0;
         }
 #endif
@@ -385,9 +498,17 @@ int32 OsclNativeFile::Seek(TOsclFileOffset offset, Oscl_File::seek_type origin)
 TOsclFileOffset OsclNativeFile::Tell()
 {
     TOsclFileOffset result = -1;
+/* SYS.LSI Start */
 #ifdef ENABLE_SHAREDFD_PLAYBACK
     if (iSharedFd >= 0)
         return iSharedFilePosition;
+#endif
+/* SYS.LSI End */
+#if ENABLE_MEMORY_PLAYBACK
+    if (membase)
+    {
+        result = mempos;
+    }
 #endif
     if (iFile)
     {
@@ -404,9 +525,10 @@ TOsclFileOffset OsclNativeFile::Tell()
 
 int32 OsclNativeFile::Flush()
 {
-#ifdef ENABLE_SHAREDFD_PLAYBACK
-    if (iSharedFd >= 0)
-        return iSharedFilePosition >= iSharedFileSize;
+
+#if ENABLE_MEMORY_PLAYBACK
+    if (membase)
+        return 0;
 #endif
     if (iFile)
         return fflush(iFile);
@@ -417,9 +539,15 @@ int32 OsclNativeFile::Flush()
 
 int32 OsclNativeFile::EndOfFile()
 {
+/* SYS.LSI Start */
 #ifdef ENABLE_SHAREDFD_PLAYBACK
     if (iSharedFd >= 0)
         return iSharedFilePosition >= iSharedFileSize;
+#endif
+/* SYS.LSI End */
+#if ENABLE_MEMORY_PLAYBACK
+    if (membase)
+        return mempos >= memlen;
 #endif
     if (iFile)
         return feof(iFile);
@@ -429,7 +557,10 @@ int32 OsclNativeFile::EndOfFile()
 
 int32 OsclNativeFile::GetError()
 {
-//FIXME ENABLE_SHAREDFD_PLAYBACK
+#if ENABLE_MEMORY_PLAYBACK
+    if (membase)
+        return 0;
+#endif
     if (iFile)
         return ferror(iFile);
     return 0;

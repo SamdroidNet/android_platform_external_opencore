@@ -24,18 +24,8 @@
 #endif
 
 #include "pv_omx_config_parser.h"
-#include "pv_omxcore.h"
 
-#if (USE_DYNAMIC_LOAD_OMX_COMPONENTS == 0)
-// in case of static build - just redirect master omx core call to local pv core call
-OSCL_EXPORT_REF OMX_BOOL OMX_MasterConfigParser(
-    OMX_PTR aInputParameters,
-    OMX_PTR aOutputParameters)
 
-{
-    return OMXConfigParser(aInputParameters, aOutputParameters);
-}
-#endif
 
 OSCL_EXPORT_REF OMX_BOOL OMXConfigParser(
     OMX_PTR aInputParameters,
@@ -85,6 +75,26 @@ OSCL_EXPORT_REF OMX_BOOL OMXConfigParser(
             else if (0 == oscl_strcmp(pInputs->cComponentRole, (OMX_STRING)"audio_decoder.mp3"))
             {
                 aInputs.iMimeType = PVMF_MIME_MP3;
+
+            }
+            else if (0 == oscl_strcmp(pInputs->cComponentRole, (OMX_STRING)"audio_decoder.ac3"))
+            {
+                aInputs.iMimeType = PVMF_MIME_AC3;
+
+            }
+            else if (0 == oscl_strcmp(pInputs->cComponentRole, (OMX_STRING)"audio_decoder.g711"))
+            {
+                aInputs.iMimeType = PVMF_MIME_G711;
+                
+            }
+            else if (0 == oscl_strcmp(pInputs->cComponentRole, (OMX_STRING)"audio_decoder.evrc"))
+            {
+                aInputs.iMimeType = PVMF_MIME_EVRC;
+
+            }
+            else if (0 == oscl_strcmp(pInputs->cComponentRole, (OMX_STRING)"audio_decoder.g729"))
+			{
+			    aInputs.iMimeType = PVMF_MIME_G729;
 
             }
             else

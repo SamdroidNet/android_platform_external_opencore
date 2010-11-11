@@ -77,11 +77,12 @@ OSCL_EXPORT_REF int32 OsclRegistryClient::Register(OSCL_String& aComp, OsclCompo
     if (iTlsImpl)
         return iTlsImpl->Register(aComp, aFac);
 
-    else if (iGlobalImpl)
-        return iGlobalImpl->Register(aComp, aFac);
-
     else
-        return OsclErrInvalidState;
+        if (iGlobalImpl)
+            return iGlobalImpl->Register(aComp, aFac);
+
+        else
+            return OsclErrInvalidState;
 }
 
 OSCL_EXPORT_REF int32 OsclRegistryClient::UnRegister(OSCL_String& aComp)
@@ -89,11 +90,12 @@ OSCL_EXPORT_REF int32 OsclRegistryClient::UnRegister(OSCL_String& aComp)
     if (iTlsImpl)
         return iTlsImpl->UnRegister(aComp);
 
-    else if (iGlobalImpl)
-        return iGlobalImpl->UnRegister(aComp);
-
     else
-        return OsclErrInvalidState;
+        if (iGlobalImpl)
+            return iGlobalImpl->UnRegister(aComp);
+
+        else
+            return OsclErrInvalidState;
 }
 
 OSCL_EXPORT_REF void OsclRegistryClient::Close()
@@ -104,12 +106,13 @@ OSCL_EXPORT_REF void OsclRegistryClient::Close()
         OSCL_DELETE(iTlsImpl);
         iTlsImpl = NULL;
     }
-    else if (iGlobalImpl)
-    {
-        iGlobalImpl->Close();
-        OSCL_DELETE(iGlobalImpl);
-        iGlobalImpl = NULL;
-    }
+    else
+        if (iGlobalImpl)
+        {
+            iGlobalImpl->Close();
+            OSCL_DELETE(iGlobalImpl);
+            iGlobalImpl = NULL;
+        }
 }
 
 

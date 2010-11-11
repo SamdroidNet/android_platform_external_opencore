@@ -249,7 +249,7 @@ void PVA_FF_SampleDescriptionAtom::addTextDecoderSpecificInfo(PVA_FF_TextSampleD
                 }
                 else
                 {
-                    for (uint32 kk = 0; kk < _SDIndex.size(); kk++)
+                    for (uint32 kk = 0;kk < _SDIndex.size();kk++)
                     {
                         if (_SDIndex[kk] == pinfo->sdindex)
                         {
@@ -320,9 +320,10 @@ PVA_FF_SampleDescriptionAtom::addDecoderSpecificInfo(PVA_FF_DecoderSpecificInfo 
     }
 }
 
+
 // Stream properties
 void
-PVA_FF_SampleDescriptionAtom::setTargetBitrate(uint32 avgBitrate, uint32 maxBitRate, uint32 bufferSizeDB)
+PVA_FF_SampleDescriptionAtom::setTargetBitrate(uint32 bitrate)
 {
     switch (_mediaType)
     {
@@ -332,33 +333,25 @@ PVA_FF_SampleDescriptionAtom::setTargetBitrate(uint32 avgBitrate, uint32 maxBitR
             if (type == VIDEO_SAMPLE_ENTRY)
             {
                 PVA_FF_VisualSampleEntry *ventry = (PVA_FF_VisualSampleEntry*) getSampleEntryAt(0);
-                ventry->setTargetBitrate(avgBitrate);
+                ventry->setTargetBitrate(bitrate);
             }
             else if (type == H263_SAMPLE_ENTRY)
             {
                 PVA_FF_H263SampleEntry *hentry = (PVA_FF_H263SampleEntry*) getSampleEntryAt(0);
                 PVA_FF_H263SpecficAtom *pH263info =
                     (PVA_FF_H263SpecficAtom *)(hentry->get3GPPDecoderSpecificInfo());
-                pH263info->_ph263_decbitrateatom->setAvgBitrate(avgBitrate);
-                pH263info->_ph263_decbitrateatom->setMaxBitrate(avgBitrate);
-            }
-            else if (type == AVC_SAMPLE_ENTRY)
-            {
-                PVA_FF_AVCSampleEntry* videoentry = OSCL_STATIC_CAST(PVA_FF_AVCSampleEntry*, getSampleEntryAt(0));
-                if (videoentry)
-                {
-                    videoentry->setBitrate(bufferSizeDB, maxBitRate, avgBitrate);
-                }
+                pH263info->_ph263_decbitrateatom->setAvgBitrate(bitrate);
+                pH263info->_ph263_decbitrateatom->setMaxBitrate(bitrate);
             }
             break;
         }
         case MEDIA_TYPE_AUDIO:
         {
-            _currAudioBitrate = avgBitrate;
+            _currAudioBitrate = bitrate;
             if (_codecType == CODEC_TYPE_AAC_AUDIO)
             {
                 PVA_FF_AudioSampleEntry *entry = (PVA_FF_AudioSampleEntry*) getSampleEntryAt(0);
-                entry->setTargetBitrate(avgBitrate);
+                entry->setTargetBitrate(bitrate);
             }
             break;
         }
@@ -811,38 +804,3 @@ PVA_FF_SampleDescriptionAtom::writeMaxSampleSize(MP4_AUTHOR_FF_FILE_IO_WRAP *_af
         }
     }
 }
-
-void
-PVA_FF_SampleDescriptionAtom::setAudioEncodeParams(PVMP4FFComposerAudioEncodeParams &audioParams)
-{
-    switch (_mediaType)
-    {
-        case MEDIA_TYPE_AUDIO:
-        {
-            if (_codecType == CODEC_TYPE_AAC_AUDIO)
-            {
-                PVA_FF_AudioSampleEntry *entry = (PVA_FF_AudioSampleEntry*) getSampleEntryAt(0);
-                if (entry)
-                {
-                    entry->setAudioEncodeParams(audioParams);
-                }
-            }
-            else if (_codecType == CODEC_TYPE_AMR_AUDIO ||
-                     _codecType == CODEC_TYPE_AMR_WB_AUDIO)
-            {
-                PVA_FF_AMRSampleEntry *entry = (PVA_FF_AMRSampleEntry *)(getSampleEntryAt(0));
-                if (entry)
-                {
-                    entry->setAudioEncodeParams(audioParams);
-                }
-            }
-        }
-        default:
-            break;
-    }
-}
-
-
-
-
-

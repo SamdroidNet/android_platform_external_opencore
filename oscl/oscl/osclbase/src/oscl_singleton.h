@@ -113,32 +113,26 @@ class OsclSingletonRegistry
         typedef registry_type* registry_pointer_type;
 
     private:
-        // FIXME:
-        // these methods are obsolete and can be removed
-        OSCL_IMPORT_REF static void initialize(Oscl_DefAlloc &alloc, int32 &error)
-        {
-            error = 0;
-        }
-        OSCL_IMPORT_REF static void cleanup(Oscl_DefAlloc &alloc, int32 &error)
-        {
-            error = 0;
-        }
+        OSCL_IMPORT_REF static void initialize(Oscl_DefAlloc &alloc, int32 &error);
+        OSCL_IMPORT_REF static void cleanup(Oscl_DefAlloc &alloc, int32 &error);
         friend class OsclBase;
 
     private:
         class SingletonTable
         {
             public:
-                SingletonTable()
+                SingletonTable(): iRefCount(0)
                 {
-                    for (uint32 i = 0; i < OSCL_SINGLETON_ID_LAST; i++)
+                    for (uint32 i = 0;i < OSCL_SINGLETON_ID_LAST;i++)
                         iSingletons[i] = NULL;
                 }
+                _OsclBasicLock iTableLock;
+                uint32 iRefCount;
                 OsclAny* iSingletons[OSCL_SINGLETON_ID_LAST];
                 _OsclBasicLock iSingletonLocks[OSCL_SINGLETON_ID_LAST];
         };
         //The singleton table is a global variable.
-        static SingletonTable sSingletonTable;
+        static SingletonTable* iSingletonTable;
 };
 
 template < class T, uint32 ID, class Registry = OsclSingletonRegistry > class OsclSingleton

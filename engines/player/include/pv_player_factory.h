@@ -60,8 +60,7 @@ class PVPlayerFactory
          **/
         OSCL_IMPORT_REF static PVPlayerInterface* CreatePlayer(PVCommandStatusObserver* aCmdStatusObserver,
                 PVErrorEventObserver *aErrorEventObserver,
-                PVInformationalEventObserver *aInfoEventObserver,
-                bool aHwAccelerated = true);
+                PVInformationalEventObserver *aInfoEventObserver);
         /**
          * This function allows the application to delete an instance of a pvPlayer
          * and reclaim all allocated resources.  A player can be deleted only in

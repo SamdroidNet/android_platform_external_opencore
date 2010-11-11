@@ -1,0 +1,9 @@
+#ifndef _AUTHORDRIVER_MSG_H
+#define _AUTHORDRIVER_MSG_H
+
+#define S_AUTHOR_CMD 200
+
+#define S_AUTHOR_SET_BITRATE 1
+
+#endif // _AUTHORDRIVER_MSG_H
+

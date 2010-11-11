@@ -113,7 +113,6 @@ class OsclTLSRegistry
         {}
         typedef OsclAny* registry_type;
         typedef registry_type* registry_pointer_type;
-        static _OsclBasicLock sLock;  // lock the TLS registry and key
 
 #if ( OSCL_TLS_IS_KEYED)
         class TlsKey
@@ -121,6 +120,7 @@ class OsclTLSRegistry
             public:
                 TlsKey(): iRefCnt(0), iOsclTlsKey(NULL)
                 {}
+                _OsclBasicLock iLock;
                 uint32 iRefCnt;
                 TOsclTlsKey *iOsclTlsKey;
         };

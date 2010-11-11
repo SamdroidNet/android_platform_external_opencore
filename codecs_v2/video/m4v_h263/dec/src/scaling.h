@@ -23,7 +23,7 @@ extern "C"
 
     extern const int32 scale[63];
 
-#define PV_GET_ROW(a,b) ((a) / (b))
+#define PV_GET_ROW(a,b) ((a) * scale[(b)] >> 18)
 
     /*----------------------------------------------------------------------------
     ; SIMPLE TYPEDEF'S

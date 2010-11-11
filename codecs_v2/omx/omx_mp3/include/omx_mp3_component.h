@@ -16,8 +16,8 @@
  * -------------------------------------------------------------------
  */
 /**
-    @file omx_mp3_component.h
-    OpenMax decoder_component component.
+	@file omx_mp3_component.h
+	OpenMax decoder_component component.
 
 */
 
@@ -39,11 +39,11 @@
 
 
 
-#define INPUT_BUFFER_SIZE_MP3 8192
+#define INPUT_BUFFER_SIZE_MP3 1024*100
 #define OUTPUT_BUFFER_SIZE_MP3 4608
 
-#define NUMBER_INPUT_BUFFER_MP3  10
-#define NUMBER_OUTPUT_BUFFER_MP3  9
+#define NUMBER_INPUT_BUFFER_MP3   5
+#define NUMBER_OUTPUT_BUFFER_MP3  4
 
 
 class OpenmaxMp3AO : public OmxComponentAudio
@@ -75,7 +75,7 @@ class OpenmaxMp3AO : public OmxComponentAudio
         void CheckForSilenceInsertion();
         void DoSilenceInsertion();
 
-        Mp3Decoder*      ipMp3Dec;
+        Mp3Decoder* 	 ipMp3Dec;
         Mp3TimeStampCalc iCurrentFrameTS;
 
 

@@ -55,20 +55,20 @@
 #define PVMF_JBNODE_LOG_EVENTS_CLOCK(m) PVLOGGER_LOGMSG(PVLOGMSG_INST_MLDBG,ipJBEventsClockLogger ,PVLOGMSG_INFO,m);
 #define PVMF_JBNODE_LOG_RTCP_AVSYNC(m) PVLOGGER_LOGMSG(PVLOGMSG_INST_REL,ipRTCPAVSyncLogger,PVLOGMSG_INFO,m);
 
-#define PVMF_JITTER_BUFFER_NEW(auditCB,T,params,ptr)    \
-    {                                                   \
-        ptr = OSCL_NEW(T,params);                       \
-    }
+#define PVMF_JITTER_BUFFER_NEW(auditCB,T,params,ptr)\
+{\
+ptr = OSCL_NEW(T,params);\
+}
 
-#define PVMF_JITTER_BUFFER_DELETE(auditCB,T,ptr)    \
-    {                                               \
-        OSCL_DELETE(ptr);                           \
-    }
+#define PVMF_JITTER_BUFFER_DELETE(auditCB,T,ptr)\
+{\
+OSCL_DELETE(ptr);\
+}
 
-#define PVMF_JITTER_BUFFER_TEMPLATED_DELETE(auditCB, T, Tsimple, ptr)   \
-    {                                                                   \
-        OSCL_DELETE(ptr);                                               \
-    }
+#define PVMF_JITTER_BUFFER_TEMPLATED_DELETE(auditCB, T, Tsimple, ptr)\
+{\
+OSCL_DELETE(ptr);\
+}
 
 //Default vector reserve size
 #define PVMF_JITTER_BUFFER_VECTOR_RESERVE 10
@@ -122,8 +122,8 @@ typedef struct tagPVMFJBCommandContext
 class PVMFJitterBufferNode;
 
 class PVMFJitterBufferExtensionInterfaceImpl :
-        public PVInterfaceImpl<OsclMemAllocator>,
-        public PVMFJitterBufferExtensionInterface
+            public PVInterfaceImpl<OsclMemAllocator>,
+            public PVMFJitterBufferExtensionInterface
 {
     public:
         PVMFJitterBufferExtensionInterfaceImpl(PVMFJitterBufferNode*);
@@ -241,3 +241,5 @@ class PVMFJitterBufferExtensionInterfaceImpl :
 };
 
 #endif
+
+

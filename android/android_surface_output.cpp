@@ -19,7 +19,7 @@
 //#define LOG_NDEBUG 0
 #define LOG_TAG "VideoMIO"
 #include <utils/Log.h>
-#include <surfaceflinger/ISurface.h>
+#include <ui/ISurface.h>
 
 #include "android_surface_output.h"
 #include <media/PVPlayer.h>
@@ -36,6 +36,7 @@ OSCL_DLL_ENTRY_POINT_DEFAULT()
 //The factory functions.
 #include "oscl_mem.h"
 
+//#define FORCE_TO_SW_REDERING
 using namespace android;
 
 OSCL_EXPORT_REF AndroidSurfaceOutput::AndroidSurfaceOutput() :
@@ -45,34 +46,15 @@ OSCL_EXPORT_REF AndroidSurfaceOutput::AndroidSurfaceOutput() :
 
     iColorConverter = NULL;
     mInitialized = false;
-    mPvPlayer = NULL;
     mEmulation = false;
-    iEosReceived = false;
-    mNumberOfFramesToHold = 1;
+    mPvPlayer = NULL;
 }
 
 status_t AndroidSurfaceOutput::set(PVPlayer* pvPlayer, const sp<ISurface>& surface, bool emulation)
 {
     mPvPlayer = pvPlayer;
-    mEmulation = emulation;
-    setVideoSurface(surface);
-    return NO_ERROR;
-}
-
-status_t AndroidSurfaceOutput::setVideoSurface(const sp<ISurface>& surface)
-{
-    LOGV("setVideoSurface(%p)", surface.get());
-    // unregister buffers for the old surface
-    if (mSurface != NULL) {
-        LOGV("unregisterBuffers from old surface");
-        mSurface->unregisterBuffers();
-    }
     mSurface = surface;
-    // register buffers for the new surface
-    if ((mSurface != NULL) && (mBufferHeap.heap != NULL)) {
-        LOGV("registerBuffers from old surface");
-        mSurface->registerBuffers(mBufferHeap);
-    }
+    mEmulation = emulation;
     return NO_ERROR;
 }
 
@@ -115,28 +97,6 @@ bool AndroidSurfaceOutput::checkVideoParameterFlags()
     return (iVideoParameterFlags & VIDEO_PARAMETERS_MASK) == VIDEO_PARAMETERS_VALID;
 }
 
-/*
- * process the write response queue by sending writeComplete to the peer
- * (nominally the decoder node).
- *
- * numFramesToHold is the number of frames to be held in the MIO. During
- * playback, we hold the last frame which is used by SurfaceFlinger
- * to composite the final output.
- */
-void AndroidSurfaceOutput::processWriteResponseQueue(int numFramesToHold)
-{
-    LOGV("processWriteResponseQueue: queued = %d, numFramesToHold = %d",
-            iWriteResponseQueue.size(), numFramesToHold);
-    while (iWriteResponseQueue.size() > numFramesToHold) {
-        if (iPeer) {
-            iPeer->writeComplete(iWriteResponseQueue[0].iStatus,
-                    iWriteResponseQueue[0].iCmdId,
-                    (OsclAny*)iWriteResponseQueue[0].iContext);
-        }
-        iWriteResponseQueue.erase(&iWriteResponseQueue[0]);
-    }
-}
-
 void AndroidSurfaceOutput::Cleanup()
 //cleanup all allocated memory and release resources.
 {
@@ -147,11 +107,15 @@ void AndroidSurfaceOutput::Cleanup()
             iObserver->RequestCompleted(PVMFCmdResp(iCommandResponseQueue[0].iCmdId, iCommandResponseQueue[0].iContext, iCommandResponseQueue[0].iStatus));
         iCommandResponseQueue.erase(&iCommandResponseQueue[0]);
     }
-
-    processWriteResponseQueue(0);
+    while (!iWriteResponseQueue.empty())
+    {
+        if (iPeer)
+            iPeer->writeComplete(iWriteResponseQueue[0].iStatus,iWriteResponseQueue[0].iCmdId,(OsclAny*)iWriteResponseQueue[0].iContext);
+        iWriteResponseQueue.erase(&iWriteResponseQueue[0]);
+    }
 
     // We'll close frame buf and delete here for now.
-    closeFrameBuf();
+    CloseFrameBuf();
 
     PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE, (0,"AndroidSurfaceOutput::Cleanup() Out"));
  }
@@ -179,6 +143,7 @@ PVMFStatus AndroidSurfaceOutput::connect(PvmiMIOSession& aSession, PvmiMIOObserv
 
 PVMFStatus AndroidSurfaceOutput::disconnect(PvmiMIOSession aSession)
 {
+
     PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE, (0,"AndroidSurfaceOutput::disconnect() called"));
     //currently supports only one session
     iObserver=NULL;
@@ -287,7 +252,7 @@ PVMFCommandId AndroidSurfaceOutput:: Init(const OsclAny* aContext)
     return cmdid;
 }
 
-PVMFCommandId AndroidSurfaceOutput::Reset(const OsclAny* aContext)
+PVMFCommandId AndroidSurfaceOutput:: Reset(const OsclAny* aContext)
 {
     ResetData();
     PVMFCommandId cmdid=iCommandCounter++;
@@ -299,7 +264,6 @@ PVMFCommandId AndroidSurfaceOutput::Reset(const OsclAny* aContext)
 
 PVMFCommandId AndroidSurfaceOutput::Start(const OsclAny* aContext)
 {
-    iEosReceived = false;
     PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE, (0,"AndroidSurfaceOutput::Start() called"));
 
     PVMFCommandId cmdid=iCommandCounter++;
@@ -312,7 +276,6 @@ PVMFCommandId AndroidSurfaceOutput::Start(const OsclAny* aContext)
     case STATE_PAUSED:
 
         iState=STATE_STARTED;
-        processWriteResponseQueue(0);
         status=PVMFSuccess;
         break;
 
@@ -326,11 +289,8 @@ PVMFCommandId AndroidSurfaceOutput::Start(const OsclAny* aContext)
     return cmdid;
 }
 
-// post the last video frame to refresh screen after pause
 void AndroidSurfaceOutput::postLastFrame()
 {
-    // ignore if no surface or heap
-    if ((mSurface == NULL) || (mBufferHeap.heap == NULL)) return;
     mSurface->postBuffer(mFrameBuffers[mFrameBufferIndex]);
 }
 
@@ -352,8 +312,8 @@ PVMFCommandId AndroidSurfaceOutput::Pause(const OsclAny* aContext)
         // post last buffer to prevent stale data
         // if not configured, PVMFMIOConfigurationComplete is not sent
         // there should not be any media data.
-    if(iIsMIOConfigured) { 
-        postLastFrame();
+	    if(iIsMIOConfigured) { 
+            postLastFrame();
         }
         break;
 
@@ -404,7 +364,6 @@ PVMFCommandId AndroidSurfaceOutput::DiscardData(const OsclAny* aContext)
     //needed here.
 
     PVMFStatus status=PVMFSuccess;
-    processWriteResponseQueue(0);
 
     CommandResponse resp(status,cmdid,aContext);
     QueueCommandResponse(resp);
@@ -423,7 +382,6 @@ PVMFCommandId AndroidSurfaceOutput::DiscardData(PVMFTimestamp aTimestamp, const 
     //needed here.
 
     PVMFStatus status=PVMFSuccess;
-    processWriteResponseQueue(0);
 
     CommandResponse resp(status,cmdid,aContext);
     QueueCommandResponse(resp);
@@ -433,6 +391,8 @@ PVMFCommandId AndroidSurfaceOutput::DiscardData(PVMFTimestamp aTimestamp, const 
 PVMFCommandId AndroidSurfaceOutput::Stop(const OsclAny* aContext)
 {
     PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE, (0,"AndroidSurfaceOutput::Stop() called"));
+
+            printf("AndroidSurfaceOutput::Stop Received %x\n", 0);
 
     PVMFCommandId cmdid=iCommandCounter++;
 
@@ -444,7 +404,6 @@ PVMFCommandId AndroidSurfaceOutput::Stop(const OsclAny* aContext)
     case STATE_PAUSED:
 
 #ifdef PERFORMANCE_MEASUREMENTS_ENABLED
-        // FIXME: This should be moved to OMAP library
     PVOmapVideoProfile.MarkEndTime();
     PVOmapVideoProfile.PrintStats();
     PVOmapVideoProfile.Reset();
@@ -526,6 +485,8 @@ void AndroidSurfaceOutput::ThreadLogoff()
         RemoveFromScheduler();
         iLogger=NULL;
         iState=STATE_IDLE;
+        //Reset all data from this session
+        ResetData();
     }
 }
 
@@ -561,7 +522,7 @@ PVMFCommandId AndroidSurfaceOutput::writeAsync(uint8 aFormatType, int32 aFormatI
             !((PVMI_MEDIAXFER_FMT_TYPE_NOTIFICATION == aFormatType)
               && (PVMI_MEDIAXFER_FMT_INDEX_END_OF_STREAM == aFormatIndex)))
     {
-        LOGE("data is pumped in before MIO is configured");
+	    LOGE("data is pumped in before MIO is configured");
         OSCL_LEAVE(OsclErrInvalidState);
         return -1;
     }
@@ -596,7 +557,6 @@ PVMFCommandId AndroidSurfaceOutput::writeAsync(uint8 aFormatType, int32 aFormatI
         switch(aFormatIndex)
         {
         case PVMI_MEDIAXFER_FMT_INDEX_END_OF_STREAM:
-            iEosReceived = true;
             break;
         default:
             break;
@@ -642,7 +602,7 @@ PVMFCommandId AndroidSurfaceOutput::writeAsync(uint8 aFormatType, int32 aFormatI
                 //printf("V WriteAsync { seq=%d, ts=%d }\n", data_header_info.seq_num, data_header_info.timestamp);
 
                 // Call playback to send data to IVA for Color Convert
-                status = writeFrameBuf(aData, aDataLen, data_header_info);
+                status = WriteFrameBuf(aData, aDataLen, data_header_info);
 
                 PVLOGGER_LOGMSG(PVLOGMSG_INST_REL, iLogger, PVLOGMSG_ERR,
                    (0,"AndroidSurfaceOutput::writeAsync: Playback Progress - frame %d",iFrameNumber++));
@@ -715,7 +675,18 @@ void AndroidSurfaceOutput::cancelCommand(PVMFCommandId  command_id)
     //in this implementation, the write commands are executed immediately
     //when received so it isn't really possible to cancel.
     //just report completion immediately.
-    processWriteResponseQueue(0);
+
+    for (uint32 i=0;i<iWriteResponseQueue.size();i++)
+    {
+        if (iWriteResponseQueue[i].iCmdId==command_id)
+        {
+            //report completion
+            if (iPeer)
+                iPeer->writeComplete(iWriteResponseQueue[i].iStatus,iWriteResponseQueue[i].iCmdId,(OsclAny*)iWriteResponseQueue[i].iContext);
+            iWriteResponseQueue.erase(&iWriteResponseQueue[i]);
+            break;
+        }
+    }
 }
 
 void AndroidSurfaceOutput::cancelAllCommands()
@@ -868,9 +839,8 @@ LOGV("VIDEO SUBFORMAT SET TO %s\n",iVideoSubFormat.getMIMEStrPtr());
         }
     }
     uint32 mycache = iVideoParameterFlags ;
-    // if initialization is complete, update the app display info
     if( checkVideoParameterFlags() )
-    initCheck();
+	initCheck();
     iVideoParameterFlags = mycache;
 
     // when all necessary parameters are received, send 
@@ -917,6 +887,7 @@ PVMFStatus AndroidSurfaceOutput::verifyParametersSync (PvmiMIOSession aSession, 
     return PVMFSuccess;
 }
 
+
 //
 // Private section
 //
@@ -932,11 +903,12 @@ void AndroidSurfaceOutput::Run()
     }
 
     //send async write completion
-    if (iEosReceived) {
-        LOGV("Flushing buffers after EOS");
-        processWriteResponseQueue(0);
-    } else {
-        processWriteResponseQueue(mNumberOfFramesToHold);
+    while (!iWriteResponseQueue.empty())
+    {
+        //report write complete
+        if (iPeer)
+            iPeer->writeComplete(iWriteResponseQueue[0].iStatus,iWriteResponseQueue[0].iCmdId,(OsclAny*)iWriteResponseQueue[0].iContext);
+        iWriteResponseQueue.erase(&iWriteResponseQueue[0]);
     }
 }
 
@@ -949,7 +921,7 @@ OSCL_EXPORT_REF bool AndroidSurfaceOutput::initCheck()
         return mInitialized;
 
     // release resources if previously initialized
-    closeFrameBuf();
+    CloseFrameBuf();
 
     // reset flags in case display format changes in the middle of a stream
     resetVideoParameterFlags();
@@ -966,29 +938,59 @@ OSCL_EXPORT_REF bool AndroidSurfaceOutput::initCheck()
     displayHeight = (displayHeight + 1) & -2;
     frameWidth = (frameWidth + 1) & -2;
     frameHeight = (frameHeight + 1) & -2;
-    frameSize = frameWidth * frameHeight * 2;
+#ifdef FORCE_TO_SW_REDERING
+	frameSize     = frameWidth * frameHeight * 2;
+#else
+	frameSize     = (frameWidth * frameHeight * 3) >> 1; // yj
+#endif // FORCE_TO_SW_REDERING
 
     // create frame buffer heap and register with surfaceflinger
-    sp<MemoryHeapBase> heap = new MemoryHeapBase(frameSize * kBufferCount);
-    if (heap->heapID() < 0) {
-        LOGE("Error creating frame buffer heap");
-        return false;
+#ifdef USE_PMEM_STREAM
+    mFrameHeap = new MemoryHeapBase("/dev/pmem_stream", frameSize * kBufferCount, 0);
+#else /* USE_PMEM_STREAM */
+    mFrameHeap = new MemoryHeapBase(frameSize * kBufferCount);
+#endif /* USE_PMEM_STREAM */
+    if (mFrameHeap->heapID() < 0) {
+	LOGE("Error creating frame buffer heap");
+	return false;
     }
     
-    mBufferHeap = ISurface::BufferHeap(displayWidth, displayHeight,
-            frameWidth, frameHeight, PIXEL_FORMAT_RGB_565, heap);
-    mSurface->registerBuffers(mBufferHeap);
+#ifdef USE_PMEM_STREAM
+    mPmemHeap = new MemoryHeapPmem(mFrameHeap, 0);
+    if (mPmemHeap->heapID() < 0) {
+	LOGE("Error creating frame buffer heap");
+        mFrameHeap.clear();
+        mPmemHeap.clear();
+	return false;
+    }
+
+#ifdef FORCE_TO_SW_REDERING
+	ISurface::BufferHeap buffers(displayWidth, displayHeight, frameWidth, frameHeight, PIXEL_FORMAT_RGB_565, mPmemHeap);
+#else
+	ISurface::BufferHeap buffers(displayWidth, displayHeight, frameWidth, frameHeight, PIXEL_FORMAT_YCbCr_420_SP, mPmemHeap);
+#endif // FORCE_TO_SW_REDERING
+
+#else /* USE_PMEM_STREAM */
+
+#ifdef FORCE_TO_SW_REDERING
+	ISurface::BufferHeap buffers(displayWidth, displayHeight, frameWidth, frameHeight, PIXEL_FORMAT_RGB_565, mFrameHeap);
+#else
+	ISurface::BufferHeap buffers(displayWidth, displayHeight, frameWidth, frameHeight, PIXEL_FORMAT_YCbCr_420_SP, mFrameHeap);
+#endif // FORCE_TO_SW_REDERING
+#endif /* USE_PMEM_STREAM */
+    mSurface->registerBuffers(buffers);
 
     // create frame buffers
     for (int i = 0; i < kBufferCount; i++) {
         mFrameBuffers[i] = i * frameSize;
     }
-
+#ifdef FORCE_TO_SW_REDERING
     // initialize software color converter
     iColorConverter = ColorConvert16::NewL();
     iColorConverter->Init(displayWidth, displayHeight, frameWidth, displayWidth, displayHeight, displayWidth, CCROTATE_NONE);
     iColorConverter->SetMemHeight(frameHeight);
     iColorConverter->SetMode(1);
+#endif // FORCE_TO_SW_REDERING
 
     LOGV("video = %d x %d", displayWidth, displayHeight);
     LOGV("frame = %d x %d", frameWidth, frameHeight);
@@ -1002,26 +1004,33 @@ OSCL_EXPORT_REF bool AndroidSurfaceOutput::initCheck()
     return mInitialized;
 }
 
-OSCL_EXPORT_REF PVMFStatus AndroidSurfaceOutput::writeFrameBuf(uint8* aData, uint32 aDataLen, const PvmiMediaXferHeader& data_header_info)
+OSCL_EXPORT_REF PVMFStatus AndroidSurfaceOutput::WriteFrameBuf(uint8* aData, uint32 aDataLen, const PvmiMediaXferHeader& data_header_info)
 {
+    if (mSurface == 0) return PVMFFailure;
+
+#ifdef FORCE_TO_SW_REDERING
+    iColorConverter->Convert(aData, static_cast<uint8*>(mFrameHeap->base()) + mFrameBuffers[mFrameBufferIndex]);
+#else
+	memcpy(static_cast<uint8*>(mFrameHeap->base()) + mFrameBuffers[mFrameBufferIndex], aData, aDataLen);
+#endif // FORCE_TO_SW_REDERING
     // post to SurfaceFlinger
-    if ((mSurface != NULL) && (mBufferHeap.heap != NULL)) {
-        if (++mFrameBufferIndex == kBufferCount) mFrameBufferIndex = 0;
-        iColorConverter->Convert(aData, static_cast<uint8*>(mBufferHeap.heap->base()) + mFrameBuffers[mFrameBufferIndex]);
-        mSurface->postBuffer(mFrameBuffers[mFrameBufferIndex]);
-    }
+    mSurface->postBuffer(mFrameBuffers[mFrameBufferIndex]);
+
+	if (++mFrameBufferIndex == kBufferCount) mFrameBufferIndex = 0;
+
     return PVMFSuccess;
 }
 
-OSCL_EXPORT_REF void AndroidSurfaceOutput::closeFrameBuf()
+OSCL_EXPORT_REF void AndroidSurfaceOutput::CloseFrameBuf()
 {
-    LOGV("closeFrameBuf");
+    LOGV("CloseFrameBuf");
     if (!mInitialized) return;
 
     mInitialized = false;
     if (mSurface.get()) {
         LOGV("unregisterBuffers");
         mSurface->unregisterBuffers();
+//        mSurface.clear();
     }
 
     // free frame buffers
@@ -1031,8 +1040,11 @@ OSCL_EXPORT_REF void AndroidSurfaceOutput::closeFrameBuf()
     }
 
     // free heaps
-    LOGV("free frame heap");
-    mBufferHeap.heap.clear();
+    LOGV("free mFrameHeap");
+#ifdef USE_PMEM_STREAM
+    mPmemHeap.clear();
+#endif /* USE_PMEM_STREAM */
+    mFrameHeap.clear();
 
     // free color converter
     if (iColorConverter != 0)
@@ -1049,3 +1061,28 @@ OSCL_EXPORT_REF bool AndroidSurfaceOutput::GetVideoSize(int *w, int *h) {
     *h = iVideoDisplayHeight;
     return iVideoDisplayWidth != 0 && iVideoDisplayHeight != 0;
 }
+
+
+static inline void* byteOffset(void* p, size_t offset) { return (void*)((uint8_t*)p + offset); }
+
+void AndroidSurfaceOutput::convertFrame(void* src, void* dst, size_t len)
+{
+    // copy the Y plane
+    size_t y_plane_size = iVideoWidth * iVideoHeight;
+    //LOGV("len=%u, y_plane_size=%u", len, y_plane_size);
+    memcpy(dst, src, y_plane_size + iVideoWidth);
+
+    // re-arrange U's and V's
+    uint16_t* pu = (uint16_t*)byteOffset(src, y_plane_size);
+    uint16_t* pv = (uint16_t*)byteOffset(pu, y_plane_size / 4);
+    uint32_t* p = (uint32_t*)byteOffset(dst, y_plane_size);
+
+    int count = y_plane_size / 8;
+    //LOGV("u = %p, v = %p, p = %p, count = %d", pu, pv, p, count);
+    do {
+        uint32_t u = *pu++;
+        uint32_t v = *pv++;
+        *p++ = ((u & 0xff) << 8) | ((u & 0xff00) << 16) | (v & 0xff) | ((v & 0xff00) << 8);
+    } while (--count);
+}
+

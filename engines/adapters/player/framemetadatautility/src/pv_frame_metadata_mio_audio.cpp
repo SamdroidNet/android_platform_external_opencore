@@ -47,14 +47,7 @@ void PVFMAudioMIO::InitData()
     iPeer = NULL;
     iState = STATE_IDLE;
 
-    // Init the input format capabilities vector
-    iInputFormatCapability.clear();
-    iInputFormatCapability.push_back(PVMF_MIME_PCM);
-    iInputFormatCapability.push_back(PVMF_MIME_PCM8);
-    iInputFormatCapability.push_back(PVMF_MIME_PCM16);
-    iInputFormatCapability.push_back(PVMF_MIME_PCM16_BE);
-    iInputFormatCapability.push_back(PVMF_MIME_ULAW);
-    iInputFormatCapability.push_back(PVMF_MIME_ALAW);
+
 }
 
 
@@ -421,7 +414,7 @@ PVMFCommandId PVFMAudioMIO::CancelCommand(PVMFCommandId aCmdId, const OsclAny* a
 
     // See if the response is still queued.
     PVMFStatus status = PVMFFailure;
-    for (uint32 i = 0; i < iCommandResponseQueue.size(); i++)
+    for (uint32 i = 0;i < iCommandResponseQueue.size();i++)
     {
         if (iCommandResponseQueue[i].iCmdId == aCmdId)
         {
@@ -664,7 +657,7 @@ void PVFMAudioMIO::cancelCommand(PVMFCommandId  command_id)
     // In this implementation, the write commands are executed immediately when received so it isn't
     // really possible to cancel. Just report completion immediately.
 
-    for (uint32 i = 0; i < iWriteResponseQueue.size(); i++)
+    for (uint32 i = 0;i < iWriteResponseQueue.size();i++)
     {
         if (iWriteResponseQueue[i].iCmdId == command_id)
         {
@@ -689,7 +682,7 @@ void PVFMAudioMIO::cancelAllCommands()
     // In this implementaiton, the write commands are executed immediately when received so it isn't
     // really possible to cancel. Just report completion immediately.
 
-    for (uint32 i = 0; i < iWriteResponseQueue.size(); i++)
+    for (uint32 i = 0;i < iWriteResponseQueue.size();i++)
     {
         //report completion
         if (iPeer)
@@ -729,17 +722,17 @@ PVMFStatus PVFMAudioMIO::getParametersSync(PvmiMIOSession aSession, PvmiKeyType 
         // This component supports any audio format
         // Generate a list of all the PVMF audio formats...
 
-        uint32 count = iInputFormatCapability.size();
+        uint32 count = PVMF_SUPPORTED_UNCOMPRESSED_AUDIO_FORMATS_COUNT;
         aParameters = (PvmiKvp*)oscl_malloc(count * sizeof(PvmiKvp));
 
         if (aParameters)
         {
-            num_parameter_elements = 0;
-            Oscl_Vector<PVMFFormatType, OsclMemAllocator>::iterator it;
-            for (it = iInputFormatCapability.begin(); it != iInputFormatCapability.end(); it++)
-            {
-                aParameters[num_parameter_elements++].value.pChar_value = OSCL_STATIC_CAST(char*, it->getMIMEStrPtr());
-            }
+            aParameters[num_parameter_elements++].value.pChar_value = (char*)PVMF_MIME_PCM;
+            aParameters[num_parameter_elements++].value.pChar_value = (char*)PVMF_MIME_PCM8;
+            aParameters[num_parameter_elements++].value.pChar_value = (char*)PVMF_MIME_PCM16;
+            aParameters[num_parameter_elements++].value.pChar_value = (char*)PVMF_MIME_PCM16_BE;
+            aParameters[num_parameter_elements++].value.pChar_value = (char*)PVMF_MIME_ULAW;
+            aParameters[num_parameter_elements++].value.pChar_value = (char*)PVMF_MIME_ALAW;
             return PVMFSuccess;
         }
         return PVMFErrNoMemory;
@@ -814,7 +807,7 @@ void PVFMAudioMIO::setParametersSync(PvmiMIOSession aSession, PvmiKvp* aParamete
 
     aRet_kvp = NULL;
 
-    for (int32 i = 0; i < num_elements; i++)
+    for (int32 i = 0;i < num_elements;i++)
     {
         //Check against known audio parameter keys...
         if (pv_mime_strcmp(aParameters[i].key, MOUT_AUDIO_FORMAT_KEY) == 0)
@@ -836,7 +829,7 @@ void PVFMAudioMIO::setParametersSync(PvmiMIOSession aSession, PvmiKvp* aParamete
         }
         else if (pv_mime_strcmp(aParameters[i].key, PVMF_FORMAT_SPECIFIC_INFO_KEY) == 0)
         {
-            //  iOutputFile.Write(aParameters[i].value.pChar_value, sizeof(uint8), (int32)aParameters[i].capacity);
+            //	iOutputFile.Write(aParameters[i].value.pChar_value, sizeof(uint8), (int32)aParameters[i].capacity);
         }
         else
         {
@@ -919,16 +912,20 @@ PVMFStatus PVFMAudioMIO::verifyParametersSync(PvmiMIOSession aSession, PvmiKvp* 
 
         if (pv_mime_strcmp(compstr, _STRLIT_CHAR("x-pvmf/media/format-type")) == 0)
         {
-            Oscl_Vector<PVMFFormatType, OsclMemAllocator>::iterator it;
-            for (it = iInputFormatCapability.begin(); it != iInputFormatCapability.end(); it++)
+            //This component supports PCM8 or PCM16 only.
+            if ((pv_mime_strcmp(aParameters[paramind].value.pChar_value, PVMF_MIME_PCM8) == 0) ||
+                    (pv_mime_strcmp(aParameters[paramind].value.pChar_value, PVMF_MIME_PCM16) == 0) ||
+                    (pv_mime_strcmp(aParameters[paramind].value.pChar_value, PVMF_MIME_PCM16) == 0) ||
+                    (pv_mime_strcmp(aParameters[paramind].value.pChar_value, PVMF_MIME_PCM16_BE) == 0) ||
+                    (pv_mime_strcmp(aParameters[paramind].value.pChar_value, PVMF_MIME_ULAW) == 0) ||
+                    (pv_mime_strcmp(aParameters[paramind].value.pChar_value, PVMF_MIME_ALAW) == 0))
             {
-                if (pv_mime_strcmp(aParameters[paramind].value.pChar_value, it->getMIMEStrPtr()) == 0)
-                {
-                    return PVMFSuccess;
-                }
+                return PVMFSuccess;
             }
-            // Not found on the list of supported input formats
-            return PVMFErrNotSupported;
+            else
+            {
+                return PVMFErrNotSupported;
+            }
         }
     }
     // For all other parameters return success.

@@ -92,11 +92,10 @@ extern "C"
 
     typedef enum
     {
-        MP3DEC_SUCCESS                 =  0,
-        MP3DEC_INVALID_FRAME           =  1,
-        MP3DEC_INCOMPLETE_FRAME        =  2,
-        MP3DEC_LOST_FRAME_SYNC         =  4,
-        MP3DEC_OUTPUT_BUFFER_TOO_SMALL =  8
+        MP3DEC_SUCCESS           =  0,
+        MP3DEC_INVALID_FRAME     = 10,
+        MP3DEC_INCOMPLETE_FRAME  = 20,
+        MP3DEC_LOST_FRAME_SYNC   = 30
     } tPVMP3DecoderErrorCode;
 
 
@@ -196,9 +195,8 @@ extern "C"
         int32       bitRate;
 
         /*
-         * INPUT/OUTPUT:
-         * In: Inform decoder how much more room is available in the output buffer in int16 samples
-         * Out: Size of the output frame in 16-bit words, This value depends on the mp3 version
+         * INPUT:
+         * Size of the output frame in 16-bit words, This value depends on the mp3 version
          */
         int32     outputFrameSize;
 
@@ -225,7 +223,7 @@ extern "C"
 
         int16       *pOutputBuffer;
 
-    } tPVMP3DecoderExternal;
+    }tPVMP3DecoderExternal;
 
 
 #ifdef __cplusplus

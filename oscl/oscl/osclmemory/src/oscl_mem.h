@@ -277,23 +277,27 @@ inline void * operator new(size_t aSize, const char *aFile, int aLine)
 };
 #endif
 
-#if(!OSCL_BYPASS_MEMMGT)
 inline void * operator new(size_t aSize)
 {
+#if(!OSCL_BYPASS_MEMMGT)
 #if(PVMEM_INST_LEVEL>0)
     return _oscl_default_audit_new(aSize, __FILE__, __LINE__);
 #else
     return _oscl_default_audit_new(aSize);
 #endif
-};
+#else
+    return _oscl_default_new(aSize);
 #endif
+};
 
-#if(!OSCL_BYPASS_MEMMGT)
 inline void operator delete(void *aPtr)
 {
+#if(!OSCL_BYPASS_MEMMGT)
     _oscl_audit_free(aPtr);
-};
+#else
+    _oscl_free(aPtr);
 #endif
+};
 
 #if(!OSCL_BYPASS_MEMMGT)
 inline void * operator new[](size_t aSize, const char *aFile, int aLine)
@@ -307,23 +311,27 @@ inline void * operator new[](size_t aSize, const char *aFile, int aLine)
 };
 #endif
 
-#if(!OSCL_BYPASS_MEMMGT)
 inline void * operator new[](size_t aSize)
 {
+#if(!OSCL_BYPASS_MEMMGT)
 #if(PVMEM_INST_LEVEL>0)
     return _oscl_default_audit_new(aSize, __FILE__, __LINE__);
 #else
     return _oscl_default_audit_new(aSize);
 #endif
-};
+#else
+    return _oscl_default_new(aSize);
 #endif
+};
 
-#if(!OSCL_BYPASS_MEMMGT)
 inline void operator delete[](void *aPtr)
 {
+#if(!OSCL_BYPASS_MEMMGT)
     _oscl_audit_free(aPtr);
-};
+#else
+    _oscl_free(aPtr);
 #endif
+};
 #endif //OSCL_HAS_GLOBAL_NEW_DELETE
 
 /**
@@ -718,6 +726,19 @@ inline void operator delete[](void *aPtr)
 
 #define OSCL_DISABLE_WARNING_TRUNCATE_DEBUG_MESSAGE
 #include "osclconfig_compiler_warnings.h"
+
+// This macro is defined is osclconfig_compiler_warnings.h
+// This GCC #pragma turns off compiler warning for the rest of this header file
+// This needs to be done because with the GCC 4.1 toolchain, many compiler warnings
+// are generated because Oscl_MemAllocator and Oscl_MemBasicAllocator have virtual functions, but
+// no virtual destructor.
+// An attempt has been made to add the virtual destructors, however, it resulted
+// in run time crashes indicative of double freeing of memory.
+// This is a temporary fix, until the crashes are resolved.
+//
+#ifdef OSCL_DISABLE_GCC_WARNING_SYSTEM_HEADER
+#pragma GCC system_header
+#endif
 
 /** \class OsclMemAllocator
 ** A simple allocator class.  Configurable as to whether

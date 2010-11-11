@@ -132,31 +132,10 @@ OSCL_EXPORT_REF PVMFStatus PvmfMediaInputNode::ThreadLogoff()
 
     if (iMediaIOControl)
     {
-        //notify the media input component that peer cap-config is no longer usable
-        //we do this by calling setParameterSync with NULL
-        OsclMemAllocator alloc;
-        PvmiKvp kvp;
-        kvp.key = NULL;
-        uint32 keylen = oscl_strlen(PVMF_MEDIA_INPUT_NODE_CAP_CONFIG_INTERFACE_KEY) + 1; // +1 for \0
-        kvp.key = (PvmiKeyType)alloc.ALLOCATE(keylen);
-        if (kvp.key != NULL)
-        {
-            oscl_memset(kvp.key, 0, keylen);
-            oscl_strncpy(kvp.key,
-                         PVMF_MEDIA_INPUT_NODE_CAP_CONFIG_INTERFACE_KEY,
-                         keylen-1);
-            kvp.value.key_specific_value = NULL;
-            kvp.length = 1; //since we are just passing one pointer
-            kvp.capacity = kvp.length;
-            PvmiKvp* retKvp = NULL; // for return value
-            int32 err;
-            OSCL_TRY(err, iMediaIOConfig->setParametersSync(NULL, &kvp, 1, retKvp););
-            /* ignore the error for now */
-            alloc.deallocate((OsclAny*)(kvp.key));
-        }
         iMediaIOControl->ThreadLogoff();
         iMediaIOControl->disconnect(iMediaIOSession);
         //ignore any returned error.
+
         iMediaIOState = PvmfMediaInputNode::MIO_STATE_IDLE;
     }
 
@@ -433,30 +412,9 @@ OSCL_EXPORT_REF void PvmfMediaInputNode::RequestCompleted(const PVMFCmdResp& aRe
                 {
                     if (iMediaIOConfigPVI)
                     {
+
                         iMediaIOConfig = OSCL_STATIC_CAST(PvmiCapabilityAndConfig*, iMediaIOConfigPVI);
                         iMediaIOConfigPVI = NULL;
-                        //now attempt to provide the media input comp with the capconfig interface of the node
-                        OsclMemAllocator alloc;
-                        PvmiKvp kvp;
-                        kvp.key = NULL;
-                        uint32 keylen = oscl_strlen(PVMF_MEDIA_INPUT_NODE_CAP_CONFIG_INTERFACE_KEY) + 1; // +1 for \0
-                        kvp.key = (PvmiKeyType)alloc.ALLOCATE(keylen);
-                        if (kvp.key != NULL)
-                        {
-                            oscl_memset(kvp.key, 0, keylen);
-                            oscl_strncpy(kvp.key,
-                                         PVMF_MEDIA_INPUT_NODE_CAP_CONFIG_INTERFACE_KEY,
-                                         keylen-1);
-                            PvmiCapabilityAndConfig* capconfig = OSCL_STATIC_CAST(PvmiCapabilityAndConfig*, this);
-                            kvp.value.key_specific_value = (OsclAny*)(capconfig);
-                            kvp.length = 1; //since we are just passing one pointer
-                            kvp.capacity = kvp.length;
-                            PvmiKvp* retKvp = NULL; // for return value
-                            int32 err;
-                            OSCL_TRY(err, iMediaIOConfig->setParametersSync(NULL, &kvp, 1, retKvp););
-                            /* ignore the error for now */
-                            alloc.deallocate((OsclAny*)(kvp.key));
-                        }
                     }
                     else
                     {
@@ -560,12 +518,8 @@ OSCL_EXPORT_REF void PvmfMediaInputNode::ReportErrorEvent(PVMFEventType aEventTy
 ////////////////////////////////////////////////////////////////////////////
 OSCL_EXPORT_REF void PvmfMediaInputNode::ReportInfoEvent(PVMFEventType aEventType, PVInterface* aExtMsg)
 {
-    if (aEventType == PVMFInfoOverflow) {
-        PVMFNodeInterface::ReportInfoEvent(aEventType, NULL, aExtMsg);
-    } else {
-        OSCL_UNUSED_ARG(aEventType);
-        OSCL_UNUSED_ARG(aExtMsg);
-    }
+    OSCL_UNUSED_ARG(aEventType);
+    OSCL_UNUSED_ARG(aExtMsg);
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -613,12 +567,12 @@ PvmfMediaInputNode::~PvmfMediaInputNode()
     while (!iCurrentCommand.empty())
     {
         CommandComplete(iCurrentCommand, iCurrentCommand.front(), PVMFFailure);
-//      iCurrentCommand.Erase(&iCurrentCommand.front());
+//		iCurrentCommand.Erase(&iCurrentCommand.front());
     }
     while (!iInputCommands.empty())
     {
         CommandComplete(iInputCommands, iInputCommands.front(), PVMFFailure);
-//      iInputCommands.Erase(&iInputCommands.front());
+//		iInputCommands.Erase(&iInputCommands.front());
     }
 }
 
@@ -1085,6 +1039,13 @@ PVMFStatus PvmfMediaInputNode::DoPrepare(PvmfMediaInputNodeCmd& aCmd)
     if (iInterfaceState != EPVMFNodeInitialized)
         return PVMFErrInvalidState;
 
+	/* Mobile Media Lab. Start */
+#ifdef _TEST_AE_ERROR_HANDLING
+	iErrorTimeStamp.mode = 0;
+	iErrorTimeStamp.duration = 0;
+	iErrorTimeStamp.track_no = 0xFFFF;
+#endif	
+	/* Mobile Media Lab. End */	
     return SendMioRequest(aCmd, EInit);
 
 }
@@ -1233,12 +1194,6 @@ PVMFStatus PvmfMediaInputNode::DoReset(PvmfMediaInputNodeCmd& aCmd)
 
     if (IsAdded())
     {
-        for (uint32 i = 0; i < iOutPortVector.size(); i++)
-        {
-            iOutPortVector[i]->Stop();
-            iOutPortVector[i]->Disconnect();
-        }
-
         //delete all ports and notify observer.
         while (!iOutPortVector.empty())
             iOutPortVector.Erase(&iOutPortVector.front());
@@ -1618,7 +1573,7 @@ void PvmfMediaInputNode::ReportInfoEvent(PVMFEventType aEventType, OsclAny* aEve
 bool PvmfMediaInputNode::PortQueuesEmpty()
 {
     uint32 i;
-    for (i = 0; i < iOutPortVector.size(); i++)
+    for (i = 0;i < iOutPortVector.size();i++)
     {
         if (iOutPortVector[i]->IncomingMsgQueueSize() > 0
                 || iOutPortVector[i]->OutgoingMsgQueueSize() > 0)

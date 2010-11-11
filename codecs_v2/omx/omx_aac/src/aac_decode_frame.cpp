@@ -44,11 +44,11 @@ OMX_BOOL OmxAacDecoder::AacDecInit(OMX_U32 aDesiredChannels)
     iExt.inputBufferMaxLength = PVMP4AUDIODECODER_INBUFSIZE;
     iExt.outputFormat         = OUTPUTFORMAT_16PCM_INTERLEAVED;
     iExt.desiredChannels      = aDesiredChannels;
-    iExt.aacPlusEnabled       = TRUE;
+    iExt.aacPlusEnabled		  = TRUE;
     iAacInitFlag = 0;
     iInputUsedLength = 0;
     //This var is required to do init again inbetween
-    iNumOfChannels           = aDesiredChannels;
+    iNumOfChannels			 = aDesiredChannels;
 
 
     Status = PVMP4AudioDecoderInitLibrary(&iExt, ipMem);
@@ -102,7 +102,7 @@ Int OmxAacDecoder::AacDecodeFrames(OMX_S16* aOutputBuffer,
             iExt.inputBufferMaxLength = PVMP4AUDIODECODER_INBUFSIZE;
             iExt.outputFormat         = OUTPUTFORMAT_16PCM_INTERLEAVED;
             iExt.desiredChannels      = iNumOfChannels;
-            iExt.aacPlusEnabled       = TRUE;
+            iExt.aacPlusEnabled		  = TRUE;
             iInputUsedLength = 0;
 
             PVMP4AudioDecoderInitLibrary(&iExt, ipMem);
@@ -138,15 +138,16 @@ Int OmxAacDecoder::AacDecodeFrames(OMX_S16* aOutputBuffer,
             *aSamplesPerFrame = AACDEC_PCM_FRAME_SAMPLE_SIZE;
         }
 
+        *aInBufSize -= iExt.inputBufferUsedLength;
 
-        /*
-         *  *aInBufSize -= iExt.inputBufferUsedLength;  should render *aInBufSize == 0,
-         *  If the size of the audio config buffer exceeds the size of the audio config data
-         *  the excess bits could be taken as part of next raw aac stream. To avoid that
-         *  we force to consume all bits of the audio config buffer, by making *aInBufSize == 0
-         */
-        *aInBufSize = 0;
-        iInputUsedLength = 0;
+        if (0 == *aInBufSize)
+        {
+            iInputUsedLength = 0;
+        }
+        else
+        {
+            iInputUsedLength = iExt.inputBufferUsedLength;
+        }
 
         return Status;
     }

@@ -84,7 +84,16 @@ class MediaClockConverter;
 class VideoTrackDimensionInfo
 {
     public:
-        VideoTrackDimensionInfo() {};
+        VideoTrackDimensionInfo() 
+		{
+			/* Mobile Media Lab. Start */
+            iTrackId = 0;
+            iWidth = 0;
+            iHeight = 0;
+            iDisplayWidth = 0;
+            iDisplayHeight = 0;			
+			/* Mobile Media Lab. End */
+		};
         virtual ~VideoTrackDimensionInfo() {};
         VideoTrackDimensionInfo(const VideoTrackDimensionInfo& aSrc)
         {
@@ -104,7 +113,7 @@ class VideoTrackDimensionInfo
 };
 
 class PVMP4FFNodeTrackPortInfo : public OsclMemPoolFixedChunkAllocatorObserver,
-        public OsclMemPoolResizableAllocatorObserver
+            public OsclMemPoolResizableAllocatorObserver
 {
     public:
         enum TrackState
@@ -396,7 +405,7 @@ class PVMP4FFNodeTrackOMA2DRMInfo
 class PVMFMP4FFParserNode;
 
 class PVMFMP4FFParserOutPort : public PvmfPortBaseImpl,
-        public PvmiCapabilityAndConfigPortFormatImpl
+            public PvmiCapabilityAndConfigPortFormatImpl
 {
     public:
         PVMFMP4FFParserOutPort(int32 aTag, PVMFNodeInterface* aNode, const char*);
@@ -432,7 +441,7 @@ class PVMFMP4FFParserOutPort : public PvmfPortBaseImpl,
 
         /* Implement pure virtuals from PvmiCapabilityAndConfig interface */
         PVMFStatus getParametersSync(PvmiMIOSession aSession, PvmiKeyType aIdentifier,
-                                     PvmiKvp*& aParameters, int& num_parameter_elements,    PvmiCapabilityContext aContext);
+                                     PvmiKvp*& aParameters, int& num_parameter_elements,	PvmiCapabilityContext aContext);
         PVMFStatus releaseParameters(PvmiMIOSession aSession, PvmiKvp* aParameters, int num_elements);
         void setParametersSync(PvmiMIOSession aSession, PvmiKvp* aParameters,
                                int num_elements, PvmiKvp * & aRet_kvp);

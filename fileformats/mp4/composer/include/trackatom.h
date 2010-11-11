@@ -182,10 +182,10 @@ class PVA_FF_TrackAtom : public PVA_FF_Atom, public PVA_FF_ISucceedFail
         }
 
         // Stream properties
-        void setTargetBitrate(uint32 avgBitRate, uint32 maxBitRate, uint32 bufferSizeDB)
+        void setTargetBitrate(uint32 bitrate)
         {
-            _trackTargetBitRate = avgBitRate;
-            _pmediaAtom->setTargetBitrate(avgBitRate, maxBitRate, bufferSizeDB);
+            _trackTargetBitRate = bitrate;
+            _pmediaAtom->setTargetBitrate(bitrate);
         }
 
         // Media timescale
@@ -234,8 +234,6 @@ class PVA_FF_TrackAtom : public PVA_FF_Atom, public PVA_FF_ISucceedFail
 
         void setVideoParams(uint32 frame_width, uint32 frame_height);
 
-        void setAudioEncodeParams(PVMP4FFComposerAudioEncodeParams &audioParams);
-
         void setH263ProfileLevel(uint8 profile, uint8 level)
         {
             _pmediaAtom->setH263ProfileLevel(profile, level);
@@ -277,7 +275,7 @@ class PVA_FF_TrackAtom : public PVA_FF_Atom, public PVA_FF_ISucceedFail
         int32 _mediaType;
 
         bool FIRST_SAMPLE;
-        PVA_FF_EditAtom *_eList;
+        PVA_FF_EditAtom	*_eList;
 
         bool   _oInterLeaveMode;
 

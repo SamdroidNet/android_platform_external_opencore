@@ -169,8 +169,14 @@ DecoderConfigDescriptor::DecoderConfigDescriptor(MP4_FF_FILE *fp)
                 // FOR AUDIO/VISUAL TRACKS, DEC SPECIFIC INFO IS MANDATORY
                 if (_pdecSpecificInfo == NULL)
                 {
-                    _success = false;
-                    _mp4ErrorCode = READ_DECODER_CONFIG_DESCRIPTOR_FAILED;
+					/* Mobile Media Lab. Start */
+					/*  in the case of mp3, decoder specific info can be ignored. */
+	                if (_objectTypeIndication != MPEG1_LAYER3 && _objectTypeIndication != MPEG2_LAYER3) 
+					/* Mobile Media Lab. End */
+                    {
+                        _success = false;
+                        _mp4ErrorCode = READ_DECODER_CONFIG_DESCRIPTOR_FAILED;
+                    }
                 }
             }
         }

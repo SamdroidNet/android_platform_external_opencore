@@ -51,13 +51,6 @@
 #ifndef PVMF_SIMPLE_MEDIA_BUFFER_H_INCLUDED
 #include "pvmf_simple_media_buffer.h"
 #endif
-#ifndef PVMF_MEDIA_CLOCK_H_INCLUDED
-#include "pvmf_media_clock.h"
-#endif
-
-#ifdef HIDE_MIO_SYMBOLS
-#pragma GCC visibility push(hidden)
-#endif
 
 using namespace android;
 
@@ -83,23 +76,12 @@ typedef enum
     INVALID_CMD
 } AndroidCameraInputCmdType;
 
-#define ANDROID_DEFAULT_FRAME_WIDTH        320
-#define ANDROID_DEFAULT_FRAME_HEIGHT       240
-#define ANDROID_DEFAULT_FRAME_RATE         20.0
-#define ANDROID_DEFAULT_I_FRAME_INTERVAL 1  // encode one I frame every 1 second.
-#ifdef SHOLES_PROPERTY_OVERRIDES
-#define ANDROID_VIDEO_FORMAT       PVMF_MIME_YUV422_INTERLEAVED_YUYV
-#else
-#define ANDROID_VIDEO_FORMAT       PVMF_MIME_YUV420
-#endif
+#define DEFAULT_FRAME_WIDTH        320
+#define DEFAULT_FRAME_HEIGHT       240
+#define DEFAULT_FRAME_RATE         20.0
 
-//FIXME mime string now
-/*
-#if ANDROID_VIDEO_FORMAT == PVMF_MIME_YUV420
-#error PV does not support RGB16
-#endif
-*/
-
+// elecjinny 2009.05.11 add flash
+#define DEFAULT_FLASH_SETTING     0
 /**
  * Class containing information for a command or data event
  */
@@ -176,229 +158,121 @@ private:
     }
 };
 
-class AndroidCameraInput;
-class AndroidCameraInputListener : public CameraListener
-{
-public:
-    AndroidCameraInputListener(AndroidCameraInput* input) { mCameraInput = input; }
-    virtual void notify(int32_t msgType, int32_t ext1, int32_t ext2) {}
-    virtual void postData(int32_t msgType, const sp<IMemory>& dataPtr);
-    virtual void postDataTimestamp(nsecs_t timestamp, int32_t msgType, const sp<IMemory>& dataPtr);
-    void release() { mCameraInput = NULL; }
-private:
-    AndroidCameraInputListener();
-    AndroidCameraInput* mCameraInput;
-};
-
-#ifndef PVMF_FIXEDSIZE_BUFFER_ALLOC_H_INCLUDED
-#include "pvmf_fixedsize_buffer_alloc.h"
-#endif
-
-/* A MIO allocater class for two purposes:
- * 1. Provide the number of buffers MIO will use;
- * 2. Allocate the buffers for OMX_UseBuffer for "buffer pre-announcement". In case MIO cannot
- * provide the buffer address, a dummy address is used. The OMX component has to support
- * movable buffer(iOMXComponentSupportsMovableInputBuffers) in that case.
- */
-class PVRefBufferAlloc: public PVInterface, public PVMFFixedSizeBufferAlloc
-{
-    public:
-        PVRefBufferAlloc()
-            :refCount(0),
-            bufferSize(0),
-            maxBuffers(4), //QCOM camera will use 4 buffers, although it actually only has 3 right now.
-            numAllocated(0),
-            pMagicAddr( (OsclAny*)0xDEADBEEF )
-        {
-        }
-
-        virtual ~PVRefBufferAlloc();
-
-        virtual void addRef() {++refCount;};
-
-        virtual void removeRef()
-        {
-            --refCount;
-            if (refCount <= 0)
-            {//cleanup
-                LOGW("refCount %d", refCount );
-            }
-        }
-
-        virtual bool queryInterface(const PVUuid& uuid, PVInterface*& aInterface)
-        {
-            aInterface = NULL; // initialize aInterface to NULL in case uuid is not supported
-
-            if (PVMFFixedSizeBufferAllocUUID == uuid)
-            {
-                // Send back ptr to the allocator interface object
-                PVMFFixedSizeBufferAlloc* myInterface   = OSCL_STATIC_CAST(PVMFFixedSizeBufferAlloc*, this);
-                refCount++; // increment interface refcount before returning ptr
-                aInterface = OSCL_STATIC_CAST(PVInterface*, myInterface);
-                return true;
-            }
-
-            return false;
-        }
-
-        virtual OsclAny* allocate()
-        {
-            if (numAllocated < maxBuffers)
-            {
-                //MIO does NOT provide mem allocator impl.
-                //return dummy address for OMX buffer pre-announcement.
-                ++numAllocated;
-                return (OsclAny*)pMagicAddr;
-            }
-            return NULL;
-        }
-
-        virtual void deallocate(OsclAny* ptr)
-        {
-            if( pMagicAddr == ptr )
-            {
-                --numAllocated;
-            }
-            else
-            {
-                LOGE("Ln %d ERROR PVRefBufferAlloc ptr corrupted 0x%x numAllocated %d", __LINE__, ptr, numAllocated );
-            }
-        }
-
-        virtual uint32 getBufferSize()
-        {
-            return bufferSize;
-        }
-
-        virtual uint32 getNumBuffers()
-        {
-            return maxBuffers;
-        }
-
-    private:
-        int32 refCount;
-        int32 bufferSize;
-        int32 maxBuffers;
-        int32 numAllocated;
-        const OsclAny *pMagicAddr;
-};
-
 class AndroidCameraInput
     : public OsclTimerObject,
       public PvmiMIOControl,
       public PvmiMediaTransfer,
-      public PvmiCapabilityAndConfig,
-      public PVMFMediaClockStateObserver
+      public PvmiCapabilityAndConfig
 {
 public:
     AndroidCameraInput();
     virtual ~AndroidCameraInput();
 
     // Pure virtuals from PvmiMIOControl
-    PVMFStatus connect(PvmiMIOSession& aSession,
+    OSCL_IMPORT_REF PVMFStatus connect(PvmiMIOSession& aSession,
         PvmiMIOObserver* aObserver);
 
-    PVMFStatus disconnect(PvmiMIOSession aSession);
-    PvmiMediaTransfer* createMediaTransfer(PvmiMIOSession& aSession,
+    OSCL_IMPORT_REF PVMFStatus disconnect(PvmiMIOSession aSession);
+    OSCL_IMPORT_REF PvmiMediaTransfer* createMediaTransfer(PvmiMIOSession& aSession,
         PvmiKvp* read_formats = NULL,
         int32 read_flags = 0,
         PvmiKvp* write_formats = NULL,
         int32 write_flags = 0);
 
-    void deleteMediaTransfer(PvmiMIOSession& aSession,
+    OSCL_IMPORT_REF void deleteMediaTransfer(PvmiMIOSession& aSession,
                                              PvmiMediaTransfer* media_transfer);
     
-    PVMFCommandId QueryUUID(const PvmfMimeString& aMimeType,
+    OSCL_IMPORT_REF PVMFCommandId QueryUUID(const PvmfMimeString& aMimeType,
         Oscl_Vector<PVUuid, OsclMemAllocator>& aUuids,
         bool aExactUuidsOnly = false,
         const OsclAny* aContext = NULL);
 
-    PVMFCommandId QueryInterface(const PVUuid& aUuid,
+    OSCL_IMPORT_REF PVMFCommandId QueryInterface(const PVUuid& aUuid,
         PVInterface*& aInterfacePtr,
         const OsclAny* aContext = NULL);
 
-    PVMFCommandId Init(const OsclAny* aContext=NULL);
-    PVMFCommandId Start(const OsclAny* aContext=NULL);
-    PVMFCommandId Reset(const OsclAny* aContext=NULL);
-    PVMFCommandId Pause(const OsclAny* aContext=NULL);
-    PVMFCommandId Flush(const OsclAny* aContext=NULL);
-    PVMFCommandId DiscardData(PVMFTimestamp aTimestamp,
+    OSCL_IMPORT_REF PVMFCommandId Init(const OsclAny* aContext=NULL);
+    OSCL_IMPORT_REF PVMFCommandId Start(const OsclAny* aContext=NULL);
+    OSCL_IMPORT_REF PVMFCommandId Reset(const OsclAny* aContext=NULL);
+    OSCL_IMPORT_REF PVMFCommandId Pause(const OsclAny* aContext=NULL);
+    OSCL_IMPORT_REF PVMFCommandId Flush(const OsclAny* aContext=NULL);
+    OSCL_IMPORT_REF PVMFCommandId DiscardData(PVMFTimestamp aTimestamp,
         const OsclAny* aContext=NULL);
 
-    PVMFCommandId DiscardData(const OsclAny* aContext = NULL);
-    PVMFCommandId Stop(const OsclAny* aContext = NULL);
-    PVMFCommandId CancelCommand(PVMFCommandId aCmdId,
+    OSCL_IMPORT_REF PVMFCommandId DiscardData(const OsclAny* aContext = NULL);
+    OSCL_IMPORT_REF PVMFCommandId Stop(const OsclAny* aContext = NULL);
+    OSCL_IMPORT_REF PVMFCommandId CancelCommand(PVMFCommandId aCmdId,
         const OsclAny* aContext=NULL);
 
-    PVMFCommandId CancelAllCommands(const OsclAny* aContext = NULL);
-    void ThreadLogon();
-    void ThreadLogoff();
+    OSCL_IMPORT_REF PVMFCommandId CancelAllCommands(const OsclAny* aContext = NULL);
+    OSCL_IMPORT_REF void ThreadLogon();
+    OSCL_IMPORT_REF void ThreadLogoff();
 
     // Pure virtuals from PvmiMediaTransfer
-    void setPeer(PvmiMediaTransfer* aPeer);
-    void useMemoryAllocators(OsclMemAllocator* write_alloc = NULL);
-    PVMFCommandId writeAsync(uint8 format_type,
+    OSCL_IMPORT_REF void setPeer(PvmiMediaTransfer* aPeer);
+    OSCL_IMPORT_REF void useMemoryAllocators(OsclMemAllocator* write_alloc = NULL);
+    OSCL_IMPORT_REF PVMFCommandId writeAsync(uint8 format_type,
         int32 format_index,
         uint8* data,
         uint32 data_len,
         const PvmiMediaXferHeader& data_header_info,
         OsclAny* aContext = NULL);
 
-    void writeComplete(PVMFStatus aStatus,
+    OSCL_IMPORT_REF void writeComplete(PVMFStatus aStatus,
         PVMFCommandId write_cmd_id,
         OsclAny* aContext);
 
-    PVMFCommandId readAsync(uint8* data,
+    OSCL_IMPORT_REF PVMFCommandId readAsync(uint8* data,
         uint32 max_data_len,
         OsclAny* aContext = NULL,
         int32* formats = NULL,
         uint16 num_formats = 0);
 
-    void readComplete(PVMFStatus aStatus,
+    OSCL_IMPORT_REF void readComplete(PVMFStatus aStatus,
         PVMFCommandId read_cmd_id,
         int32 format_index,
         const PvmiMediaXferHeader& data_header_info,
         OsclAny* aContext);
 
-    void statusUpdate(uint32 status_flags);
-    void cancelCommand(PVMFCommandId aCmdId);
-    void cancelAllCommands();
+    OSCL_IMPORT_REF void statusUpdate(uint32 status_flags);
+    OSCL_IMPORT_REF void cancelCommand(PVMFCommandId aCmdId);
+    OSCL_IMPORT_REF void cancelAllCommands();
 
     // Pure virtuals from PvmiCapabilityAndConfig
-    void setObserver (PvmiConfigAndCapabilityCmdObserver* aObserver);
-    PVMFStatus getParametersSync(PvmiMIOSession aSession,
+    OSCL_IMPORT_REF void setObserver (PvmiConfigAndCapabilityCmdObserver* aObserver);
+    OSCL_IMPORT_REF PVMFStatus getParametersSync(PvmiMIOSession aSession,
         PvmiKeyType aIdentifier,
         PvmiKvp*& aParameters, int& num_parameter_elements,
         PvmiCapabilityContext aContext);
 
-    PVMFStatus releaseParameters(PvmiMIOSession aSession,
+    OSCL_IMPORT_REF PVMFStatus releaseParameters(PvmiMIOSession aSession,
         PvmiKvp* aParameters,
         int num_elements);
 
-    void createContext(PvmiMIOSession aSession,
+    OSCL_IMPORT_REF void createContext(PvmiMIOSession aSession,
         PvmiCapabilityContext& aContext);
 
-    void setContextParameters(PvmiMIOSession aSession,
+    OSCL_IMPORT_REF void setContextParameters(PvmiMIOSession aSession,
         PvmiCapabilityContext& aContext,
         PvmiKvp* aParameters,
         int num_parameter_elements);
 
-    void DeleteContext(PvmiMIOSession aSession,
+    OSCL_IMPORT_REF void DeleteContext(PvmiMIOSession aSession,
         PvmiCapabilityContext& aContext);
 
-    void setParametersSync(PvmiMIOSession aSession,
+    OSCL_IMPORT_REF void setParametersSync(PvmiMIOSession aSession,
         PvmiKvp* aParameters,
         int num_elements,
         PvmiKvp * & aRet_kvp);
 
-    PVMFCommandId setParametersAsync(PvmiMIOSession aSession,
+    OSCL_IMPORT_REF PVMFCommandId setParametersAsync(PvmiMIOSession aSession,
         PvmiKvp* aParameters,
         int num_elements,
         PvmiKvp*& aRet_kvp,
         OsclAny* context = NULL);
 
-    uint32 getCapabilityMetric (PvmiMIOSession aSession);
-    PVMFStatus verifyParametersSync (PvmiMIOSession aSession,
+    OSCL_IMPORT_REF uint32 getCapabilityMetric (PvmiMIOSession aSession);
+    OSCL_IMPORT_REF PVMFStatus verifyParametersSync (PvmiMIOSession aSession,
         PvmiKvp* aParameters,
         int num_elements);
 
@@ -406,17 +280,17 @@ public:
     void SetPreviewSurface(const sp<android::ISurface>& surface);
     void SetFrameSize(int w, int h);
     void SetFrameRate(int frames_per_second);
-    PVMFStatus SetCamera(const sp<android::ICamera>& camera);
+    void SetCamera(const sp<android::ICamera>& camera);
+PVMFStatus sendmessage(int codeA, int codeB, int codeC);
+
+    // elecjinny 2009.05.11 add flash
+    void SetFlashSetting(int flashSetting);
 
     // add for Camcorder
-    PVMFStatus              postWriteAsync(nsecs_t timestamp, const sp<IMemory>& frame);
-    void setAudioLossDuration(uint32 duration);
+    PVMFStatus              postWriteAsync(const sp<IMemory>& frame);
 
     bool isRecorderStarting() { return iState==STATE_STARTED?true:false; }
-
-    /* From PVMFMediaClockStateObserver and its base */
-    void ClockStateUpdated();
-    void NotificationsInterfaceDestroyed();
+    bool isPreviewArr;
 
 private:
     // release all queued recording frames that have not been
@@ -462,8 +336,6 @@ private:
      */
     PVMFStatus VerifyAndSetParameter(PvmiKvp* aKvp, bool aSetParam=false);
 
-    void RemoveDestroyClockObs();
-
     // Command queue
     uint32 iCmdIdCounter;
     Oscl_Vector<AndroidCameraInputCmd, OsclMemAllocator> iCmdQueue;
@@ -477,6 +349,10 @@ private:
     bool iThreadLoggedOn;
 
     int32 iDataEventCounter;
+	/* Mobile Media Lab. Start */
+    /* int32 iStartTickCount; */
+	uint32 iStartTickCount;
+	/* Mobile Media Lab. End */
 
     // Timing
     int32 iMilliSecondsPerDataEvent;
@@ -506,10 +382,12 @@ private:
     int32                   mFrameHeight;
     float                   mFrameRate;
     sp<android::Camera>     mCamera;
+    sp<IMemoryHeap>         mHeap;
+    int32                   mFrameRefCount;
     int32                   mFlags;
 
-    // callback interface
-    sp<AndroidCameraInputListener>  mListener;
+    // elecjinny 2009.05.11 add flash
+    int32                   mFlashSetting;
 
     // State machine
     enum AndroidCameraInputState
@@ -524,30 +402,12 @@ private:
     };
 
     AndroidCameraInputState iState;
-
-    enum WriteState {EWriteBusy, EWriteOK};
-    WriteState iWriteState;
-
-    PVMFMediaClock *iAuthorClock;
-    PVMFMediaClockNotificationsInterface *iClockNotificationsInf;
-
-    uint32 iAudioFirstFrameTs;
-    OsclMutex iAudioLossMutex;
-    uint32 iAudioLossDuration;
-    PVRefBufferAlloc    mbufferAlloc;
-
-    // data structures for tunneling buffers
-    struct CAMERA_PMEM_INFO
-    {
-        /* pmem file descriptor */
-        uint32 pmem_fd;
-        uint32 offset;
-    } *pPmemInfo;
-
+    /* Mobile Media Lab. Start */
+	PVMFTimestamp get_timestamp(int32 is_first);
+	int64_t init_time;
+	int32   is_first;
+	bool iWriteBusy;
+    /* Mobile Media Lab. End */
 };
-
-#ifdef HIDE_MIO_SYMBOLS
-#pragma GCC visibility pop
-#endif
 
 #endif // ANDROID_CAMERA_INPUT_H_INCLUDED

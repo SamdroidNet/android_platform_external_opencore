@@ -40,8 +40,8 @@
 //----------------------------------------------------------------------
 // Global Constant Declarations
 //----------------------------------------------------------------------
-#define MAX_MEDIA_OBJECTS   50
-#define MAX_SEGMENTS        10
+#define MAX_MEDIA_OBJECTS	50
+#define MAX_SEGMENTS		10
 
 struct segmentSpecific
 {
@@ -120,6 +120,12 @@ class SDPInfo
         const oscl_wchar *getSdpFilename(uint32 &retsize);
         OSCL_IMPORT_REF
         void setSDPFilename(OSCL_wString& aURL);
+		/* Mobile Media Lab. Streaming - Start */ 
+		OSCL_IMPORT_REF
+        uint32* getDisplaySize();
+		OSCL_IMPORT_REF
+        void setDisplaySize(uint32 aWidth, uint32 aHeight);
+		/* Mobile Media Lab. Streaming - End */ 
     private:
         sessionDescription session_info;
         Oscl_Vector< mediaInfo *, SDPParserAlloc> pMediaInfo[MAX_MEDIA_OBJECTS];
@@ -128,6 +134,9 @@ class SDPInfo
         int segmentCount;
         segmentSpecific segmentInfo[MAX_SEGMENTS];
         OSCL_wHeapString<SDPParserAlloc> SdpFilename;
+		/* Mobile Media Lab. Streaming - Start */ 
+		uint32 iDisplaySize[2];
+		/* Mobile Media Lab. Streaming - End */ 
 };
 #endif // __SDP_INFO_H__
 

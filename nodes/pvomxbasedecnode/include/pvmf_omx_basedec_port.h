@@ -67,9 +67,18 @@ typedef enum
     PVMF_OMX_DEC_NODE_PORT_TYPE_OUTPUT,
 } PVMFOMXDecPortType;
 
+/* Mobile Media Lab. Start */
+typedef struct
+{
+	uint32 display_width;
+	uint32 display_height;
+	uint32 frame_width;
+	uint32 frame_height;
+} VID_INFO;
+/* Mobile Media Lab. End */
 
 class PVMFOMXDecPort : public PvmfPortBaseImpl
-        , public PvmiCapabilityAndConfigPortFormatImpl
+            , public PvmiCapabilityAndConfigPortFormatImpl
 {
     public:
         OSCL_IMPORT_REF PVMFOMXDecPort(int32 aTag, PVMFNodeInterface* aNode, const char*);
@@ -110,7 +119,12 @@ class PVMFOMXDecPort : public PvmfPortBaseImpl
         {
             return iTrackConfig;
         }
-
+		/* Mobile Media Lab. Start */
+		VID_INFO * getVideoInfo()
+		{
+			return &vinfo;
+		}
+		/* Mobile Media Lab. End */
 
 
     private:
@@ -126,6 +140,10 @@ class PVMFOMXDecPort : public PvmfPortBaseImpl
         friend class PVMFOMXVideoDecNode;
         friend class PVMFOMXAudioDecNode;
         PVMFOMXBaseDecNode* iOMXNode;
+
+		/* Mobile Media Lab. Start */
+		VID_INFO vinfo;
+		/* Mobile Media Lab. End */
 };
 
 #endif // PVMF_OMX_DEC_PORT_H_INCLUDED

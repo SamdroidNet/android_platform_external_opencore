@@ -118,7 +118,7 @@ class PVPlayerNodeRegistry : public PVPlayerNodeRegistryInterface
          *
          * @returns a pointer to node
          **/
-        virtual PVMFNodeInterface* CreateNode(PVUuid& aUuid, bool aHwAccelerated);
+        virtual PVMFNodeInterface* CreateNode(PVUuid& aUuid);
 
         /**
          * The ReleaseNode for PVPlayerNodeRegistry. Used for releasing a node.
@@ -198,8 +198,8 @@ class PVPlayerRecognizerRegistryObserver
  * can determine the file type
  **/
 class PVPlayerRecognizerRegistry : public OsclTimerObject,
-        public PVMFRecognizerCommmandHandler
-        , public PVPlayerRecognizerRegistryInterface
+            public PVMFRecognizerCommmandHandler
+            , public PVPlayerRecognizerRegistryInterface
 {
     public:
         PVPlayerRecognizerRegistry();
@@ -316,7 +316,7 @@ class PVPlayerRecognizerRegistry : public OsclTimerObject,
 ** the registries.
 */
 class PVPlayerRegistryPopulator: public NodeRegistryPopulatorInterface
-        , public RecognizerPopulatorInterface
+            , public RecognizerPopulatorInterface
 {
     public:
         /*

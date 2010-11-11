@@ -42,7 +42,7 @@ typedef enum
 
 
 // Temporary until actual max track data size if used.
-#define MAXTRACKDATASIZE    4096
+#define MAXTRACKDATASIZE	4096
 
 static const char PVAAC_ALL_METADATA_KEY[] = "all";
 
@@ -55,7 +55,7 @@ static const char PVAACMETADATA_YEAR_KEY[] = "year";
 static const char PVAACMETADATA_COMMENT_KEY[] = "comment";
 static const char PVAACMETADATA_COPYRIGHT_KEY[] = "copyright";
 static const char PVAACMETADATA_GENRE_KEY[] = "genre";
-static const char PVAACMETADATA_TRACKINFO_TRACKNUMBER_KEY[] = "track-info/track-number";
+static const char PVAACMETADATA_TRACKNUMBER_KEY[] = "tracknumber";
 static const char PVAACMETADATA_DURATION_KEY[] = "duration";
 static const char PVAACMETADATA_NUMTRACKS_KEY[] = "num-tracks";
 static const char PVAACMETADATA_TRACKINFO_BITRATE_KEY[] = "track-info/bit-rate";
@@ -79,8 +79,8 @@ static const char PVAACMETADATA_RANDOM_ACCESS_DENIED_KEY[] = "random-access-deni
 
 #define PVMF_AAC_PARSER_NODE_MAX_CPM_METADATA_KEYS 256
 // Temporary until actual max track data size if used.
-#define MAX_PORTS           2
-#define NUM_AAC_FRAMES      1
+#define MAX_PORTS			2
+#define NUM_AAC_FRAMES		1
 
 // using asf specific values until aac specific are known
 #define AAC_MIN_DATA_SIZE_FOR_RECOGNITION  512
@@ -88,7 +88,7 @@ static const char PVAACMETADATA_RANDOM_ACCESS_DENIED_KEY[] = "random-access-deni
 
 #define PVMF_AAC_PARSER_NODE_INCLUDE_ADTS_HEADERS 0
 
-#define PVMF_AAC_PARSER_NODE_TS_DELTA_DURING_REPOS_IN_MS 10 // 10ms
+#define PVMF_AAC_PARSER_NODE_TS_DELTA_DURING_REPOS_IN_MS 10	// 10ms
 
 
 #endif

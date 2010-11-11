@@ -47,9 +47,6 @@
 // Initial search range, resetted to the file size once valid mp3
 // frame is found
 #define KMAX_INITIAL_SEARCH_FILE_SIZE_IN_BYTES  500000
-// If the Xing header reports a size that is smaller than the file length
-// by this much, consider the Xing header invalid.
-#define XING_SIZE_FUZZINESS 0.90
 
 /***********************************************************************
  * Global constant definitions
@@ -438,7 +435,7 @@ MP3ErrorType MP3Parser::ParseMP3File(PVFile * fpUsed, bool aEnableCRC)
     // SAVE THE CURRENT FILE POSITION
     errCode = MP3Utils::SeektoOffset(fp, 0, Oscl_File::SEEKSET);
     // try to retrieve the file size
-    if (fp->GetFileBufferingCapacity() == 0 && MP3Utils::getCurrentFileSize(fp, iLocalFileSize))
+    if (fp->GetCPM() == NULL && MP3Utils::getCurrentFileSize(fp, iLocalFileSize))
     {
         iLocalFileSizeSet = true;
         iInitSearchFileSize = OSCL_MIN(iInitSearchFileSize, iLocalFileSize);
@@ -650,9 +647,8 @@ MP3ErrorType MP3Parser::ParseMP3File(PVFile * fpUsed, bool aEnableCRC)
     if (mp3Type == EXINGType || mp3Type == EVBRIType)
     {
         // Get the duration
-        uint32 clipduration = 0;
-        GetDurationFromVBRIHeader(clipduration);
-        if (clipduration == 0)
+        GetDurationFromVBRIHeader(iClipDurationFromVBRIHeader);
+        if (iClipDurationFromVBRIHeader == 0)
         {
             // not a valid duration, just set the clip to be VBR type
             mp3Type = EVBRType;
@@ -664,7 +660,7 @@ MP3ErrorType MP3Parser::ParseMP3File(PVFile * fpUsed, bool aEnableCRC)
     // And even if XING header is present and TOC flags are not present we need to build
     // our own TOC.
     if ((mp3Type != EXINGType || !(iXingHeader.flags & TOC_FLAG)) &&
-            (mp3Type != EVBRIType))
+            mp3Type != EVBRIType)
     {
         iTOC = OSCL_ARRAY_NEW(int32, MAX_TOC_ENTRY_COUNT + 1);
         oscl_memset(iTOC, 0, sizeof(iTOC));
@@ -697,7 +693,6 @@ MP3ErrorType MP3Parser::ScanMP3File(PVFile * fpUsed, uint32 aFramesToScan)
     uint8 pFrameHeader[MP3_FRAME_HEADER_SIZE];
     int32 audioOffset = 0;
     uint32 seekOffset = 0;
-    MP3ErrorType status = MP3_ERROR_UNKNOWN;
     MP3HeaderType mp3HeaderInfo;
     MP3ConfigInfoType mp3ConfigInfo;
 
@@ -711,18 +706,17 @@ MP3ErrorType MP3Parser::ScanMP3File(PVFile * fpUsed, uint32 aFramesToScan)
         return MP3_DURATION_PRESENT;
     }
 
+    if (iTOC == NULL)
+    {
+        // Not a valid condition this should never happen, except if
+        // there was memory allocation failure during ParseMP3File.
+        // Just return Mp3DurationPresent here to avoid any further calls of ScanMp3File
+        return MP3_DURATION_PRESENT;
+    }
+
     if (iTOCFilledCount == MAX_TOC_ENTRY_COUNT)
     {
-        status = FillTOCTable(0, 0);
-        if (status == MP3_ERROR_UNKNOWN)
-        {
-            // This will happen when FillTocTable returns error because of
-            // NULL TOCTable.
-            // Not a valid condition this should never happen, except if
-            // there was memory allocation failure during ParseMP3File.
-            // If happens return Duration Present to avoid any further ScanMp3File calls.
-            return MP3_DURATION_PRESENT;
-        }
+        FillTOCTable(0, 0);
         return MP3_SUCCESS;
     }
 
@@ -758,20 +752,11 @@ MP3ErrorType MP3Parser::ScanMP3File(PVFile * fpUsed, uint32 aFramesToScan)
 
         if (fpUsed->Read(pFrameHeader, 1, MP3_FRAME_HEADER_SIZE) != MP3_FRAME_HEADER_SIZE)
         {
-            if (fpUsed->GetFileBufferingCapacity() == 0)
+            if (fpUsed->GetCPM() == NULL)
             {
                 iDurationScanComplete = true;
             }
-            status = FillTOCTable(audioOffset, 0);
-            if (status == MP3_ERROR_UNKNOWN)
-            {
-                // This will happen when FillTocTable returns error because of
-                // NULL TOCTable.
-                // Not a valid condition this should never happen, except if
-                // there was memory allocation failure during ParseMP3File.
-                // If happens return Duration Present to avoid any further ScanMp3File calls.
-                return MP3_DURATION_PRESENT;
-            }
+            FillTOCTable(audioOffset, 0);
             return MP3_INSUFFICIENT_DATA;
         }
         firstHeader = SwapFileToHostByteOrderInt32(pFrameHeader);
@@ -783,25 +768,10 @@ MP3ErrorType MP3Parser::ScanMP3File(PVFile * fpUsed, uint32 aFramesToScan)
             if (err == MP3_SUCCESS)
             {
                 offset += seekOffset;
-                err = MP3Utils::SeektoOffset(fpUsed, seekOffset, Oscl_File::SEEKCUR);
-                if (MP3_SUCCESS != err)
-                {
-                    return err;
-                }
-
                 if (!MP3FileIO::readByteData(fpUsed, MP3_FRAME_HEADER_SIZE, pFrameHeader))
                 {
                     iDurationScanComplete = true;
-                    status = FillTOCTable(offset, iScanTimestamp);
-                    if (status == MP3_ERROR_UNKNOWN)
-                    {
-                        // This will happen when FillTocTable returns error because of
-                        // NULL TOCTable.
-                        // Not a valid condition this should never happen, except if
-                        // there was memory allocation failure during ParseMP3File.
-                        // If happens return Duration Present to avoid any further ScanMp3File calls.
-                        return MP3_DURATION_PRESENT;
-                    }
+                    FillTOCTable(offset, iScanTimestamp);
                     return MP3_INSUFFICIENT_DATA;
                 }
 
@@ -809,32 +779,14 @@ MP3ErrorType MP3Parser::ScanMP3File(PVFile * fpUsed, uint32 aFramesToScan)
                 if (! GetMP3Header(firstHeader, mp3HeaderInfo))
                 {
                     iDurationScanComplete = true;
-                    status = FillTOCTable(offset, iScanTimestamp);
-                    if (status == MP3_ERROR_UNKNOWN)
-                    {
-                        // This will happen when FillTocTable returns error because of
-                        // NULL TOCTable.
-                        // Not a valid condition this should never happen, except if
-                        // there was memory allocation failure during ParseMP3File.
-                        // If happens return Duration Present to avoid any further ScanMp3File calls.
-                        return MP3_DURATION_PRESENT;
-                    }
+                    FillTOCTable(offset, iScanTimestamp);
                     return MP3_FILE_HDR_READ_ERR;
                 }
             }
             else
             {
                 iDurationScanComplete = true;
-                status = FillTOCTable(offset, iScanTimestamp);
-                if (status == MP3_ERROR_UNKNOWN)
-                {
-                    // This will happen when FillTocTable returns error because of
-                    // NULL TOCTable.
-                    // Not a valid condition this should never happen, except if
-                    // there was memory allocation failure during ParseMP3File.
-                    // If happens return Duration Present to avoid any further ScanMp3File calls.
-                    return MP3_DURATION_PRESENT;
-                }
+                FillTOCTable(offset, iScanTimestamp);
                 return err;
             }
         }
@@ -842,16 +794,7 @@ MP3ErrorType MP3Parser::ScanMP3File(PVFile * fpUsed, uint32 aFramesToScan)
         if (!DecodeMP3Header(mp3HeaderInfo, mp3ConfigInfo, false))
         {
             iDurationScanComplete = true;
-            status = FillTOCTable(offset, iScanTimestamp);
-            if (status == MP3_ERROR_UNKNOWN)
-            {
-                // This will happen when FillTocTable returns error because of
-                // NULL TOCTable.
-                // Not a valid condition this should never happen, except if
-                // there was memory allocation failure during ParseMP3File.
-                // If happens return Duration Present to avoid any further ScanMp3File calls.
-                return MP3_DURATION_PRESENT;
-            }
+            FillTOCTable(offset, iScanTimestamp);
             return MP3_FILE_HDR_DECODE_ERR;
         }
 
@@ -877,16 +820,7 @@ MP3ErrorType MP3Parser::ScanMP3File(PVFile * fpUsed, uint32 aFramesToScan)
     }
 
     // After scan of frames we need to fill the TOC table
-    status = FillTOCTable(audioOffset, iScanTimestamp);
-    if (status == MP3_ERROR_UNKNOWN)
-    {
-        // This will happen when FillTocTable returns error because of
-        // NULL TOCTable.
-        // Not a valid condition this should never happen, except if
-        // there was memory allocation failure during ParseMP3File.
-        // If happens return Duration Present to avoid any further ScanMp3File calls.
-        return MP3_DURATION_PRESENT;
-    }
+    FillTOCTable(audioOffset, iScanTimestamp);
     iScanTimestamp = iScanTimestamp + frameDur;
 
     return MP3_SUCCESS;
@@ -1138,32 +1072,6 @@ bool  MP3Parser::DecodeXINGHeader(uint8 *XingBuffer,
     {
         mp3XingHD.bytes = SwapFileToHostByteOrderInt32(pBuf);
         pBuf += 4;
-
-        if (head_flags & FRAMES_FLAG)
-        {
-            // check if the number of frames and the number of
-            // bytes roughly match up
-            int bytesperframe = mp3XingHD.bytes / mp3XingHD.frames;
-            // 52 and 1440 are the minimum and maximum number of bytes per frame for
-            // a compliant mp3 stream (8kbps@22050Hz and 320kbps@32000Hz respectively)
-            if (bytesperframe < 52 || bytesperframe > 1440)
-            {
-                head_flags = mp3XingHD.flags = 0;
-            }
-        }
-        if (iLocalFileSize != 0)
-        {
-            // check if the number of bytes and the file size roughly
-            // match up
-            if (mp3XingHD.bytes > iLocalFileSize)
-            {
-                head_flags = mp3XingHD.flags = 0;
-            }
-            if (mp3XingHD.bytes < iLocalFileSize * XING_SIZE_FUZZINESS)
-            {
-                head_flags = mp3XingHD.flags = 0;
-            }
-        }
     }
 
     if (head_flags & TOC_FLAG)
@@ -1181,10 +1089,7 @@ bool  MP3Parser::DecodeXINGHeader(uint8 *XingBuffer,
         mp3XingHD.vbr_scale = SwapFileToHostByteOrderInt32(pBuf);
         pBuf += 4;;
     }
-    if (head_flags & FRAMES_FLAG)
-    {
-        iNumberOfFrames = mp3XingHD.frames;
-    }
+    iNumberOfFrames = mp3XingHD.frames;
     return true;
 }
 
@@ -1362,7 +1267,7 @@ uint32 MP3Parser::GetDuration(bool aMetadataDuration)
     uint32 clipDuration = 0;
 
     // local clip playback
-    if (fp->GetFileBufferingCapacity() == 0)
+    if (!fp->GetCPM())
     {
         // if scanning is complete, send the clip duration from scan
         // else if vbri/xing headers exist send duration from that
@@ -1618,11 +1523,6 @@ BEGIN:
 
         if (err == MP3_SUCCESS)
         {
-            err = MP3Utils::SeektoOffset(fp, seekOffset, Oscl_File::SEEKCUR);
-            if (MP3_SUCCESS != err)
-            {
-                return err;
-            }
             currentFilePosn += seekOffset;
 
             if (0 != contentLength)
@@ -1687,11 +1587,6 @@ BEGIN:
         MP3ErrorType err = mp3FindSync(currentFilePosn, seekOffset, fp);
         if (err == MP3_SUCCESS)
         {
-            err = MP3Utils::SeektoOffset(fp, seekOffset, Oscl_File::SEEKCUR);
-            if (MP3_SUCCESS != err)
-            {
-                return err;
-            }
             currentFilePosn += seekOffset;
             goto BEGIN;
         }
@@ -1718,16 +1613,14 @@ BEGIN:
 
     uint32 fileSz = 0;
     MP3Utils::getCurrentFileSize(fp, fileSz);
-    if ((fileSz != 0) && (currentFilePosn + (mp3FrameSizeInBytes - MP3_FRAME_HEADER_SIZE) > (uint32)fileSz))
+
+    // In Shoutcast, the file position/file size will wrap around at 4GB
+    // file size should wrap before file position
+    if ((0 != fileSz) && ((fileSz - currentFilePosn) < (mp3FrameSizeInBytes - MP3_FRAME_HEADER_SIZE)))
     {
         // At EOF
         iCurrFrameNumber--;
         framesize = 0;
-        timestamp = GetTimestampForCurrentSample();
-        if (mp3CDInfo.BitRate > 0)
-        {
-            iTimestamp = uint32(timestamp + (OsclFloat) mp3CDInfo.FrameLengthInBytes * 8000.00f / mp3CDInfo.BitRate);
-        }
         if (0 != contentLength)
         {
             // if content length is known, check for reading beyond EOF
@@ -1741,6 +1634,7 @@ BEGIN:
         {
             return err;
         }
+
         return MP3_INSUFFICIENT_DATA;
     }
 
@@ -1752,14 +1646,6 @@ BEGIN:
     }
 
     framesize = mp3FrameSizeInBytes;
-    timestamp = GetTimestampForCurrentSample();
-
-    // update timestamp for next sample
-    // calculate frameDuration
-    if (mp3CDInfo.BitRate > 0)
-    {
-        iTimestamp = uint32(timestamp + (OsclFloat) mp3CDInfo.FrameLengthInBytes * 8000.00f / mp3CDInfo.BitRate);
-    }
 
     // Take into account the header (4 Bytes) already read up front
     // to obtain the correct Frame Size in Bytes
@@ -1781,6 +1667,13 @@ BEGIN:
         return MP3_INSUFFICIENT_DATA;
     }
 
+    timestamp = GetTimestampForCurrentSample();
+    // update timestamp for next sample
+    // calculate frameDuration
+    if (mp3CDInfo.BitRate > 0)
+    {
+        iTimestamp = uint32(timestamp + (OsclFloat) mp3CDInfo.FrameLengthInBytes * 8000.00f / mp3CDInfo.BitRate);
+    }
     return MP3_SUCCESS;
 }
 
@@ -1795,11 +1688,11 @@ uint32  MP3Parser::SeekToTimestamp(uint32 timestampInMsec)
 {
     uint32 SeekPosition = 0;
     SeekPosition = SeekPointFromTimestamp(timestampInMsec);
-    if (!((fp->GetFileBufferingCapacity() == 0) && (SeekPosition == iLocalFileSize) && (timestampInMsec == iClipDurationInMsec)))
+    if (!((!fp->GetCPM()) && (SeekPosition == iLocalFileSize) && (timestampInMsec == iClipDurationInMsec)))
     {
         SeekPosition += StartOffset;
     }
-    MP3Utils::SeektoOffset(fp, SeekPosition, Oscl_File::SEEKSET);
+    fp->Seek(SeekPosition, Oscl_File::SEEKSET);
     return timestampInMsec;
 }
 
@@ -1826,7 +1719,7 @@ uint32 MP3Parser::SeekPointFromTimestamp(uint32 &timestamp)
     }
 
     // XING - Use VBR TOC Header
-    if ((mp3Type == EXINGType) && (iXingHeader.flags & TOC_FLAG))
+    if ((mp3Type == EXINGType) && (iXingHeader.flags & TOC_FLAG) && timestamp > 0)
     {
         // Interpolate in TOC to get file seek point in bytes
         OsclFloat fpc = (OsclFloat)timestamp / (OsclFloat)iClipDurationFromVBRIHeader;
@@ -1871,7 +1764,7 @@ uint32 MP3Parser::SeekPointFromTimestamp(uint32 &timestamp)
             percent = 0;
         }
     }
-    else if (mp3Type == EVBRIType)
+    else if (mp3Type == EVBRIType && timestamp > 0)
         // //////////////////////////////////////////////////////////
         // CBR or VBRI
     {
@@ -1926,7 +1819,7 @@ uint32 MP3Parser::SeekPointFromTimestamp(uint32 &timestamp)
          * calculated on the basis of average bit rate
          **/
         int32 avgBR = 0;
-        if (fp->GetFileBufferingCapacity() > 0)
+        if (fp->GetCPM())
         {
             avgBR = iAvgBitrateInbps;
         }
@@ -1950,7 +1843,7 @@ uint32 MP3Parser::SeekPointFromTimestamp(uint32 &timestamp)
     * Since in PD/PS scenarios we might not be having enough data to find the seek point
     * We can find the seek point when we are resuming the playback
     **/
-    if (seekPoint > 0 && fp->GetFileBufferingCapacity() == 0)
+    if (seekPoint > 0 && !fp->GetCPM())
     {
         // seek to the reposition point location
         MP3Utils::SeektoOffset(fp, seekPoint + StartOffset, Oscl_File::SEEKSET);
@@ -1959,7 +1852,6 @@ uint32 MP3Parser::SeekPointFromTimestamp(uint32 &timestamp)
         if (retVal == MP3_SUCCESS)
         {
             seekPoint += seekOffset;
-            MP3Utils::SeektoOffset(fp, seekOffset, Oscl_File::SEEKCUR);
             if (iDurationScanComplete)
             {
                 uint32 offsetDiff = iTOC[binNo+1] - iTOC[binNo];
@@ -2015,16 +1907,19 @@ MP3ErrorType MP3Parser::mp3FindSync(uint32 seekPoint, uint32 &syncOffset, PVFile
     syncOffset = 0;
     iMaxSyncBufferSize = 627;   /* default for 192 kbps, 44.1 kHz */
 
-    if (aFile->GetFileBufferingCapacity() > 0)
+    if (aFile->GetCPM() != NULL)
     {
         iLocalFileSizeSet = (int32)MP3Utils::getCurrentFileSize(aFile, iLocalFileSize);
     }
 
     uint32 contentLength = MP3FileIO::getContentLength(aFile);
-    if ((contentLength != 0) && ((seekPoint + iMaxSyncBufferSize) >= contentLength))
+    if (0 != contentLength)
     {
         // if content length is known, check for reading beyond EOF
-        return MP3_END_OF_FILE;
+        if ((seekPoint + iMaxSyncBufferSize) >= contentLength)
+        {
+            return MP3_END_OF_FILE;
+        }
     }
 
     if ((iLocalFileSize != 0) && (seekPoint + iMaxSyncBufferSize > (uint32)iLocalFileSize))
@@ -2069,6 +1964,18 @@ MP3ErrorType MP3Parser::mp3FindSync(uint32 seekPoint, uint32 &syncOffset, PVFile
 
     for (j = 0; j < maxSearchOffset; j += iMaxSyncBufferSize)
     {
+        if (maxSearchOffset < iInitSearchFileSize && j + iMaxSyncBufferSize > maxSearchOffset)
+        {
+            // update the data to be searched next time.
+            iInitSearchFileSize -= maxSearchOffset;
+            if (pSyncBuffer)
+            {
+                OSCL_ARRAY_DELETE(pSyncBuffer);
+                pSyncBuffer = NULL;
+            }
+            return MP3_INSUFFICIENT_DATA;
+        }
+
         revSeek = 0;
         // Grab a new buffer for a byte by byte search
         if (!MP3FileIO::readByteData(aFile, iMaxSyncBufferSize, &pSyncBuffer[1], &BufferSize))
@@ -2100,7 +2007,7 @@ MP3ErrorType MP3Parser::mp3FindSync(uint32 seekPoint, uint32 &syncOffset, PVFile
                         mp3Err = IsValidFrame(&(pSyncBuffer[i]), j + i - 1, seekPoint, aFile);
                         if (mp3Err == MP3_SUCCESS)
                         {
-                            MP3Utils::SeektoOffset(aFile, 0 - (int32)j - i + 1, Oscl_File::SEEKCUR);
+                            // read pointer is at begining of valid audio frame
                             break;
                         }
                         else if (mp3Err == MP3_INSUFFICIENT_DATA)
@@ -2127,7 +2034,7 @@ MP3ErrorType MP3Parser::mp3FindSync(uint32 seekPoint, uint32 &syncOffset, PVFile
 
                         if (mp3Err == MP3_SUCCESS)
                         {
-                            MP3Utils::SeektoOffset(aFile, 0 - (int32)j - i + 1, Oscl_File::SEEKCUR);
+                            // read pointer is at begining of valid audio frame
                             break;
                         }
                         else if (mp3Err == MP3_INSUFFICIENT_DATA)
@@ -2178,12 +2085,8 @@ MP3ErrorType MP3Parser::mp3FindSync(uint32 seekPoint, uint32 &syncOffset, PVFile
     }
     else
     {
-        uint32 remBytes = 0;
-        if (aFile->GetRemainingBytes(remBytes))
-        {
-            /* One valid frame was found -> reset initial size remaining file size*/
-            iInitSearchFileSize = OSCL_MIN(iInitSearchFileSize, remBytes);
-        }
+        /* One valid frame was found -> reset initial size remaining file size*/
+        iInitSearchFileSize = KMAX_INITIAL_SEARCH_FILE_SIZE_IN_BYTES;
     }
 
     syncOffset = j + i - 1;  /*  set offset */
@@ -2685,11 +2588,6 @@ MP3ErrorType MP3Parser::IsMp3File(MP3_FF_FILE* aFile, uint32 aInitSearchFileSize
         errCode = mp3FindSync(StartOffset, seekOffset, fp);
         if (errCode == MP3_SUCCESS)
         {
-            errCode = MP3Utils::SeektoOffset(fp, seekOffset, Oscl_File::SEEKCUR);
-            if (MP3_SUCCESS != errCode)
-            {
-                return errCode;
-            }
             StartOffset += seekOffset;
 
             if (!MP3FileIO::readByteData(fp, MP3_FRAME_HEADER_SIZE, pFrameHeader))
@@ -2943,7 +2841,7 @@ MP3ErrorType MP3Parser::ComputeDurationFromNRandomFrames(PVFile * fpUsed, int32 
             break;
         }
         audioOffset += seekOffset;
-        MP3Utils::SeektoOffset(fpUsed, seekOffset, Oscl_File::SEEKCUR);
+
         // lets check rest of the frames
         while (framecount < aNumFrames)
         {
@@ -3009,16 +2907,8 @@ void MP3Parser::GetDurationFromCompleteScan(uint32 &aClipDuration)
     aClipDuration = iClipDurationComputed;
 }
 
-MP3ErrorType MP3Parser::FillTOCTable(uint32 aFilePos, uint32 aTimeStampToFrame)
+void MP3Parser::FillTOCTable(uint32 aFilePos, uint32 aTimeStampToFrame)
 {
-    if (iTOC == NULL)
-    {
-        // Not a valid condition this should never happen, except if
-        // there was memory allocation failure during ParseMP3File.
-        // Just return Failure here to avoid any further calls of FillTOCTable
-        return MP3_ERROR_UNKNOWN;
-    }
-
     if (iDurationScanComplete)
     {
         iTOC[iTOCFilledCount] = aFilePos;
@@ -3027,7 +2917,7 @@ MP3ErrorType MP3Parser::FillTOCTable(uint32 aFilePos, uint32 aTimeStampToFrame)
         {
             GetDurationFromCompleteScan(iBinWidth);
         }
-        return MP3_SUCCESS;
+        return;
     }
 
     if ((iTOCFilledCount < MAX_TOC_ENTRY_COUNT) && ((aTimeStampToFrame - iTimestampPrev) >= iBinWidth))
@@ -3055,7 +2945,6 @@ MP3ErrorType MP3Parser::FillTOCTable(uint32 aFilePos, uint32 aTimeStampToFrame)
         iBinWidth = 2 * iBinWidth;
         iTOCFilledCount = MAX_TOC_ENTRY_COUNT / 2;
     }
-    return MP3_SUCCESS;
 }
 
 

@@ -112,9 +112,9 @@ class PVA_FF_MediaAtom : public PVA_FF_Atom
         }
 
         // Stream properties
-        void setTargetBitrate(uint32 avgBitRate, uint32 maxBitRate, uint32 bufferSizeDB)
+        void setTargetBitrate(uint32 bitrate)
         {
-            _pmediaInformation->setTargetBitrate(avgBitRate, maxBitRate, bufferSizeDB);
+            _pmediaInformation->setTargetBitrate(bitrate);
         }
 
         // Rendering the PVA_FF_Atom in proper format (bitlengths, etc.) to an ostream
@@ -140,11 +140,6 @@ class PVA_FF_MediaAtom : public PVA_FF_Atom
         void setVideoParams(uint32 frame_width, uint32 frame_height)
         {
             _pmediaInformation->setVideoParams(frame_width, frame_height);
-        }
-
-        void setAudioEncodeParams(PVMP4FFComposerAudioEncodeParams &audioParams)
-        {
-            _pmediaInformation->setAudioEncodeParams(audioParams);
         }
 
         void setH263ProfileLevel(uint8 profile, uint8 level)

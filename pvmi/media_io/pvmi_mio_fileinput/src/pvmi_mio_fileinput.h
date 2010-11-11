@@ -152,9 +152,9 @@ class PvmiMIOFileInputMediaData
 };
 
 class PvmiMIOFileInput : public OsclTimerObject,
-        public PvmiMIOControl,
-        public PvmiMediaTransfer,
-        public PvmiCapabilityAndConfig
+            public PvmiMIOControl,
+            public PvmiMediaTransfer,
+            public PvmiCapabilityAndConfig
 
 {
     public:
@@ -370,9 +370,6 @@ class PvmiMIOFileInput : public OsclTimerObject,
         uint32 iFormatSpecificInfoSize;
         bool iSetFormatSpecificInfo;
         PvmiKvp* iFSIKvp;
-
-        //Peer's cap-config interface ptr
-        PvmiCapabilityAndConfig* iPeerCapConfig;
 };
 
 #endif // PVMI_MIO_FILEINPUT_H_INCLUDED

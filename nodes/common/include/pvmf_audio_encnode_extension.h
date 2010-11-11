@@ -64,6 +64,13 @@ typedef enum
     GSM_AMR_N_MODES      /* number of (SPC) modes */
 } PVMF_GSMAMR_Rate;
 
+typedef enum
+{
+	EVRC_BitRateFULL = 0,
+	EVRC_BitRateHALF,
+	EVRC_BitRateEIGHT
+} PVMF_EVRC_Rate;
+
 
 ////////////////////////////////////////////////////////////////////////////
 class PVAudioEncExtensionInterface : public PVInterface

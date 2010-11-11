@@ -84,7 +84,7 @@ const uint MediaInputNodeConfig_NumBaseKeys =
 
 
 ////////////////////////////////////////////////////////////////////////////
-//                  PvmiCapConfigInterface
+//					PvmiCapConfigInterface
 ////////////////////////////////////////////////////////////////////////////
 
 void PvmfMediaInputNode::createContext(PvmiMIOSession aSession,
@@ -362,11 +362,17 @@ void PvmfMediaInputNode::setParametersSync(PvmiMIOSession aSession, PvmiKvp* aPa
         char* compstr = NULL;
         pv_mime_string_extract_type(0, aParameters[paramind].key, compstr);
 
-        if ((compcount == 3) &&
-                (pv_mime_strcmp(compstr, _STRLIT_CHAR("x-pvmf/datasource")) == 0))
+        if ((pv_mime_strcmp(compstr, _STRLIT_CHAR("x-pvmf/datasource")) < 0) || compcount < 2)
         {
-            // There must be exactly 3 components and
-            // First 2 components should be "x-pvmf/datasource".
+            // First 2 components should be "x-pvmf/datasource" and there must
+            // be at least four components
+            aRetKVP = &aParameters[paramind];
+            PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR, (0, "PvmfMediaInputNode::setParametersSync() Unsupported key"));
+            return;
+        }
+
+        if (3 == compcount)
+        {
             // Verify and set the passed-in media input setting
             PVMFStatus retval = VerifyAndSetConfigParameter(aParameters[paramind], true);
             if (PVMFSuccess != retval)
@@ -376,42 +382,16 @@ void PvmfMediaInputNode::setParametersSync(PvmiMIOSession aSession, PvmiKvp* aPa
                 return;
             }
         }
-        else if ((compcount == 2) &&
-                 (pv_mime_strcmp(compstr, PVMF_AUTHORING_CLOCK_KEY) == 0))
-        {
-            //pass the clock to media input comp
-            if (iMediaIOConfig != NULL)
-            {
-                iMediaIOConfig->setParametersSync(NULL, aParameters, aNumElements, aRetKVP);
-            }
-        }
         else
         {
-            //pass it on to port to be sent upstream
-            //assume just one output port for now
-            if (iOutPortVector.size() == 1)
-            {
-                PvmfMediaInputNodeOutPort* outPort = iOutPortVector[0];
-                if (outPort != NULL)
-                {
-                    PVMFPortInterface* connectedPort = outPort->getConnectedPort();
-                    if (connectedPort != NULL)
-                    {
-                        OsclAny* temp = NULL;
-                        connectedPort->QueryInterface(PVMI_CAPABILITY_AND_CONFIG_PVUUID, temp);
-                        PvmiCapabilityAndConfig *config = OSCL_STATIC_CAST(PvmiCapabilityAndConfig*, temp);
-                        config->setParametersSync(aSession, aParameters, aNumElements, aRetKVP);
-                        return;
-                    }
-                }
-            }
-            //no parameters were accepted
-            aRetKVP = aParameters;
-            PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR, (0, "PvmfMediaInputNode::setParametersSync() Setting parameters failed"));
+            // Do not support more than 3 components right now
+            aRetKVP = &aParameters[paramind];
+            PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR, (0, "PvmfMediaInputNode::setParametersSync() Unsupported key"));
+            return;
         }
     }
+
     PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE, (0, "PvmfMediaInputNode::setParametersSync() Out"));
-    return;
 }
 
 
@@ -622,7 +602,7 @@ PVMFStatus PvmfMediaInputNode::GetConfigParameter(PvmiKvp*& aParameters, int& aN
     // Copy the requested info
     switch (aIndex)
     {
-        case PARAMETER1:    // "parameter1"
+        case PARAMETER1:	// "parameter1"
             if (PVMI_KVPATTR_CUR == aReqattr)
             {
                 // get the parameter here
@@ -638,7 +618,7 @@ PVMFStatus PvmfMediaInputNode::GetConfigParameter(PvmiKvp*& aParameters, int& aN
             }
             break;
 
-        case PARAMETER2:    // "parameter2"
+        case PARAMETER2:	// "parameter2"
             if (PVMI_KVPATTR_CUR == aReqattr)
             {
                 // get the parameter here

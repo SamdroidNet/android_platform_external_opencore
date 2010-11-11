@@ -114,11 +114,6 @@
 #include "imp3ff.h"  // Includes for the core file format mp3 parser library
 #endif
 
-#ifndef USE_CML2_CONFIG
-#ifndef PVMF_MP3FFPASER_NODE_CONFIG_H_INCLUDED
-#include "pvmf_mp3ffparser_node_config.h"
-#endif
-#endif
 
 #if PV_HAS_SHOUTCAST_SUPPORT_ENABLED // include scsp only when SHOUTCAST support is enabled
 #ifndef PVMF_SHOUTCAST_STREAM_PARSER_H_INCLUDED

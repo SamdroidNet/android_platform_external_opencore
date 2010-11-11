@@ -38,9 +38,6 @@
 #define OSCL_HAS_ANDROID_SUPPORT 1
 #define OSCL_HAS_ANDROID_FILE_IO_SUPPORT 1
 
-#define OSCL_EXPORT_REF __attribute__ ((visibility("default")))
-#define OSCL_IMPORT_REF __attribute__ ((visibility("default")))
-
 // include common include for determining sizes from limits.h
 #include "osclconfig_limits_typedefs.h"
 
@@ -78,9 +75,9 @@
 #define __TFS__ <>
 
 #define OSCL_BEGIN_PACKED
-#define OSCL_PACKED_VAR(x)  x __attribute__((packed))
+#define OSCL_PACKED_VAR(x)	x __attribute__((packed))
 #define OSCL_PACKED_STRUCT_BEGIN
-#define OSCL_PACKED_STRUCT_END  __attribute__((packed))
+#define OSCL_PACKED_STRUCT_END	__attribute__((packed))
 #define OSCL_END_PACKED
 
 //set this to 1 to enable OSCL_ASSERT in release builds.

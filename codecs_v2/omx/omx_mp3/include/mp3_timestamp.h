@@ -22,12 +22,6 @@
 #include "oscl_base.h"
 #endif
 
-#ifndef OMX_Component_h
-#include "OMX_Component.h"
-#endif
-
-
-
 #define DEFAULT_SAMPLING_FREQ_MP3 44100
 #define DEFAULT_SAMPLES_PER_FRAME_MP3 1152
 
@@ -45,22 +39,21 @@ class Mp3TimeStampCalc
 
         void SetParameters(uint32 aFreq, uint32 aSamples);
 
-        void SetFromInputTimestamp(OMX_TICKS aValue);
+        void SetFromInputTimestamp(uint32 aValue);
 
         void UpdateTimestamp(uint32 aValue);
 
-        OMX_TICKS GetConvertedTs();
+        uint32 GetConvertedTs();
 
-        OMX_TICKS GetCurrentTimestamp();
+        uint32 GetCurrentTimestamp();
 
-        OMX_TICKS GetFrameDuration();
-
+        uint32 GetFrameDuration();
 
     private:
         uint32 iSamplingFreq;
-        OMX_TICKS iCurrentTs;
+        uint32 iCurrentTs;
         uint32 iCurrentSamples;
         uint32 iSamplesPerFrame;
 };
 
-#endif  //#ifndef MP3_TIMESTAMP_H_INCLUDED
+#endif	//#ifndef MP3_TIMESTAMP_H_INCLUDED

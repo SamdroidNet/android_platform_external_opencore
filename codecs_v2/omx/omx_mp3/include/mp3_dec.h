@@ -52,13 +52,16 @@ class Mp3Decoder
         OMX_S32 iInitFlag;
 
     private:
+    	OMX_U32 Mp3SearchSyncWord(OMX_U8* aInBuffer, OMX_U32 aInputBuffLength, OMX_U32* aHeaderPosition);
 
         CPvMP3_Decoder* iAudioMp3Decoder;
         tPVMP3DecoderExternal* iMP3DecExt;
+
+        FILE *fp_dump;
 
 };
 
 
 
-#endif  //#ifndef MP3_DEC_H_INCLUDED
+#endif	//#ifndef MP3_DEC_H_INCLUDED
 

@@ -234,6 +234,10 @@ PVMFStatus PVMFFileOutputNode::GetCapability(PVMFNodeCapability& aNodeCapability
         iCapability.iInputFormatCapability.push_back(PVMF_MIME_H264_VIDEO);
         iCapability.iInputFormatCapability.push_back(PVMF_MIME_PCM);
         iCapability.iInputFormatCapability.push_back(PVMF_MIME_3GPP_TIMEDTEXT);
+        iCapability.iInputFormatCapability.push_back(PVMF_MIME_G711);
+        iCapability.iInputFormatCapability.push_back(PVMF_MIME_EVRC);
+        iCapability.iInputFormatCapability.push_back(PVMF_MIME_G729);
+        iCapability.iInputFormatCapability.push_back(PVMF_MIME_MP3);
     }
     aNodeCapability = iCapability;
     return PVMFSuccess;
@@ -718,7 +722,7 @@ void PVMFFileOutputNode::HandlePortActivity(const PVMFPortActivity &aActivity)
             //Purge any port activity events already queued
             //for this port.
             {
-                for (uint32 i = 0; i < iPortActivityQueue.size();)
+                for (uint32 i = 0;i < iPortActivityQueue.size();)
                 {
                     if (iPortActivityQueue[i].iPort == aActivity.iPort)
                         iPortActivityQueue.erase(&iPortActivityQueue[i]);
@@ -971,6 +975,79 @@ PVMFStatus PVMFFileOutputNode::WriteFormatSpecificInfo(OsclAny* aPtr, uint32 aSi
                 }
             }
             iFirstMediaData = false;
+        }
+        else if (((PVMFFileOutputInPort*)iInPort)->iFormat == PVMF_MIME_G711)
+        {
+            // Check if the incoming data has "#!AMR\n" string
+            if (aSize < G711_HEADER_SIZE ||
+                    oscl_strncmp((const char*)aPtr, G711_HEADER, G711_HEADER_SIZE) != 0)
+            {
+                // AMR header not found, add AMR header to file first
+                status = WriteData((OsclAny*)G711_HEADER, G711_HEADER_SIZE);
+                if (status != PVMFSuccess)
+                {
+                    PVLOGGER_LOGMSG(PVLOGMSG_INST_REL, iLogger, PVLOGMSG_ERR,
+                                    (0, "PVMFFileOutputNode::WriteFormatSpecificInfo: Error - WriteData failed"));
+                    return status;
+                }
+            }
+            iFirstMediaData = false;
+        }
+        else if (((PVMFFileOutputInPort*)iInPort)->iFormat == PVMF_MIME_EVRC)
+		{
+
+		    // Check if the incoming data has "#!EVRC\n" string
+			if (aSize < EVRC_HEADER_SIZE ||
+			        oscl_strncmp((const char*)aPtr, EVRC_HEADER, EVRC_HEADER_SIZE) != 0)
+			{
+			    // EVRC header not found, add EVRC header to file first
+			    status = WriteData((OsclAny*)EVRC_HEADER, EVRC_HEADER_SIZE);
+			    if (status != PVMFSuccess)
+			    {
+			        PVLOGGER_LOGMSG(PVLOGMSG_INST_REL, iLogger, PVLOGMSG_ERR,
+			                        (0, "PVMFFileOutputNode::WriteFormatSpecificInfo: Error - WriteData failed"));
+			        return status;
+			    }
+			}
+            iFirstMediaData = false;
+        }
+        else if (((PVMFFileOutputInPort*)iInPort)->iFormat == PVMF_MIME_G729)
+        {
+            // Check if the incoming data has "#!G729\n" string
+            if (aSize < G729_HEADER_SIZE ||
+                    oscl_strncmp((const char*)aPtr, G729_HEADER, G729_HEADER_SIZE) != 0)
+            {
+                // G729 header not found, add G729 header to file first
+                status = WriteData((OsclAny*)G729_HEADER, G729_HEADER_SIZE);
+                if (status != PVMFSuccess)
+                {
+                    PVLOGGER_LOGMSG(PVLOGMSG_INST_REL, iLogger, PVLOGMSG_ERR,
+                                    (0, "PVMFFileOutputNode::WriteFormatSpecificInfo: Error - WriteData failed"));
+                    return status;
+                }
+            }
+            iFirstMediaData = false;
+        }
+        else if (((PVMFFileOutputInPort*)iInPort)->iFormat == PVMF_MIME_MP3)
+        {
+
+			// Commented as MP3 decoder is not supporting the parsing of ID3 tag
+
+            /*   // Check if the incoming data has "ID3" string
+            if (aSize < ID3_TAG_SIZE ||
+                    oscl_strncmp((const char*)aPtr, ID3_TAG, ID3_TAG_SIZE) != 0)
+            {
+                // MP3 header not found, add mp3 header to file first
+                status = WriteData((OsclAny*)ID3_TAG, ID3_TAG_SIZE);
+                if (status != PVMFSuccess)
+                {
+                    PVLOGGER_LOGMSG(PVLOGMSG_INST_REL, iLogger, PVLOGMSG_ERR,
+                                    (0, "PVMFFileOutputNode::WriteFormatSpecificInfo: Error - WriteData failed"));
+                    return status;
+                }
+            }
+            iFirstMediaData = false; */
+            status = PVMFSuccess ;
         }
         else
         {
@@ -1534,7 +1611,7 @@ void PVMFFileOutputNode::DoFlush(PVMFFileOutputNodeCommand& aCmd)
 
             //Notify all ports to suspend their input
             {
-                for (uint32 i = 0; i < iPortVector.size(); i++)
+                for (uint32 i = 0;i < iPortVector.size();i++)
                     iPortVector[i]->SuspendInput();
             }
 

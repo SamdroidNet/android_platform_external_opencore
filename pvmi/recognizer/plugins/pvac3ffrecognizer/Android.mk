@@ -1,0 +1,27 @@
+LOCAL_PATH := $(call my-dir)
+include $(CLEAR_VARS)
+
+LOCAL_SRC_FILES := \
+	src/pvac3ffrec_factory.cpp \
+	src/pvac3ffrec_plugin.cpp
+
+
+
+LOCAL_MODULE := libpvac3ffrecognizer
+
+LOCAL_CFLAGS :=   $(PV_CFLAGS)
+
+
+LOCAL_C_INCLUDES := \
+	$(PV_TOP)//pvmi/recognizer/plugins/pvac3ffrecognizer/include \
+	$(PV_TOP)//pvmi/recognizer/plugins/pvac3ffrecognizer/src \
+	$(PV_TOP)/pvmi/recognizer/include \
+	$(PV_INCLUDES) 
+
+
+LOCAL_COPY_HEADERS_TO := $(PV_COPY_HEADERS_TO)
+LOCAL_COPY_HEADERS := \
+	include/pvac3ffrec_factory.h
+
+include $(BUILD_STATIC_LIBRARY)
+

@@ -33,34 +33,31 @@
 #include "pvmf_omx_enc_callbacks.h"     //used for thin AO in encoder's callbacks
 #include "pv_omxcore.h"
 
-#define CONFIG_SIZE_AND_VERSION(param)                  \
-    param.nSize=sizeof(param);                          \
-    param.nVersion.s.nVersionMajor = SPECVERSIONMAJOR;  \
-    param.nVersion.s.nVersionMinor = SPECVERSIONMINOR;  \
-    param.nVersion.s.nRevision = SPECREVISION;          \
-    param.nVersion.s.nStep = SPECSTEP;
+#define CONFIG_SIZE_AND_VERSION(param) \
+	    param.nSize=sizeof(param); \
+	    param.nVersion.s.nVersionMajor = SPECVERSIONMAJOR; \
+	    param.nVersion.s.nVersionMinor = SPECVERSIONMINOR; \
+	    param.nVersion.s.nRevision = SPECREVISION; \
+	    param.nVersion.s.nStep = SPECSTEP;
 
 
-#define CHECK_OMX_ERR_AND_RETURN(Err, str)                              \
-    if (Err != OMX_ErrorNone)                                           \
-    {                                                                   \
-        PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE, (0, str)); \
-    }
+#define CHECK_OMX_ERR_AND_RETURN(Err, str) \
+		if (Err != OMX_ErrorNone) \
+		{	\
+			PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,	(0, str));	\
+		}
 
 
 #define PVOMXENC_EXTRA_YUVBUFFER_POOLNUM 3
 #define PVOMXENC_MEDIADATA_POOLNUM (PVOMXENCMAXNUMDPBFRAMESPLUS1 + PVOMXENC_EXTRA_YUVBUFFER_POOLNUM)
 #define PVOMXENC_MEDIADATA_CHUNKSIZE 128
 
-#include "utils/Log.h"
-#undef LOG_TAG
-#define LOG_TAG "PVOMXEncNode"
 
 const uint32 DEFAULT_VOL_HEADER_LENGTH = 28;
 const uint8 DEFAULT_VOL_HEADER[DEFAULT_VOL_HEADER_LENGTH] =
 {
     0x00, 0x00, 0x01, 0xB0, 0x08, 0x00, 0x00, 0x01,
-    0xB5, 0x09, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+    0xB5, 0x09,	0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
     0x01, 0x20, 0x00, 0x84, 0x40, 0xFA, 0x28, 0x2C,
     0x20, 0x90, 0xA2, 0x1F
 };
@@ -89,6 +86,10 @@ static const char PVOMXENCMETADATA_SEMICOLON[] = ";";
 
 static const char LOG_ID_AUDIO_AMRNB[]  = "Audio_AMRNB";
 static const char LOG_ID_AUDIO_AMRWB[]  = "Audio_AMRWB";
+static const char LOG_ID_AUDIO_G711[]  = "Audio_G711";
+static const char LOG_ID_AUDIO_EVRC[]  = "Audio_EVRC";
+static const char LOG_ID_AUDIO_G729[]  = "Audio_G729";
+static const char LOG_ID_AUDIO_MP3[]  = "Audio_MP3";
 static const char LOG_ID_AUDIO_AAC[]  = "Audio_AAC";
 static const char LOG_ID_VIDEO_H263[] = "Video_H263";
 static const char LOG_ID_VIDEO_M4V[] =  "Video_M4V";
@@ -97,19 +98,19 @@ static const char LOG_ID_UNKNOWN[] = "TypeNotSetYet";
 
 // OMX CALLBACKS
 // 1) AO OMX component running in the same thread as the OMX node
-//  In this case, the callbacks can be called directly from the component
-//  The callback: OMX Component->CallbackEventHandler->EventHandlerProcessing
-//  The callback can perform do RunIfNotReady
+//	In this case, the callbacks can be called directly from the component
+//	The callback: OMX Component->CallbackEventHandler->EventHandlerProcessing
+//	The callback can perform do RunIfNotReady
 
 // 2) Multithreaded component
-//  In this case, the callback is made using the threadsafe callback (TSCB) AO
-//  Component thread : OMX Component->CallbackEventHandler->TSCB(ReceiveEvent) => event is queued
-//  Node thread      : dequeue event => TSCB(ProcessEvent)->ProcessCallbackEventHandler->EventHandlerProcessing
+//	In this case, the callback is made using the threadsafe callback (TSCB) AO
+//	Component thread : OMX Component->CallbackEventHandler->TSCB(ReceiveEvent) => event is queued
+//  Node thread		 : dequeue event => TSCB(ProcessEvent)->ProcessCallbackEventHandler->EventHandlerProcessing
 
 
 
 // callback for Event Handler - in multithreaded case, event is queued to be processed later
-//  in AO case, event is processed immediately by calling EventHandlerProcessing
+//	in AO case, event is processed immediately by calling EventHandlerProcessing
 OMX_ERRORTYPE CallbackEventHandlerEnc(OMX_OUT OMX_HANDLETYPE aComponent,
                                       OMX_OUT OMX_PTR aAppData,
                                       OMX_OUT OMX_EVENTTYPE aEvent,
@@ -155,7 +156,7 @@ OMX_ERRORTYPE CallbackEventHandlerEnc(OMX_OUT OMX_HANDLETYPE aComponent,
 
 
 // callback for EmptyBufferDone - in multithreaded case, event is queued to be processed later
-//  in AO case, event is processed immediately by calling EmptyBufferDoneProcessing
+//	in AO case, event is processed immediately by calling EmptyBufferDoneProcessing
 OMX_ERRORTYPE CallbackEmptyBufferDoneEnc(OMX_OUT OMX_HANDLETYPE aComponent,
         OMX_OUT OMX_PTR aAppData,
         OMX_OUT OMX_BUFFERHEADERTYPE* aBuffer)
@@ -192,7 +193,7 @@ OMX_ERRORTYPE CallbackEmptyBufferDoneEnc(OMX_OUT OMX_HANDLETYPE aComponent,
 }
 
 // callback for FillBufferDone - in multithreaded case, event is queued to be processed later
-//  in AO case, event is processed immediately by calling FillBufferDoneProcessing
+//	in AO case, event is processed immediately by calling FillBufferDoneProcessing
 OMX_ERRORTYPE CallbackFillBufferDoneEnc(OMX_OUT OMX_HANDLETYPE aComponent,
                                         OMX_OUT OMX_PTR aAppData,
                                         OMX_OUT OMX_BUFFERHEADERTYPE* aBuffer)
@@ -339,42 +340,10 @@ PVMFOMXEncNode::~PVMFOMXEncNode()
         iOutBufMemoryPool->removeRef();
         iOutBufMemoryPool = NULL;
     }
-
-    ipFixedSizeBufferAlloc = NULL;
-    if(ipExternalInputBufferAllocatorInterface)
-    {
-        ipExternalInputBufferAllocatorInterface->removeRef();
-        ipExternalInputBufferAllocatorInterface = NULL;
-    }
-
     if (iInBufMemoryPool)
     {
         iInBufMemoryPool->removeRef();
         iInBufMemoryPool = NULL;
-    }
-
-    if (in_ctrl_struct_ptr)
-    {
-        oscl_free(in_ctrl_struct_ptr);
-        in_ctrl_struct_ptr = NULL;
-    }
-
-    if (in_buff_hdr_ptr)
-    {
-        oscl_free(in_buff_hdr_ptr);
-        in_buff_hdr_ptr = NULL;
-    }
-
-    if (out_ctrl_struct_ptr)
-    {
-        oscl_free(out_ctrl_struct_ptr);
-        out_ctrl_struct_ptr = NULL;
-    }
-
-    if (out_buff_hdr_ptr)
-    {
-        oscl_free(out_buff_hdr_ptr);
-        out_buff_hdr_ptr = NULL;
     }
 
     //Thread logoff
@@ -434,10 +403,10 @@ PVMFStatus PVMFOMXEncNode::ThreadLogon()
 
             SetState(EPVMFNodeIdle);
             return PVMFSuccess;
-            // break;   This break statement was removed to avoid compiler warning for Unreachable Code
+            // break;	This break statement was removed to avoid compiler warning for Unreachable Code
         default:
             return PVMFErrInvalidState;
-            // break;   This break statement was removed to avoid compiler warning for Unreachable Code
+            // break;	This break statement was removed to avoid compiler warning for Unreachable Code
     }
 }
 
@@ -459,11 +428,11 @@ PVMFStatus PVMFOMXEncNode::ThreadLogoff()
             iLogger = NULL;
             SetState(EPVMFNodeCreated);
             return PVMFSuccess;
-            // break;   This break statement was removed to avoid compiler warning for Unreachable Code
+            // break;	This break statement was removed to avoid compiler warning for Unreachable Code
 
         default:
             return PVMFErrInvalidState;
-            // break;   This break statement was removed to avoid compiler warning for Unreachable Code
+            // break;	This break statement was removed to avoid compiler warning for Unreachable Code
     }
 }
 
@@ -645,8 +614,6 @@ PVMFOMXEncNode::PVMFOMXEncNode(int32 aPriority) :
         iMediaDataMemPool(NULL),
         iOMXComponentOutputBufferSize(0),
         iOutputAllocSize(0),
-        iNumOutstandingOutputBuffers(0),
-        iNumOutstandingInputBuffers(0),
         iProcessingState(EPVMFOMXEncNodeProcessingState_Idle),
         iOMXEncoder(NULL),
         iSendBOS(false),
@@ -666,9 +633,7 @@ PVMFOMXEncNode::PVMFOMXEncNode(int32 aPriority) :
         iAvgBitrateValue(0),
         iResetInProgress(false),
         iResetMsgSent(false),
-        iStopInResetMsgSent(false),
-        ipExternalInputBufferAllocatorInterface(NULL),
-        ipFixedSizeBufferAlloc(NULL)
+        iStopInResetMsgSent(false)
 {
     iInterfaceState = EPVMFNodeCreated;
 
@@ -715,12 +680,14 @@ PVMFOMXEncNode::PVMFOMXEncNode(int32 aPriority) :
              iCapability.iOutputFormatCapability.push_back(PVMF_MIME_ADTS);
              iCapability.iOutputFormatCapability.push_back(PVMF_MIME_ADIF);
              iCapability.iOutputFormatCapability.push_back(PVMF_MIME_MPEG4_AUDIO);
+			 iCapability.iOutputFormatCapability.push_back(PVMF_MIME_G711);
+			 iCapability.iOutputFormatCapability.push_back(PVMF_MIME_EVRC);
+			 iCapability.iOutputFormatCapability.push_back(PVMF_MIME_G729);
+			 iCapability.iOutputFormatCapability.push_back(PVMF_MIME_MP3);
 
              // video input
              iCapability.iInputFormatCapability.push_back(PVMF_MIME_YUV420);
              iCapability.iInputFormatCapability.push_back(PVMF_MIME_YUV422);
-             iCapability.iInputFormatCapability.push_back(PVMF_MIME_YUV422_INTERLEAVED_UYVY);
-             iCapability.iInputFormatCapability.push_back(PVMF_MIME_YUV422_INTERLEAVED_YUYV);
              iCapability.iInputFormatCapability.push_back(PVMF_MIME_RGB24);
              iCapability.iInputFormatCapability.push_back(PVMF_MIME_RGB12);
 
@@ -791,11 +758,6 @@ PVMFOMXEncNode::PVMFOMXEncNode(int32 aPriority) :
     iInBufMemoryPool = NULL;
     iOutBufMemoryPool = NULL;
 
-    in_ctrl_struct_ptr = NULL;
-    in_buff_hdr_ptr = NULL;
-    out_ctrl_struct_ptr = NULL;
-    out_buff_hdr_ptr = NULL;
-
     // init to some value
     iOMXComponentOutputBufferSize = 0;
     iNumOutputBuffers = 0;
@@ -833,17 +795,6 @@ PVMFOMXEncNode::PVMFOMXEncNode(int32 aPriority) :
     iKeyFrameFlagOut = 0;
     iEndOfNALFlagOut = 0;
 
-    //if timescale value is 1 000 000 - it means that
-    //timestamp is expressed in units of 1/10^6 (i.e. microseconds)
-
-    iTimeScale = 1000000;
-    iInTimeScale = 1000;
-    iOutTimeScale = 1000;
-
-    iInputTimestampClock.set_timescale(iInTimeScale); // keep the timescale set to input timestamp
-
-
-
     // counts output frames (for logging)
     iFrameCounter = 0;
     iInFormat = PVMF_MIME_FORMAT_UNKNOWN;
@@ -854,6 +805,7 @@ PVMFOMXEncNode::PVMFOMXEncNode(int32 aPriority) :
     oscl_memset(&iVideoInputFormat, 0, sizeof(iVideoInputFormat));
 
     // set default values
+    iVideoInputFormat.iVideoFormat = EI_YUV420;
     iVideoInputFormat.iFrameWidth = DEFAULT_FRAME_WIDTH;
     iVideoInputFormat.iFrameHeight = DEFAULT_FRAME_HEIGHT;
     iVideoInputFormat.iFrameRate = (float)DEFAULT_FRAME_RATE;
@@ -870,15 +822,10 @@ PVMFOMXEncNode::PVMFOMXEncNode(int32 aPriority) :
     iVideoEncodeParam.iFrameQuality = 10;
     iVideoEncodeParam.iSceneDetection = false;
     iVideoEncodeParam.iRVLCEnable = false;
-    iVideoEncodeParam.iIFrameInterval = DEFAULT_I_FRAME_INTERVAL;
+    iVideoEncodeParam.iIFrameInterval = DEFAULT_FRAME_RATE * 10;
     iVideoEncodeParam.iBufferDelay = (float)0.2;
-    iVideoEncodeParam.iShortHeader = false;
-    iVideoEncodeParam.iDataPartitioning = false;
-    iVideoEncodeParam.iResyncMarker = true;
-
-    // set the default rate control type to variable bit rate control
-    // since it has better performance
-    iVideoEncodeParam.iRateControlType = PVMFVEN_RATE_CONTROL_VBR;
+    iVideoEncodeParam.iContentType = EI_H263;
+    iVideoEncodeParam.iRateControlType = ECBR_1;
     iVideoEncodeParam.iIquant[0] = 15;
     iVideoEncodeParam.iPquant[0] = 12;
     iVideoEncodeParam.iBquant[0] = 12;
@@ -921,9 +868,6 @@ PVMFOMXEncNode::PVMFOMXEncNode(int32 aPriority) :
     iErrorConfigHeader = false;
     iErrorEncodeFlag = 0;
 #endif
-
-    iInputTimestampClock.set_clock(iBOSTimestamp, 0);
-    iOMXTicksTimestamp = ConvertTimestampIntoOMXTicks(iInputTimestampClock);
 
     sendYuvFsi = true;
 
@@ -1138,7 +1082,7 @@ void PVMFOMXEncNode::Run()
         else
         {
             // keep sending output buffers, it's possible that the component needs to flush output
-            //  data at the end
+            //	data at the end
             while (iNumOutstandingOutputBuffers < iNumOutputBuffers)
             {
                 if (!SendOutputBufferToOMXComponent())
@@ -1219,7 +1163,7 @@ void PVMFOMXEncNode::Run()
 
             // prevent the node from sending more buffers etc.
             // if port reconfiguration is in process, let the state remain one of the port config states
-            //  if there is a start command, we can do it seemlessly (by continuing the port reconfig)
+            //	if there is a start command, we can do it seemlessly (by continuing the port reconfig)
             if (iProcessingState == EPVMFOMXEncNodeProcessingState_ReadyToEncode)
                 iProcessingState = EPVMFOMXEncNodeProcessingState_Stopping;
 
@@ -1343,7 +1287,7 @@ bool PVMFOMXEncNode::ProcessIncomingMsg(PVMFPortInterface* aPort)
     PVMFStatus status = PVMFFailure;
 
 
-    //#define SIMULATE_BOS
+//#define SIMULATE_BOS
 #ifdef SIMULATE_BOS
 
     if (((PVMFOMXEncPort*)aPort)->iNumFramesConsumed == 6))
@@ -1365,10 +1309,6 @@ bool PVMFOMXEncNode::ProcessIncomingMsg(PVMFPortInterface* aPort)
         //store the stream id and time stamp of bos message
         iStreamID = mediaMsgOut->getStreamID();
         iBOSTimestamp = mediaMsgOut->getTimestamp();
-
-        iInputTimestampClock.set_clock(iBOSTimestamp, 0);
-        iOMXTicksTimestamp = ConvertTimestampIntoOMXTicks(iInputTimestampClock);
-
         iSendBOS = true;
 
 #ifdef _DEBUG
@@ -1429,11 +1369,6 @@ bool PVMFOMXEncNode::ProcessIncomingMsg(PVMFPortInterface* aPort)
         //store the stream id and time stamp of bos message
         iStreamID = msg->getStreamID();
         iBOSTimestamp = msg->getTimestamp();
-
-        // we need to initialize the timestamp here - so that updates later on are accurate (in terms of rollover etc)
-        iInputTimestampClock.set_clock(iBOSTimestamp, 0);
-        iOMXTicksTimestamp = ConvertTimestampIntoOMXTicks(iInputTimestampClock);
-
         iSendBOS = true;
 
         PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,
@@ -1464,7 +1399,7 @@ bool PVMFOMXEncNode::ProcessIncomingMsg(PVMFPortInterface* aPort)
     ((PVMFOMXEncPort*)aPort)->iNumFramesConsumed++;
     PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE, (0, "PVMFOMXEncNode-%s::ProcessIncomingMsg() Received %d frames", iNodeTypeId, ((PVMFOMXEncPort*)aPort)->iNumFramesConsumed));
 
-//return true if we processed an activity...
+    //return true if we processed an activity...
     return true;
 }
 
@@ -1560,7 +1495,7 @@ PVMFStatus PVMFOMXEncNode::HandleProcessingState()
                     if (false == iOutputBuffersFreed)
                     {
                         if (!FreeBuffersFromComponent(iOutBufMemoryPool, // allocator
-                                                      iOutputAllocSize,  // size to allocate from pool (hdr only or hdr+ buffer)
+                                                      iOutputAllocSize,	 // size to allocate from pool (hdr only or hdr+ buffer)
                                                       iNumOutputBuffers, // number of buffers
                                                       iOutputPortIndex, // port idx
                                                       false // this is not input
@@ -1598,7 +1533,7 @@ PVMFStatus PVMFOMXEncNode::HandleProcessingState()
                     if (false == iInputBuffersFreed)
                     {
                         if (!FreeBuffersFromComponent(iInBufMemoryPool, // allocator
-                                                      iInputAllocSize,   // size to allocate from pool (hdr only or hdr+ buffer)
+                                                      iInputAllocSize,	 // size to allocate from pool (hdr only or hdr+ buffer)
                                                       iNumInputBuffers, // number of buffers
                                                       iInputPortIndex, // port idx
                                                       true // this is input
@@ -1711,7 +1646,7 @@ PVMFStatus PVMFOMXEncNode::HandleProcessingState()
                 }
 
                 if (!ProvideBuffersToComponent(iOutBufMemoryPool, // allocator
-                                               iOutputAllocSize,     // size to allocate from pool (hdr only or hdr+ buffer)
+                                               iOutputAllocSize,	 // size to allocate from pool (hdr only or hdr+ buffer)
                                                iNumOutputBuffers, // number of buffers
                                                iOMXComponentOutputBufferSize, // actual buffer size
                                                iOutputPortIndex, // port idx
@@ -1759,7 +1694,7 @@ PVMFStatus PVMFOMXEncNode::HandleProcessingState()
                 }
 
                 if (!ProvideBuffersToComponent(iInBufMemoryPool, // allocator
-                                               iInputAllocSize,  // size to allocate from pool (hdr only or hdr+ buffer)
+                                               iInputAllocSize,	 // size to allocate from pool (hdr only or hdr+ buffer)
                                                iNumInputBuffers, // number of buffers
                                                iOMXComponentInputBufferSize, // actual buffer size
                                                iInputPortIndex, // port idx
@@ -1824,8 +1759,8 @@ PVMFStatus PVMFOMXEncNode::HandleProcessingState()
 
             // next, see if partially consumed input buffer needs to be resent back to OMX component
             // NOTE: it is not allowed that the component returns more than 1 partially consumed input buffers
-            //       i.e. if a partially consumed input buffer is returned, it is assumed that the OMX component
-            //       will be waiting to get data
+            //		 i.e. if a partially consumed input buffer is returned, it is assumed that the OMX component
+            //		 will be waiting to get data
 
             if (iInputBufferToResendToComponent != NULL)
             {
@@ -1916,7 +1851,7 @@ bool PVMFOMXEncNode::SendOutputBufferToOMXComponent()
     iOutBufMemoryPool->notifyfreechunkavailable(*this, (OsclAny *)iOutBufMemoryPool);
     iNumOutstandingOutputBuffers++;
 
-    for (ii = 0; ii < iNumOutputBuffers; ii++)
+    for (ii = 0;ii < iNumOutputBuffers;ii++)
     {
         if (output_buf == out_ctrl_struct_ptr[ii])
         {
@@ -1976,7 +1911,7 @@ bool PVMFOMXEncNode::NegotiateVideoComponentParameters()
 
 
     // loop through video ports starting from the starting index to find index of the first input port
-    for (ii = VideoPortParameters.nStartPortNumber ; ii < VideoPortParameters.nStartPortNumber + NumPorts; ii++)
+    for (ii = VideoPortParameters.nStartPortNumber ;ii < VideoPortParameters.nStartPortNumber + NumPorts; ii++)
     {
         // get port parameters, and determine if it is input or output
         // if there are more than 2 ports, the first one we encounter that has input direction is picked
@@ -2013,7 +1948,7 @@ bool PVMFOMXEncNode::NegotiateVideoComponentParameters()
 
 
     // loop through video ports starting from the starting index to find index of the first output port
-    for (ii = VideoPortParameters.nStartPortNumber ; ii < VideoPortParameters.nStartPortNumber + NumPorts; ii++)
+    for (ii = VideoPortParameters.nStartPortNumber ;ii < VideoPortParameters.nStartPortNumber + NumPorts; ii++)
     {
         // get port parameters, and determine if it is input or output
         // if there are more than 2 ports, the first one we encounter that has output direction is picked
@@ -2072,36 +2007,8 @@ bool PVMFOMXEncNode::NegotiateVideoComponentParameters()
 
     // first of all, check if the port supports the adequate port format
     OMX_VIDEO_PARAM_PORTFORMATTYPE Video_port_format;
-    OMX_COLOR_FORMATTYPE DesiredPortColorFormat;
 
-    if (iInFormat == PVMF_MIME_RGB24)
-    {
-        DesiredPortColorFormat = OMX_COLOR_Format24bitRGB888;
-    }
-    else if (iInFormat == PVMF_MIME_RGB12)
-    {
-        DesiredPortColorFormat = OMX_COLOR_Format12bitRGB444;
-    }
-    else if (iInFormat == PVMF_MIME_YUV420)
-    {
-        //TODO: get color format from MIO. JJ 03/09/09
-        //DesiredPortColorFormat = OMX_COLOR_FormatYUV420SemiPlanar;
-        DesiredPortColorFormat = OMX_COLOR_FormatYUV420Planar;
-    }
-    else if (iInFormat == PVMF_MIME_YUV422_INTERLEAVED_UYVY)
-    {
-        DesiredPortColorFormat = OMX_COLOR_FormatCbYCrY;
-    }
-    else if (iInFormat == PVMF_MIME_YUV422_INTERLEAVED_YUYV)
-    {
-        DesiredPortColorFormat = OMX_COLOR_FormatYCbYCr;
-    }
-    else
-    {
-        PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,
-                        (0, "PVMFOMXEncNode-%s::NegotiateVideoComponentParameters() Problem with input port %d color format", iNodeTypeId, iInputPortIndex));
-        return false;
-    }
+    OMX_COLOR_FORMATTYPE DesiredPortColorFormat = OMX_COLOR_FormatYUV420Planar;
 
     CONFIG_SIZE_AND_VERSION(Video_port_format);
 
@@ -2162,19 +2069,7 @@ bool PVMFOMXEncNode::NegotiateVideoComponentParameters()
     else if (iInFormat == PVMF_MIME_YUV420)
     {
         iOMXComponentInputBufferSize = (iVideoInputFormat.iFrameWidth * iVideoInputFormat.iFrameHeight * 3) >> 1;
-        //TODO: get color format from MIO. JJ 03/09/09
-        //iParamPort.format.video.eColorFormat = OMX_COLOR_FormatYUV420SemiPlanar;
         iParamPort.format.video.eColorFormat = OMX_COLOR_FormatYUV420Planar;
-    }
-    else if (iInFormat == PVMF_MIME_YUV422_INTERLEAVED_UYVY)
-    {
-        iOMXComponentInputBufferSize = iVideoInputFormat.iFrameWidth * iVideoInputFormat.iFrameHeight * 2;
-        iParamPort.format.video.eColorFormat = OMX_COLOR_FormatCbYCrY;
-    }
-    else if (iInFormat == PVMF_MIME_YUV422_INTERLEAVED_YUYV)
-    {
-        iOMXComponentInputBufferSize = iVideoInputFormat.iFrameWidth * iVideoInputFormat.iFrameHeight * 2;
-        iParamPort.format.video.eColorFormat = OMX_COLOR_FormatYCbYCr;
     }
     else
     {
@@ -2183,11 +2078,8 @@ bool PVMFOMXEncNode::NegotiateVideoComponentParameters()
         return false;
     }
 
-    //The input buffer size is a read-only parameter and the encoder component needs to adjust it.
-    // We (the client) determine the size of the buffers based on width/height -
-    // the component doesn't know width/height yet
-
-    //iParamPort.nBufferSize = iOMXComponentInputBufferSize;
+    //Set the input buffer size to the encoder component
+    iParamPort.nBufferSize = iOMXComponentInputBufferSize;
 
     // set the width and height of video frame and input framerate
 
@@ -2208,81 +2100,11 @@ bool PVMFOMXEncNode::NegotiateVideoComponentParameters()
         iNumInputBuffers = iParamPort.nBufferCountMin;
 
 
-    /*  OMX_UseBuffer, ie. if OMX client instead of OMX component is to allocate buffers,
-    *   if the buffers are allocated in MIO, check MIO allocator the max number of buffers;
-    *   else (the buffer is allocated by OMX client itself) floor the number of buffers to  NUMBER_INPUT_BUFFER
-    *   validate with OMX component whether it is ok with the number decided above.
-    *   Note: the spec says in OMX_UseBuffer, the OMX client can decide number of input buffers.
-    */
-    if(iOMXComponentSupportsExternalInputBufferAlloc)
-    {
-        ipExternalInputBufferAllocatorInterface = NULL;
-        PvmiKvp* kvp = NULL;
-        int numKvp = 0;
-        PvmiKeyType aIdentifier = (PvmiKeyType)PVMF_BUFFER_ALLOCATOR_KEY;
-        int32 err, err1;
-        OSCL_TRY(err, ((PVMFOMXEncPort*)iInPort)->pvmiGetBufferAllocatorSpecificInfoSync(aIdentifier, kvp, numKvp););
-
-        if ((err == OsclErrNone) && (NULL != kvp))
-        {
-            ipExternalInputBufferAllocatorInterface = (PVInterface*) kvp->value.key_specific_value;
-
-            if (ipExternalInputBufferAllocatorInterface)
-            {
-                PVInterface* pTempPVInterfacePtr = NULL;
-
-                OSCL_TRY(err, ipExternalInputBufferAllocatorInterface->queryInterface(PVMFFixedSizeBufferAllocUUID, pTempPVInterfacePtr););
-
-                OSCL_TRY(err1, ((PVMFOMXEncPort*)iInPort)->releaseParametersSync(kvp, numKvp););
-                OSCL_FIRST_CATCH_ANY(err1,
-                        PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_DEBUG,
-                            (0, "PVMFOMXEncNode-%s::NegotiateComponentParameters() - Unable to Release Parameters", iNodeTypeId));
-                        );
-
-                if ((err == OsclErrNone) && (NULL != pTempPVInterfacePtr))
-                {
-                    ipFixedSizeBufferAlloc = OSCL_STATIC_CAST(PVMFFixedSizeBufferAlloc*, pTempPVInterfacePtr);
-
-                    uint32 iNumBuffers = ipFixedSizeBufferAlloc->getNumBuffers();
-                    uint32 iBufferSize = ipFixedSizeBufferAlloc->getBufferSize();
-
-                    PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_DEBUG,
-                            (0, "PVMFOMXEncNode-%s iNumBuffers %d iBufferSize %d iOMXComponentInputBufferSize %d iParamPort.nBufferCountMin %d", iNodeTypeId, iNumBuffers , iBufferSize , iOMXComponentInputBufferSize, iParamPort.nBufferCountMin ) );
-
-                    //TODO should let camera decide number of buffers.
-                    if ((iNumBuffers < iParamPort.nBufferCountMin) || (iBufferSize < iOMXComponentInputBufferSize ))
-                    {
-                        PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_ERR,
-                            (0, "PVMFOMXEncNode-%s::NegotiateComponentParameters() - not enough buffer. Got %d x %d. Require %d x %d", iNodeTypeId, iNumBuffers , iBufferSize , iOMXComponentInputBufferSize, iParamPort.nBufferCountMin));
-                        //ipFixedSizeBufferAlloc = NULL;
-
-                        ipExternalInputBufferAllocatorInterface->removeRef();
-                        ipExternalInputBufferAllocatorInterface = NULL;
-                    }
-                    else
-                    {
-                        iNumInputBuffers = iNumBuffers;
-                        iOMXComponentInputBufferSize = iBufferSize;
-                    }
-                }
-                else
-                {
-                    ipExternalInputBufferAllocatorInterface->removeRef();
-                    ipExternalInputBufferAllocatorInterface = NULL;
-
-                }
-            }
-        }
-    }
-
     // if component allows us to allocate buffers, we'll decide how many to allocate
     if (iOMXComponentSupportsExternalInputBufferAlloc && (iParamPort.nBufferCountMin < NUMBER_INPUT_BUFFER))
     {
-        if(NULL == ipFixedSizeBufferAlloc)
-        {
         // preset the number of input buffers
         iNumInputBuffers = NUMBER_INPUT_BUFFER;
-        }
     }
 
     // set the number of input buffer
@@ -2303,7 +2125,7 @@ bool PVMFOMXEncNode::NegotiateVideoComponentParameters()
     }
 
 
-    //////////////////// OUTPUT PORT //////////////////////////////////////////////
+//////////////////// OUTPUT PORT //////////////////////////////////////////////
     CONFIG_SIZE_AND_VERSION(Video_port_format);
 
     Video_port_format.nPortIndex = iOutputPortIndex; // set output port as target
@@ -2377,6 +2199,9 @@ bool PVMFOMXEncNode::NegotiateVideoComponentParameters()
         return false;
     }
 
+    // let the component decide output buffer size
+    iOMXComponentOutputBufferSize = iParamPort.nBufferSize;
+
     // let the component decide num output buffers
     iNumOutputBuffers = iParamPort.nBufferCountActual;
 
@@ -2423,6 +2248,8 @@ bool PVMFOMXEncNode::NegotiateVideoComponentParameters()
         iParamPort.format.video.eCompressionFormat = OMX_VIDEO_CodingAutoDetect;
     }
 
+    PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,
+                    (0, "PVMFOMXEncNode-%s::NegotiateVideoComponentParameters() Outport buffers %d,size %d", iNodeTypeId, iNumOutputBuffers, iOMXComponentOutputBufferSize));
     CONFIG_SIZE_AND_VERSION(iParamPort);
     Err = OMX_SetParameter(iOMXEncoder, OMX_IndexParamPortDefinition, &iParamPort);
     if (Err != OMX_ErrorNone)
@@ -2432,26 +2259,13 @@ bool PVMFOMXEncNode::NegotiateVideoComponentParameters()
         return false;
     }
 
-    //ask for the calculated buffer size
-    Err = OMX_GetParameter(iOMXEncoder, OMX_IndexParamPortDefinition, &iParamPort);
-    if (Err != OMX_ErrorNone)
-    {
-        PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,
-                        (0, "PVMFOMXEncNode-%s::NegotiateVideoComponentParameters() Problem negotiating with output port %d ", iNodeTypeId, iOutputPortIndex));
-        return false;
-    }
-
-    iOMXComponentOutputBufferSize = iParamPort.nBufferSize;
-    PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,
-                    (0, "PVMFOMXEncNode-%s::NegotiateVideoComponentParameters() Outport buffers %d size %d", iNodeTypeId, iNumOutputBuffers, iOMXComponentOutputBufferSize));
-
-    CONFIG_SIZE_AND_VERSION(InputRotationType);
     InputRotationType.nPortIndex = iInputPortIndex;
     Err = OMX_GetParameter(iOMXEncoder, OMX_IndexConfigCommonRotate, &InputRotationType);
     if (Err != OMX_ErrorNone)
     {
         PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,
                         (0, "PVMFOMXEncNode-%s::NegotiateVideoComponentParameters() Problem getting OMX_IndexConfigCommonRotate param ", iNodeTypeId));
+        return false;
     }
 
     //Set the OMX_CONFIG_ROTATIONTYPE parameters
@@ -2461,6 +2275,7 @@ bool PVMFOMXEncNode::NegotiateVideoComponentParameters()
     {
         PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,
                         (0, "PVMFOMXEncNode-%s::NegotiateVideoComponentParameters() Problem setting OMX_IndexConfigCommonRotate param ", iNodeTypeId));
+        return false;
     }
 
 
@@ -2629,7 +2444,22 @@ bool PVMFOMXEncNode::SetMP4EncoderParameters()
 
     //Set the parameters now
     BitRateType.nPortIndex = iOutputPortIndex;
-    BitRateType.eControlRate = static_cast<OMX_VIDEO_CONTROLRATETYPE>(iVideoEncodeParam.iRateControlType);
+    switch (iVideoEncodeParam.iRateControlType)
+    {
+        case ECONSTANT_Q:
+            BitRateType.eControlRate = OMX_Video_ControlRateDisable;
+            break;
+        case ECBR_1:
+            BitRateType.eControlRate = OMX_Video_ControlRateConstant;
+            break;
+        case EVBR_1:
+            BitRateType.eControlRate = OMX_Video_ControlRateVariable;
+            break;
+        default:
+            BitRateType.eControlRate = OMX_Video_ControlRateDisable;
+            break;
+    }
+
     BitRateType.nTargetBitrate = iVideoEncodeParam.iBitRate[0];
     Err = OMX_SetParameter(iOMXEncoder, OMX_IndexParamVideoBitrate, &BitRateType);
 
@@ -2657,6 +2487,15 @@ bool PVMFOMXEncNode::SetMP4EncoderParameters()
         QuantParam.nQpI = DEFAULT_OMX_MP4ENC_QPI;
         QuantParam.nQpP = DEFAULT_OMX_MP4ENC_QPP;
         QuantParam.nQpB = DEFAULT_OMX_MP4ENC_QPB;
+		/* Mobile Media Lab. Start */
+		if (iVideoEncodeParam.iFrameWidth[0] <= 352)
+		{
+			QuantParam.nQpI = 6;
+	        QuantParam.nQpP = 6;
+    	    QuantParam.nQpB = 6;
+		}
+		/* Mobile Media Lab. End */
+
         Err = OMX_SetParameter(iOMXEncoder, OMX_IndexParamVideoQuantization, &QuantParam);
         if (OMX_ErrorNone != Err)
         {
@@ -2680,8 +2519,16 @@ bool PVMFOMXEncNode::SetMP4EncoderParameters()
 
     //Set the parameters now
     ErrCorrType.nPortIndex = iOutputPortIndex;
-    ErrCorrType.bEnableDataPartitioning = ((iVideoEncodeParam.iDataPartitioning == true) ? OMX_TRUE : OMX_FALSE);
-    ErrCorrType.bEnableResync = ((iVideoEncodeParam.iResyncMarker == true) ? OMX_TRUE : OMX_FALSE);
+    if (iVideoEncodeParam.iContentType == EI_M4V_STREAMING)
+    {
+        ErrCorrType.bEnableDataPartitioning = OMX_TRUE;
+        ErrCorrType.bEnableResync = OMX_TRUE;
+    }
+    else
+    {
+        ErrCorrType.bEnableDataPartitioning = OMX_FALSE;
+        ErrCorrType.bEnableResync = OMX_FALSE;
+    }
 
     // extra parameters - hardcoded
     ErrCorrType.bEnableHEC = OMX_FALSE;
@@ -2772,7 +2619,7 @@ bool PVMFOMXEncNode::SetH263EncoderParameters()
     if (OMX_ErrorNone != Err)
     {
         PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,
-                        (0, "PVMFOMXEncNode-%s::SetH263EncoderParameters OMX_GetParameter() failed for index(0x%x)", iNodeTypeId, OMX_IndexParamVideoH263));
+                        (0, "PVMFOMXEncNode-%s::SetH263EncoderParameters Parameter Invalid", iNodeTypeId));
     }
 
 
@@ -2800,22 +2647,17 @@ bool PVMFOMXEncNode::SetH263EncoderParameters()
     // extra parameters - hardcoded
     H263Type.nBFrames = 0;
     H263Type.eProfile = OMX_VIDEO_H263ProfileBaseline;
-
-    // the supported level is up to OMX_VIDEO_H263Level45
-    if (H263Type.eLevel > OMX_VIDEO_H263Level45)
-    {
-        H263Type.eLevel = OMX_VIDEO_H263Level45;
-    }
+    H263Type.eLevel = OMX_VIDEO_H263Level45;
     H263Type.bPLUSPTYPEAllowed = OMX_FALSE;
     H263Type.bForceRoundingTypeToZero = OMX_FALSE;
     H263Type.nPictureHeaderRepetition = 0;
-    H263Type.nGOBHeaderInterval = 0;
+    H263Type.nGOBHeaderInterval = 2;
 
     Err = OMX_SetParameter(iOMXEncoder, OMX_IndexParamVideoH263, &H263Type);
     if (OMX_ErrorNone != Err)
     {
         PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,
-                        (0, "PVMFOMXEncNode-%s::SetH263EncoderParameters OMX_SetParameter() failed for index(0x%x)", iNodeTypeId, OMX_IndexParamVideoH263));
+                        (0, "PVMFOMXEncNode-%s::SetH263EncoderParameters Parameter Invalid", iNodeTypeId));
     }
 
     //OMX_VIDEO_PARAM_BITRATETYPE Settings
@@ -2826,18 +2668,33 @@ bool PVMFOMXEncNode::SetH263EncoderParameters()
     if (OMX_ErrorNone != Err)
     {
         PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,
-                        (0, "PVMFOMXEncNode-%s::SetH263EncoderParameters OMX_GetParameter() failed for index(0x%x)", iNodeTypeId, OMX_IndexParamVideoBitrate));
+                        (0, "PVMFOMXEncNode-%s::SetH263EncoderParameters Parameter Invalid", iNodeTypeId));
     }
 
     //Set the parameters now
     BitRateType.nPortIndex = iOutputPortIndex;
-    BitRateType.eControlRate = static_cast<OMX_VIDEO_CONTROLRATETYPE>(iVideoEncodeParam.iRateControlType);
+    switch (iVideoEncodeParam.iRateControlType)
+    {
+        case ECONSTANT_Q:
+            BitRateType.eControlRate = OMX_Video_ControlRateDisable;
+            break;
+        case ECBR_1:
+            BitRateType.eControlRate = OMX_Video_ControlRateConstant;
+            break;
+        case EVBR_1:
+            BitRateType.eControlRate = OMX_Video_ControlRateVariable;
+            break;
+        default:
+            BitRateType.eControlRate = OMX_Video_ControlRateDisable;
+            break;
+    }
+
     BitRateType.nTargetBitrate = iVideoEncodeParam.iBitRate[0];
     Err = OMX_SetParameter(iOMXEncoder, OMX_IndexParamVideoBitrate, &BitRateType);
     if (OMX_ErrorNone != Err)
     {
         PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,
-                        (0, "PVMFOMXEncNode-%s::SetH263EncoderParameters OMX_SetParameter() failed for index(0x%x)", iNodeTypeId, OMX_IndexParamVideoBitrate));
+                        (0, "PVMFOMXEncNode-%s::SetH263EncoderParameters Parameter Invalid", iNodeTypeId));
     }
 
 
@@ -2851,7 +2708,7 @@ bool PVMFOMXEncNode::SetH263EncoderParameters()
         if (OMX_ErrorNone != Err)
         {
             PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,
-                            (0, "PVMFOMXEncNode-%s::SetH263EncoderParameters OMX_GetParameter() failed for index(0x%x", iNodeTypeId, OMX_IndexParamVideoQuantization));
+                            (0, "PVMFOMXEncNode-%s::SetH263EncoderParameters Parameter Invalid", iNodeTypeId));
         }
 
         //Set the parameters now
@@ -2863,7 +2720,7 @@ bool PVMFOMXEncNode::SetH263EncoderParameters()
         if (OMX_ErrorNone != Err)
         {
             PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,
-                            (0, "PVMFOMXEncNode-%s::SetH263EncoderParameters OMX_SetParameter() failed for index(0x%x)", iNodeTypeId, OMX_IndexParamVideoQuantization));
+                            (0, "PVMFOMXEncNode-%s::SetH263EncoderParameters Parameter Invalid", iNodeTypeId));
         }
     }
 
@@ -2876,7 +2733,7 @@ bool PVMFOMXEncNode::SetH263EncoderParameters()
     if (OMX_ErrorNone != Err)
     {
         PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,
-                        (0, "PVMFOMXEncNode-%s::SetH263EncoderParameters OMX_GetParameter() faile for index(0x%x)", iNodeTypeId, OMX_IndexParamVideoErrorCorrection));
+                        (0, "PVMFOMXEncNode-%s::SetH263EncoderParameters Parameter Invalid", iNodeTypeId));
     }
 
     //Set the parameters now
@@ -2892,12 +2749,12 @@ bool PVMFOMXEncNode::SetH263EncoderParameters()
     ErrCorrType.bEnableHEC = OMX_FALSE;
     ErrCorrType.bEnableResync = OMX_FALSE;
     ErrCorrType.nResynchMarkerSpacing = 0;
-    ErrCorrType.bEnableRVLC = OMX_FALSE;        // corresponds to encode param rvlcEnable
+    ErrCorrType.bEnableRVLC = OMX_FALSE;		// corresponds to encode param rvlcEnable
     Err = OMX_SetParameter(iOMXEncoder, OMX_IndexParamVideoErrorCorrection, &ErrCorrType);
     if (OMX_ErrorNone != Err)
     {
         PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,
-                        (0, "PVMFOMXEncNode-%s::SetH263EncoderParameters OMX_SetParameter() failed for index(0x%x)", iNodeTypeId, OMX_IndexParamVideoErrorCorrection));
+                        (0, "PVMFOMXEncNode-%s::SetH263EncoderParameters Parameter Invalid", iNodeTypeId));
     }
 
 
@@ -2910,7 +2767,7 @@ bool PVMFOMXEncNode::SetH263EncoderParameters()
     if (OMX_ErrorNone != Err)
     {
         PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,
-                        (0, "PVMFOMXEncNode-%s::SetH263EncoderParameters OMX_GetParameter() failed for index(0x%x)", iNodeTypeId, OMX_IndexParamVideoMotionVector));
+                        (0, "PVMFOMXEncNode-%s::SetH263EncoderParameters Parameter Invalid", iNodeTypeId));
     }
 
     // extra parameters - hardcoded
@@ -2925,7 +2782,7 @@ bool PVMFOMXEncNode::SetH263EncoderParameters()
     if (OMX_ErrorNone != Err)
     {
         PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,
-                        (0, "PVMFOMXEncNode-%s::SetH263EncoderParameters OMX_SetParameter() failed for index(0x%x", iNodeTypeId, OMX_IndexParamVideoMotionVector));
+                        (0, "PVMFOMXEncNode-%s::SetH263EncoderParameters Parameter Invalid", iNodeTypeId));
     }
 
 
@@ -2938,7 +2795,7 @@ bool PVMFOMXEncNode::SetH263EncoderParameters()
     if (OMX_ErrorNone != Err)
     {
         PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,
-                        (0, "PVMFOMXEncNode-%s::SetH263EncoderParameters OMX_GetParameter() failed for index(0x%x)", iNodeTypeId, OMX_IndexParamVideoIntraRefresh));
+                        (0, "PVMFOMXEncNode-%s::SetH263EncoderParameters Parameter Invalid", iNodeTypeId));
     }
 
     // extra parameters - hardcoded based on PV defaults
@@ -2951,7 +2808,7 @@ bool PVMFOMXEncNode::SetH263EncoderParameters()
     if (OMX_ErrorNone != Err)
     {
         PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,
-                        (0, "PVMFOMXEncNode-%s::SetH263EncoderParameters OMX_SetParameter() failed for index(0x%x)", iNodeTypeId, OMX_IndexParamVideoIntraRefresh));
+                        (0, "PVMFOMXEncNode-%s::SetH263EncoderParameters Parameter Invalid", iNodeTypeId));
     }
 
     return true;
@@ -3010,8 +2867,8 @@ bool PVMFOMXEncNode::SetH264EncoderParameters()
     H264Type.bEnableFMO = OMX_FALSE;
     H264Type.bEnableASO = OMX_FALSE;
     H264Type.bEnableRS = OMX_FALSE;
-    //H264Type.eProfile = OMX_VIDEO_AVCProfileBaseline;
-    //H264Type.eLevel = OMX_VIDEO_AVCLevel1b;
+    H264Type.eProfile = OMX_VIDEO_AVCProfileBaseline;
+    H264Type.eLevel = OMX_VIDEO_AVCLevel1b;
     H264Type.bFrameMBsOnly = OMX_TRUE;
     H264Type.bMBAFF = OMX_FALSE;
     H264Type.bEntropyCodingCABAC = OMX_FALSE;
@@ -3044,7 +2901,22 @@ bool PVMFOMXEncNode::SetH264EncoderParameters()
 
     //Set the parameters now
     BitRateType.nPortIndex = iOutputPortIndex;
-    BitRateType.eControlRate = static_cast<OMX_VIDEO_CONTROLRATETYPE>(iVideoEncodeParam.iRateControlType);
+    switch (iVideoEncodeParam.iRateControlType)
+    {
+        case ECONSTANT_Q:
+            BitRateType.eControlRate = OMX_Video_ControlRateDisable;
+            break;
+        case ECBR_1:
+            BitRateType.eControlRate = OMX_Video_ControlRateConstant;
+            break;
+        case EVBR_1:
+            BitRateType.eControlRate = OMX_Video_ControlRateVariable;
+            break;
+        default:
+            BitRateType.eControlRate = OMX_Video_ControlRateDisable;
+            break;
+    }
+
     BitRateType.nTargetBitrate = iVideoEncodeParam.iBitRate[0];
     Err = OMX_SetParameter(iOMXEncoder, OMX_IndexParamVideoBitrate, &BitRateType);
     if (OMX_ErrorNone != Err)
@@ -3186,7 +3058,7 @@ bool PVMFOMXEncNode::NegotiateAudioComponentParameters()
 
 
     // loop through ports starting from the starting index to find index of the first input port
-    for (ii = AudioPortParameters.nStartPortNumber ; ii < AudioPortParameters.nStartPortNumber + NumPorts; ii++)
+    for (ii = AudioPortParameters.nStartPortNumber ;ii < AudioPortParameters.nStartPortNumber + NumPorts; ii++)
     {
         // get port parameters, and determine if it is input or output
         // if there are more than 2 ports, the first one we encounter that has input direction is picked
@@ -3223,7 +3095,7 @@ bool PVMFOMXEncNode::NegotiateAudioComponentParameters()
 
 
     // loop through ports starting from the starting index to find index of the first output port
-    for (ii = AudioPortParameters.nStartPortNumber ; ii < AudioPortParameters.nStartPortNumber + NumPorts; ii++)
+    for (ii = AudioPortParameters.nStartPortNumber ;ii < AudioPortParameters.nStartPortNumber + NumPorts; ii++)
     {
         // get port parameters, and determine if it is input or output
         // if there are more than 2 ports, the first one we encounter that has output direction is picked
@@ -3345,14 +3217,8 @@ bool PVMFOMXEncNode::NegotiateAudioComponentParameters()
         return false;
     }
 
-    // The buffer size is a read only parameter. If the requested size is larger than what we wish to allocate -
-    // we'll allocate what the component desires
-
-    if (iParamPort.nBufferSize > iOMXComponentInputBufferSize)
-    {
-        iOMXComponentInputBufferSize = iParamPort.nBufferSize;
-    }
-
+    //Set the input buffer size to the encoder component
+    iParamPort.nBufferSize = iOMXComponentInputBufferSize;
 
     // set Encoding type
 
@@ -3410,13 +3276,13 @@ bool PVMFOMXEncNode::NegotiateAudioComponentParameters()
     }
 
 
-    Audio_Pcm_Param.nChannels       = (OMX_U32) iAudioInputFormat.iInputNumChannels;
-    Audio_Pcm_Param.eNumData        =   OMX_NumericalDataSigned; // signed
-    Audio_Pcm_Param.eEndian         =   OMX_EndianLittle; // little-endian
-    Audio_Pcm_Param.bInterleaved    = ((EINTERLEAVE_LR == iAudioInputFormat.iInputInterleaveMode) ? OMX_TRUE : OMX_FALSE);
-    Audio_Pcm_Param.nBitPerSample   = (OMX_U32) iAudioInputFormat.iInputBitsPerSample;
-    Audio_Pcm_Param.nSamplingRate   = (OMX_U32) iAudioInputFormat.iInputSamplingRate;
-    Audio_Pcm_Param.ePCMMode        =   OMX_AUDIO_PCMModeLinear;
+    Audio_Pcm_Param.nChannels		=	(OMX_U32) iAudioInputFormat.iInputNumChannels;
+    Audio_Pcm_Param.eNumData		=	OMX_NumericalDataSigned; // signed
+    Audio_Pcm_Param.eEndian			=	OMX_EndianLittle; // little-endian
+    Audio_Pcm_Param.bInterleaved	=	((EINTERLEAVE_LR == iAudioInputFormat.iInputInterleaveMode) ? OMX_TRUE : OMX_FALSE);
+    Audio_Pcm_Param.nBitPerSample	=	(OMX_U32) iAudioInputFormat.iInputBitsPerSample;
+    Audio_Pcm_Param.nSamplingRate	=	(OMX_U32) iAudioInputFormat.iInputSamplingRate;
+    Audio_Pcm_Param.ePCMMode		=	OMX_AUDIO_PCMModeLinear;
     // don't set - let use default Audio_Pcm_Param.eChannelMapping
 
 
@@ -3444,6 +3310,22 @@ bool PVMFOMXEncNode::NegotiateAudioComponentParameters()
              (iOutFormat == PVMF_MIME_MPEG4_AUDIO))
     {
         DesiredPortFormat = OMX_AUDIO_CodingAAC;
+    }
+	else if ((iOutFormat == PVMF_MIME_G711))
+    {
+        DesiredPortFormat = OMX_AUDIO_CodingG711;
+    }
+    else if (iOutFormat == PVMF_MIME_EVRC)
+	{
+	    DesiredPortFormat = OMX_AUDIO_CodingEVRC;
+    }
+    else if (iOutFormat == PVMF_MIME_G729)
+    {
+		DesiredPortFormat = OMX_AUDIO_CodingG729;
+    }
+    else if (iOutFormat == PVMF_MIME_MP3)
+	{
+	    DesiredPortFormat = OMX_AUDIO_CodingMP3;
     }
     else
     {
@@ -3540,6 +3422,22 @@ bool PVMFOMXEncNode::NegotiateAudioComponentParameters()
     {
         iParamPort.format.audio.eEncoding = OMX_AUDIO_CodingAAC;
     }
+	else if ((iOutFormat == PVMF_MIME_G711))
+    {
+        iParamPort.format.audio.eEncoding = OMX_AUDIO_CodingG711;
+    }
+    else if (iOutFormat == PVMF_MIME_EVRC)
+	{
+	    iParamPort.format.audio.eEncoding = OMX_AUDIO_CodingEVRC;
+    }
+    else if (iOutFormat == PVMF_MIME_G729)
+	{
+		iParamPort.format.audio.eEncoding = OMX_AUDIO_CodingG729;
+    }
+    else if (iOutFormat == PVMF_MIME_MP3)
+    {
+        iParamPort.format.audio.eEncoding = OMX_AUDIO_CodingMP3;
+    }
 
     PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,
                     (0, "PVMFOMXEncNode-%s::NegotiateAudioComponentParameters() Outport buffers %d,size %d", iNodeTypeId, iNumOutputBuffers, iOMXComponentOutputBufferSize));
@@ -3570,9 +3468,164 @@ bool PVMFOMXEncNode::NegotiateAudioComponentParameters()
     {
         status = SetAACEncoderParameters();
     }
-
-
+    else if ((iOutFormat == PVMF_MIME_G711))
+    {
+        status = SetG711EncoderParameters();
+    }
+    else if (iOutFormat == PVMF_MIME_EVRC)
+	{
+	    status = SetEVRCEncoderParameters();
+    }
+    else if (iOutFormat == PVMF_MIME_G729)
+	{
+	    status = SetG729EncoderParameters();
+    }
+	else if (iOutFormat == PVMF_MIME_MP3)
+	{
+		status = SetMP3EncoderParameters();
+    }
     return status;
+}
+bool PVMFOMXEncNode::SetG711EncoderParameters()
+{
+
+    OMX_ERRORTYPE Err = OMX_ErrorNone;
+    OMX_AUDIO_PARAM_G711TYPE G711Type;
+
+    CONFIG_SIZE_AND_VERSION(G711Type);
+    G711Type.nPortIndex = iOutputPortIndex;
+
+    Err = OMX_GetParameter(iOMXEncoder, OMX_IndexParamAudioG711, &G711Type);
+    if (Err != OMX_ErrorNone)
+    {
+        PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,
+                        (0, "PVMFOMXEncNode-%s::SetG711EncoderParameters - Problem getting G711 parameters in output port %d ", iNodeTypeId, iOutputPortIndex));
+        return false;
+    }
+
+    G711Type.nChannels = iAudioEncodeParam.iOutputNumChannels; // must be 1
+
+
+    CONFIG_SIZE_AND_VERSION(G711Type);
+    G711Type.nPortIndex = iOutputPortIndex;
+
+    Err = OMX_SetParameter(iOMXEncoder, OMX_IndexParamAudioG711, &G711Type);
+    if (Err != OMX_ErrorNone)
+    {
+        PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,
+                        (0, "PVMFOMXEncNode-%s::SetG711EncoderParameters - Problem setting G711 parameters in output port %d ", iNodeTypeId, iOutputPortIndex));
+        return false;
+    }
+
+    return true;
+}
+bool PVMFOMXEncNode::SetEVRCEncoderParameters()
+{
+
+    OMX_ERRORTYPE Err = OMX_ErrorNone;
+    OMX_AUDIO_PARAM_EVRCTYPE EvrcType;
+
+
+    CONFIG_SIZE_AND_VERSION(EvrcType);
+    EvrcType.nPortIndex = iOutputPortIndex;
+
+    Err = OMX_GetParameter(iOMXEncoder, OMX_IndexParamAudioEvrc, &EvrcType);
+    if (Err != OMX_ErrorNone)
+    {
+        PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,
+                        (0, "PVMFOMXEncNode-%s::SetEVRCEncoderParameters - Problem getting EVRC parameters in output port %d ", iNodeTypeId, iOutputPortIndex));
+        return false;
+    }
+
+    EvrcType.nChannels = iAudioEncodeParam.iOutputNumChannels;
+    // The following parameter could be set to input sampling rate or 0 (i.e. unknown)
+    EvrcType.eCDMARate = OMX_AUDIO_CDMARateFull;
+    // The following parameter could be set to 0 (i.e. unknown)
+    EvrcType.nMinBitRate = EVRC_MINBITRATE;
+	EvrcType.nMaxBitRate = EVRC_MAXBITRATE;
+
+    CONFIG_SIZE_AND_VERSION(EvrcType);
+    EvrcType.nPortIndex = iOutputPortIndex;
+
+    Err = OMX_SetParameter(iOMXEncoder, OMX_IndexParamAudioEvrc, &EvrcType);
+    if (Err != OMX_ErrorNone)
+    {
+        PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,
+                        (0, "PVMFOMXEncNode-%s::SetEVRCEncoderParameters - Problem setting  EVRC parameters in output port %d ", iNodeTypeId, iOutputPortIndex));
+        return false;
+    }
+
+    return true;
+}
+bool PVMFOMXEncNode::SetG729EncoderParameters()
+{
+
+    OMX_ERRORTYPE Err = OMX_ErrorNone;
+    OMX_AUDIO_PARAM_G729TYPE G729Type;
+
+    CONFIG_SIZE_AND_VERSION(G729Type);
+    G729Type.nPortIndex = iOutputPortIndex;
+
+    Err = OMX_GetParameter(iOMXEncoder, OMX_IndexParamAudioG729, &G729Type);
+    if (Err != OMX_ErrorNone)
+    {
+
+        PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,
+                        (0, "PVMFOMXEncNode-%s::SetG729EncoderParameters - Problem getting G729 parameters in output port %d ", iNodeTypeId, iOutputPortIndex));
+        return false;
+    }
+
+    G729Type.nChannels = iAudioEncodeParam.iOutputNumChannels; // must be 1
+
+
+    CONFIG_SIZE_AND_VERSION(G729Type);
+    G729Type.nPortIndex = iOutputPortIndex;
+
+    Err = OMX_SetParameter(iOMXEncoder, OMX_IndexParamAudioG729, &G729Type);
+    if (Err != OMX_ErrorNone)
+    {
+
+        PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,
+                        (0, "PVMFOMXEncNode-%s::SetG729EncoderParameters - Problem setting G729 parameters in output port %d ", iNodeTypeId, iOutputPortIndex));
+        return false;
+    }
+
+    return true;
+}
+bool PVMFOMXEncNode::SetMP3EncoderParameters()
+{
+
+    OMX_ERRORTYPE Err = OMX_ErrorNone;
+    OMX_AUDIO_PARAM_MP3TYPE MP3Type;
+
+    CONFIG_SIZE_AND_VERSION(MP3Type);
+    MP3Type.nPortIndex = iOutputPortIndex;
+
+    Err = OMX_GetParameter(iOMXEncoder, OMX_IndexParamAudioMp3, &MP3Type);
+    if (Err != OMX_ErrorNone)
+    {
+
+        PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,
+                        (0, "PVMFOMXEncNode-%s::SetMP3EncoderParameters - Problem getting MP3 parameters in output port %d ", iNodeTypeId, iOutputPortIndex));
+        return false;
+    }
+
+    MP3Type.nChannels = iAudioEncodeParam.iOutputNumChannels; // must be 1
+
+
+    CONFIG_SIZE_AND_VERSION(MP3Type);
+    MP3Type.nPortIndex = iOutputPortIndex;
+
+    Err = OMX_SetParameter(iOMXEncoder, OMX_IndexParamAudioMp3, &MP3Type);
+    if (Err != OMX_ErrorNone)
+    {
+
+        PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,
+                        (0, "PVMFOMXEncNode-%s::SetMP3EncoderParameters - Problem setting MP3 parameters in output port %d ", iNodeTypeId, iOutputPortIndex));
+        return false;
+    }
+
+    return true;
 }
 
 bool PVMFOMXEncNode::SetAMREncoderParameters()
@@ -3824,13 +3877,7 @@ bool PVMFOMXEncNode::SendEOSBufferToOMXComponent()
     // THIS IS AN EMPTY BUFFER. FLAGS ARE THE ONLY IMPORTANT THING
     input_buf->pBufHdr->nFilledLen = 0;
     input_buf->pBufHdr->nOffset = 0;
-
-    iInputTimestampClock.update_clock(iEndOfDataTimestamp); // this will also take into consideration the rollover
-    // convert TS in input timescale into OMX_TICKS
-    iOMXTicksTimestamp = ConvertTimestampIntoOMXTicks(iInputTimestampClock);
-
-    input_buf->pBufHdr->nTimeStamp = iOMXTicksTimestamp;
-
+    input_buf->pBufHdr->nTimeStamp = iEndOfDataTimestamp;
 
     // set ptr to input_buf structure for Context (for when the buffer is returned)
     input_buf->pBufHdr->pAppPrivate = (OMX_PTR) input_buf;
@@ -3876,7 +3923,7 @@ bool PVMFOMXEncNode::SendInputBufferToOMXComponent()
         // try to get input buffer header
         InputBufCtrlStruct *temp = NULL;
         OSCL_TRY(errcode, temp = (InputBufCtrlStruct *) iInBufMemoryPool->allocate(iInputAllocSize));
-        //input_buf = temp; //JJDBG
+        input_buf = temp;
         if (errcode != 0)
         {
             if (errcode == OsclErrNoResources)
@@ -3902,13 +3949,12 @@ bool PVMFOMXEncNode::SendInputBufferToOMXComponent()
             }
 
         }
-        input_buf = new(temp)InputBufCtrlStruct ; //JJDBG
 
         // keep track of buffers. When buffer is deallocated/released, the counter will be decremented
         iInBufMemoryPool->notifyfreechunkavailable(*this, (OsclAny*) iInBufMemoryPool);
         iNumOutstandingInputBuffers++;
 
-        for (ii = 0; ii < iNumInputBuffers; ii++)
+        for (ii = 0;ii < iNumInputBuffers;ii++)
         {
             if (input_buf == in_ctrl_struct_ptr[ii])
             {
@@ -3923,8 +3969,8 @@ bool PVMFOMXEncNode::SendInputBufferToOMXComponent()
 
         // Now we have the buffer header (i.e. a buffer) to send to component:
         // Depending on OMX component capabilities, either pass the input msg fragment(s) directly
-        //  into OMX component without copying (and update the input msg refcount)
-        //  or memcopy the content of input msg memfrag(s) into OMX component allocated buffers
+        //	into OMX component without copying (and update the input msg refcount)
+        //	or memcopy the content of input msg memfrag(s) into OMX component allocated buffers
 
 
         // if this is the first fragment in a new message, extract some info:
@@ -3986,20 +4032,9 @@ bool PVMFOMXEncNode::SendInputBufferToOMXComponent()
             // set pointer to the data, length, offset
             input_buf->pBufHdr->pBuffer = (uint8 *)frag.getMemFragPtr();
             input_buf->pBufHdr->nFilledLen = frag.getMemFragSize();
-            {//TODO: check whether addRef() is needed for fsi
-                OsclRefCounterMemFrag fsifrag;
-                iDataIn->getFormatSpecificInfo(fsifrag);
-                if(sizeof(OsclAny*) != fsifrag.getMemFrag().len )
-                {
-                    PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_ERR,
-                            (0, "PVMFOMXEncNode-%s::SendInputBufferToOMXComponent() - ERROR buffer size %d", iNodeTypeId, fsifrag.getMemFrag().len ));
-                    return false;
-                }
-                oscl_memcpy(&(input_buf->pBufHdr->pPlatformPrivate), fsifrag.getMemFragPtr(), sizeof(OsclAny*) ); // restore ptr data from fsi
-            }
 
             PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,
-                            (0, "PVMFOMXEncNode-%s::SendInputBufferToOMXComponent() - Buffer 0x%x of size %d, %d frag out of tot. %d, TS=%d, Ticks=%L", iNodeTypeId, input_buf->pBufHdr->pBuffer, frag.getMemFragSize(), iCurrFragNum + 1, iDataIn->getNumFragments(), iInTimestamp, iOMXTicksTimestamp));
+                            (0, "PVMFOMXEncNode-%s::SendInputBufferToOMXComponent() - Buffer 0x%x of size %d, %d frag out of tot. %d, TS=%d", iNodeTypeId, input_buf->pBufHdr->pBuffer, frag.getMemFragSize(), iCurrFragNum + 1, iDataIn->getNumFragments(), iInTimestamp));
 
             iCurrFragNum++; // increment fragment number and move on to the next
 
@@ -4028,7 +4063,7 @@ bool PVMFOMXEncNode::SendInputBufferToOMXComponent()
                 input_buf->pBufHdr->nFilledLen = iFragmentSizeRemainingToCopy;
 
                 PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,
-                                (0, "PVMFOMXEncNode-%s::SendInputBufferToOMXComponent() - Copied %d bytes of fragment %d out of %d into buffer 0x%x of size %d, TS=%d, Ticks=%L ", iNodeTypeId, iFragmentSizeRemainingToCopy, iCurrFragNum + 1, iDataIn->getNumFragments(), input_buf->pBufHdr->pBuffer, input_buf->pBufHdr->nFilledLen, iInTimestamp, iOMXTicksTimestamp));
+                                (0, "PVMFOMXEncNode-%s::SendInputBufferToOMXComponent() - Copied %d bytes of fragment %d out of %d into buffer 0x%x of size %d, TS=%d ", iNodeTypeId, iFragmentSizeRemainingToCopy, iCurrFragNum + 1, iDataIn->getNumFragments(), input_buf->pBufHdr->pBuffer, input_buf->pBufHdr->nFilledLen, iInTimestamp));
 
                 iCopyPosition += iFragmentSizeRemainingToCopy;
                 iFragmentSizeRemainingToCopy = 0;
@@ -4044,7 +4079,7 @@ bool PVMFOMXEncNode::SendInputBufferToOMXComponent()
                             input_buf->pBufHdr->nAllocLen);
 
                 PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,
-                                (0, "PVMFOMXEncNode-%s::SendInputBufferToOMXComponent() - Frame cannot fit into input buffer ! Copied %d bytes of fragment %d out of %d into buffer 0x%x of size %d, TS=%d, Ticks=%L", iNodeTypeId, input_buf->pBufHdr->nAllocLen, iCurrFragNum + 1, iDataIn->getNumFragments(), input_buf->pBufHdr->pBuffer, input_buf->pBufHdr->nFilledLen, iInTimestamp, iOMXTicksTimestamp));
+                                (0, "PVMFOMXEncNode-%s::SendInputBufferToOMXComponent() - Frame cannot fit into input buffer ! Copied %d bytes of fragment %d out of %d into buffer 0x%x of size %d, TS=%d", iNodeTypeId, input_buf->pBufHdr->nAllocLen, iCurrFragNum + 1, iDataIn->getNumFragments(), input_buf->pBufHdr->pBuffer, input_buf->pBufHdr->nFilledLen, iInTimestamp));
 
                 input_buf->pBufHdr->nFilledLen = input_buf->pBufHdr->nAllocLen;
                 iCopyPosition += input_buf->pBufHdr->nAllocLen; // move current position within fragment forward
@@ -4059,15 +4094,7 @@ bool PVMFOMXEncNode::SendInputBufferToOMXComponent()
 
         // set buffer fields (this is the same regardless of whether the input is movable or not
         input_buf->pBufHdr->nOffset = 0;
-
-
-        iInputTimestampClock.update_clock(iInTimestamp); // this will also take into consideration the timestamp rollover
-        // convert TS in input timescale into OMX_TICKS
-        iOMXTicksTimestamp = ConvertTimestampIntoOMXTicks(iInputTimestampClock);
-
-
-        input_buf->pBufHdr->nTimeStamp = iOMXTicksTimestamp;
-
+        input_buf->pBufHdr->nTimeStamp = iInTimestamp;
 
         // set ptr to input_buf structure for Context (for when the buffer is returned)
         input_buf->pBufHdr->pAppPrivate = (OMX_PTR) input_buf;
@@ -4088,18 +4115,13 @@ bool PVMFOMXEncNode::SendInputBufferToOMXComponent()
 
         // in case of encoder, all input frames should be marked
         input_buf->pBufHdr->nFlags |= OMX_BUFFERFLAG_ENDOFFRAME;
-        OMX_ERRORTYPE myret = OMX_EmptyThisBuffer(iOMXEncoder, input_buf->pBufHdr);
-        if(OMX_ErrorNone != myret )
-        {
-            PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,
-                    (0, "PVMFOMXEncNode-%s::SendInputBufferToOMXComponent() OMX_EmptyThisBuffer ERROR %d", iNodeTypeId, myret));
-            return false;
-        }
+        OMX_EmptyThisBuffer(iOMXEncoder, input_buf->pBufHdr);
+
 
         // if we sent all fragments to OMX component, decouple the input message from iDataIn
         // Input message is "decoupled", so that we can get a new message for processing into iDataIn
-        //  However, the actual message is released completely to upstream mempool once all of its fragments
-        //  are returned by the OMX component
+        //	However, the actual message is released completely to upstream mempool once all of its fragments
+        //	are returned by the OMX component
 
         if (iCurrFragNum == iDataIn->getNumFragments())
         {
@@ -4213,28 +4235,28 @@ bool PVMFOMXEncNode::CreateInputMemPool(uint32 num_buffers)
     // 3 cases in order of preference and simplicity
 
     // Case 1 (buffers allocated upstream - no memcpy needed):
-    //  PV OMX Component - We use buffers allocated outside the OMX node (i.e. allocated upstream)
+    //	PV OMX Component - We use buffers allocated outside the OMX node (i.e. allocated upstream)
     // Mempool contains InputBufCtrlStructures (ptrs to buffer headers and PMVFMediaData ptrs - to keep track of when to unbind input msgs)
 
-    // NOTE:    in this case, when providing input buffers to OMX component,
-    //          OMX_UseBuffer calls will provide some initial pointers and sizes of buffers, but these
-    //          are dummy values. Actual buffer pointers and filled sizes will be obtained from the input msg fragments.
-    //          The PV OMX component will use the buffers even if the ptrs differ from the ones during initialization
-    //          3rd party OMX components can also use this case if they are capable of ignoring the actual buffer pointers in
-    //          buffer header field (i.e. if after OMX_UseBuffer(...) call, they allow the ptr to actual buffer data to change at a later time
+    // NOTE:	in this case, when providing input buffers to OMX component,
+    //			OMX_UseBuffer calls will provide some initial pointers and sizes of buffers, but these
+    //			are dummy values. Actual buffer pointers and filled sizes will be obtained from the input msg fragments.
+    //			The PV OMX component will use the buffers even if the ptrs differ from the ones during initialization
+    //			3rd party OMX components can also use this case if they are capable of ignoring the actual buffer pointers in
+    //			buffer header field (i.e. if after OMX_UseBuffer(...) call, they allow the ptr to actual buffer data to change at a later time
 
     // CASE 2 (buffers allocated in the node - memcpy needed)
-    //          If 3rd party OMX component can use buffers allocated outside the OMX component, but it cannot
-    //          change buffer ptr allocations dynamically (i.e. after initialization with OMX_UseBuffer call is complete)
+    //			If 3rd party OMX component can use buffers allocated outside the OMX component, but it cannot
+    //			change buffer ptr allocations dynamically (i.e. after initialization with OMX_UseBuffer call is complete)
 
-    //      Mempool contains InputBufCtrlStructures (ptrs to buffer headers, PVMFMediaData ptrs to keep track of when to unbind input msgs) +
-    //              actual buffers.
-    //          NOTE: Data must be copied from input message into the local buffer before the buffer is given to the OMX component
+    //		Mempool contains InputBufCtrlStructures (ptrs to buffer headers, PVMFMediaData ptrs to keep track of when to unbind input msgs) +
+    //				actual buffers.
+    //			NOTE: Data must be copied from input message into the local buffer before the buffer is given to the OMX component
 
     // CASE 3 (buffers allocated in the component - memcpy needed)
-    //          If 3rd party OMX component must allocate its own buffers
-    //          Mempool only contains InputBufCtrlStruct (ptrs to buffer headers + PMVFMediaData ptrs to keep track of when to unbind input msgs)
-    //          NOTE: Data must be copied from input message into the local buffer before the buffer is given to the OMX component (like in case 2)
+    //			If 3rd party OMX component must allocate its own buffers
+    //			Mempool only contains InputBufCtrlStruct (ptrs to buffer headers + PMVFMediaData ptrs to keep track of when to unbind input msgs)
+    //			NOTE: Data must be copied from input message into the local buffer before the buffer is given to the OMX component (like in case 2)
 
     PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,
                     (0, "PVMFOMXEncNode-%s::CreateInputMemPool() start ", iNodeTypeId));
@@ -4297,19 +4319,28 @@ bool PVMFOMXEncNode::CreateInputMemPool(uint32 num_buffers)
 }
 ////////////////////////////////////////////////////////////////////////////
 bool PVMFOMXEncNode::ProvideBuffersToComponent(OsclMemPoolFixedChunkAllocator *aMemPool, // allocator
-        uint32 aAllocSize,    // size to allocate from pool (hdr only or hdr+ buffer)
+        uint32 aAllocSize,	 // size to allocate from pool (hdr only or hdr+ buffer)
         uint32 aNumBuffers,    // number of buffers
         uint32 aActualBufferSize, // aactual buffer size
         uint32 aPortIndex,      // port idx
-        bool aUseBufferOK,       // can component use OMX_UseBuffer or should it use OMX_AllocateBuffer
-        bool aIsThisInputBuffer      // is this input or output
+        bool aUseBufferOK,		// can component use OMX_UseBuffer or should it use OMX_AllocateBuffer
+        bool	aIsThisInputBuffer		// is this input or output
                                               )
 {
     PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE, (0, "PVMFOMXEncNode-%s::ProvideBuffersToComponent() enter", iNodeTypeId));
 
     uint32 ii = 0;
     OMX_ERRORTYPE err = OMX_ErrorNone;
-    OsclAny **ctrl_struct_ptr = aIsThisInputBuffer ? in_ctrl_struct_ptr : out_ctrl_struct_ptr;
+    OsclAny **ctrl_struct_ptr = NULL;	// temporary array to keep the addresses of buffer ctrl structures and buffers
+
+    ctrl_struct_ptr = (OsclAny **) oscl_malloc(aNumBuffers * sizeof(OsclAny *));
+    if (ctrl_struct_ptr == NULL)
+    {
+        PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,
+                        (0, "PVMFOMXEncNode-%s::ProvideBuffersToComponent ctrl_struct_ptr == NULL", iNodeTypeId));
+        return false;
+    }
+
 
     // Now, go through all buffers and tell component to
     // either use a buffer, or to allocate its own buffer
@@ -4346,10 +4377,10 @@ bool PVMFOMXEncNode::ProvideBuffersToComponent(OsclMemPoolFixedChunkAllocator *a
             // just after the buffer header pointer.
 
             // In case of input buffers, the buffer header pointer is followed by a MediaDataSharedPtr
-            //  which is used to ensure proper unbinding of the input messages. The buffer itself is either:
-            //      a) allocated upstream (and the ptr to the buffer
-            //          is a dummy pointer to which the component does not pay attention - PV OMX component)
-            //      b) located just after the buffer header pointer and MediaDataSharedPtr
+            //	which is used to ensure proper unbinding of the input messages. The buffer itself is either:
+            //		a) allocated upstream (and the ptr to the buffer
+            //			is a dummy pointer to which the component does not pay attention - PV OMX component)
+            //		b) located just after the buffer header pointer and MediaDataSharedPtr
 
             uint8 *pB = ((uint8*) ctrl_struct_ptr[ii]);
 
@@ -4365,15 +4396,16 @@ bool PVMFOMXEncNode::ProvideBuffersToComponent(OsclMemPoolFixedChunkAllocator *a
                 // advance ptr to skip the structure
                 pB += oscl_mem_aligned_size(sizeof(InputBufCtrlStruct));
 
-                err = OMX_UseBuffer(iOMXEncoder,    // hComponent
-                                    &(temp->pBufHdr),       // address where ptr to buffer header will be stored
-                                    aPortIndex,             // port index (for port for which buffer is provided)
-                                    ctrl_struct_ptr[ii],    // App. private data = pointer to beginning of allocated data
-                                    //              to have a context when component returns with a callback (i.e. to know
-                                    //              what to free etc.
-                                    (OMX_U32)aActualBufferSize,     // buffer size
-                                    pB);                        // buffer data ptr
+                err = OMX_UseBuffer(iOMXEncoder,	// hComponent
+                                    &(temp->pBufHdr),		// address where ptr to buffer header will be stored
+                                    aPortIndex,				// port index (for port for which buffer is provided)
+                                    ctrl_struct_ptr[ii],	// App. private data = pointer to beginning of allocated data
+                                    //				to have a context when component returns with a callback (i.e. to know
+                                    //				what to free etc.
+                                    (OMX_U32)aActualBufferSize,		// buffer size
+                                    pB);						// buffer data ptr
 
+                in_ctrl_struct_ptr[ii] = ctrl_struct_ptr[ii];
                 in_buff_hdr_ptr[ii] = temp->pBufHdr;
 
             }
@@ -4398,15 +4430,16 @@ bool PVMFOMXEncNode::ProvideBuffersToComponent(OsclMemPoolFixedChunkAllocator *a
                     // The node will move the ptr -4 when it needs teh sync word
                 }
 
-                err = OMX_UseBuffer(iOMXEncoder,    // hComponent
-                                    &(temp->pBufHdr),       // address where ptr to buffer header will be stored
-                                    aPortIndex,             // port index (for port for which buffer is provided)
-                                    ctrl_struct_ptr[ii],    // App. private data = pointer to beginning of allocated data
-                                    //              to have a context when component returns with a callback (i.e. to know
-                                    //              what to free etc.
-                                    (OMX_U32)aActualBufferSize,     // buffer size
-                                    pB);                        // buffer data ptr
+                err = OMX_UseBuffer(iOMXEncoder,	// hComponent
+                                    &(temp->pBufHdr),		// address where ptr to buffer header will be stored
+                                    aPortIndex,				// port index (for port for which buffer is provided)
+                                    ctrl_struct_ptr[ii],	// App. private data = pointer to beginning of allocated data
+                                    //				to have a context when component returns with a callback (i.e. to know
+                                    //				what to free etc.
+                                    (OMX_U32)aActualBufferSize,		// buffer size
+                                    pB);						// buffer data ptr
 
+                out_ctrl_struct_ptr[ii] = ctrl_struct_ptr[ii];
                 out_buff_hdr_ptr[ii] = temp->pBufHdr;
 
 
@@ -4421,16 +4454,13 @@ bool PVMFOMXEncNode::ProvideBuffersToComponent(OsclMemPoolFixedChunkAllocator *a
             {
 
                 InputBufCtrlStruct *temp = (InputBufCtrlStruct *) ctrl_struct_ptr[ii];
-                // initialize the media data field to 0 //TODO cleanup work started in another record. JJ 05/12/09
-                oscl_memset(&(temp->pMediaData), 0, sizeof(PVMFSharedMediaDataPtr));
-                temp->pMediaData = PVMFSharedMediaDataPtr(NULL, NULL);
-
                 err = OMX_AllocateBuffer(iOMXEncoder,
                                          &(temp->pBufHdr),
                                          aPortIndex,
                                          ctrl_struct_ptr[ii],
                                          (OMX_U32)aActualBufferSize);
 
+                in_ctrl_struct_ptr[ii] = ctrl_struct_ptr[ii];
                 in_buff_hdr_ptr[ii] = temp->pBufHdr;
             }
             else
@@ -4442,6 +4472,7 @@ bool PVMFOMXEncNode::ProvideBuffersToComponent(OsclMemPoolFixedChunkAllocator *a
                                          ctrl_struct_ptr[ii],
                                          (OMX_U32)aActualBufferSize);
 
+                out_ctrl_struct_ptr[ii] = ctrl_struct_ptr[ii];
                 out_buff_hdr_ptr[ii] = temp->pBufHdr;
             }
 
@@ -4465,6 +4496,7 @@ bool PVMFOMXEncNode::ProvideBuffersToComponent(OsclMemPoolFixedChunkAllocator *a
         aMemPool->deallocate((OsclAny*) ctrl_struct_ptr[ii]);
     }
 
+    oscl_free(ctrl_struct_ptr);
     // set the flags
     if (aIsThisInputBuffer)
     {
@@ -4481,17 +4513,24 @@ bool PVMFOMXEncNode::ProvideBuffersToComponent(OsclMemPoolFixedChunkAllocator *a
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool PVMFOMXEncNode::FreeBuffersFromComponent(OsclMemPoolFixedChunkAllocator *aMemPool, // allocator
-        uint32 aAllocSize,     // size to allocate from pool (hdr only or hdr+ buffer)
+        uint32 aAllocSize,	 // size to allocate from pool (hdr only or hdr+ buffer)
         uint32 aNumBuffers,    // number of buffers
         uint32 aPortIndex,      // port idx
-        bool  aIsThisInputBuffer      // is this input or output
+        bool	aIsThisInputBuffer		// is this input or output
                                              )
 {
     PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE, (0, "PVMFOMXEncNode-%s::FreeBuffersToComponent() enter", iNodeTypeId));
 
     uint32 ii = 0;
     OMX_ERRORTYPE err = OMX_ErrorNone;
-    OsclAny **ctrl_struct_ptr = aIsThisInputBuffer ? in_ctrl_struct_ptr : out_ctrl_struct_ptr;
+    OsclAny **ctrl_struct_ptr = NULL;	// temporary array to keep the addresses of buffer ctrl structures and buffers
+
+    ctrl_struct_ptr = (OsclAny **) oscl_malloc(aNumBuffers * sizeof(OsclAny *));
+    if (ctrl_struct_ptr == NULL)
+    {
+        return false;
+    }
+
 
     // Now, go through all buffers and tell component to free them
     for (ii = 0; ii < aNumBuffers; ii++)
@@ -4529,11 +4568,6 @@ bool PVMFOMXEncNode::FreeBuffersFromComponent(OsclMemPoolFixedChunkAllocator *aM
             iNumOutstandingInputBuffers++;
             // get the buf hdr pointer
             InputBufCtrlStruct *temp = (InputBufCtrlStruct *) ctrl_struct_ptr[ii];
-
-            if(ipExternalInputBufferAllocatorInterface && ipFixedSizeBufferAlloc)
-            {
-                ipFixedSizeBufferAlloc->deallocate((OsclAny*) temp->pBufHdr->pBuffer);
-            }
             err = OMX_FreeBuffer(iOMXEncoder,
                                  aPortIndex,
                                  temp->pBufHdr);
@@ -4566,6 +4600,7 @@ bool PVMFOMXEncNode::FreeBuffersFromComponent(OsclMemPoolFixedChunkAllocator *aM
         aMemPool->deallocate((OsclAny*) ctrl_struct_ptr[ii]);
     }
 
+    oscl_free(ctrl_struct_ptr);
 
     // mark buffers as freed (so as not to do it twice)
     if (aIsThisInputBuffer)
@@ -4576,12 +4611,6 @@ bool PVMFOMXEncNode::FreeBuffersFromComponent(OsclMemPoolFixedChunkAllocator *aM
         in_ctrl_struct_ptr = NULL;
         in_buff_hdr_ptr = NULL;
         iInputBuffersFreed = true;
-
-        if(ipExternalInputBufferAllocatorInterface)
-        {
-            ipExternalInputBufferAllocatorInterface->removeRef();
-            ipExternalInputBufferAllocatorInterface = NULL;
-        }
     }
     else
     {
@@ -4684,7 +4713,6 @@ OMX_ERRORTYPE PVMFOMXEncNode::EventHandlerProcessing(OMX_OUT OMX_HANDLETYPE aCom
 
         case OMX_EventError:
         {
-            LOGE("Ln %d OMX_EventError nData1 %d nData2 %d", __LINE__, aData1, aData2);
 
             if (aData1 == (OMX_U32) OMX_ErrorStreamCorrupt)
             {
@@ -4694,18 +4722,13 @@ OMX_ERRORTYPE PVMFOMXEncNode::EventHandlerProcessing(OMX_OUT OMX_HANDLETYPE aCom
                 ReportInfoEvent(PVMFInfoProcessingFailure, NULL);
 
             }
-            else if (aData1 == (OMX_U32) OMX_ErrorInvalidState)
-            {
-                PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_ERR,
-                                (0, "PVMFOMXEncNode-%s::EventHandlerProcessing: OMX_EventError - OMX_ErrorInvalidState", iNodeTypeId));
-                HandleComponentStateChange(OMX_StateInvalid);
-            }
             else
             {
+
                 PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_ERR,
                                 (0, "PVMFOMXEncNode-%s::EventHandlerProcessing: OMX_EventError", iNodeTypeId));
                 // for now, any error from the component will be reported as error
-                ReportErrorEvent(PVMFErrProcessing, NULL, NULL);
+                ReportErrorEvent(PVMFErrorEvent, NULL, NULL);
                 SetState(EPVMFNodeError);
             }
             break;
@@ -4807,7 +4830,7 @@ void PVMFOMXEncNode::HandleComponentStateChange(OMX_U32 encoder_state)
                             (0, "PVMFOMXEncNode-%s::HandleComponentStateChange: OMX_StateIdle reached", iNodeTypeId));
 
             //  this state can be reached either going from OMX_Loaded->OMX_Idle (preparing)
-            //  or going from OMX_Executing->OMX_Idle (stopping)
+            //	or going from OMX_Executing->OMX_Idle (stopping)
 
 
             if ((iCurrentCommand.size() > 0) &&
@@ -4822,7 +4845,7 @@ void PVMFOMXEncNode::HandleComponentStateChange(OMX_U32 encoder_state)
                      (iCurrentCommand.front().iCmd == PVMFOMXEncNodeCommand::PVOMXENC_NODE_CMD_STOP))
             {
                 // if we are stopped, we won't start until the node gets DoStart command.
-                //  in this case, we are ready to start sending buffers
+                //	in this case, we are ready to start sending buffers
                 if (iProcessingState == EPVMFOMXEncNodeProcessingState_Stopping)
                     iProcessingState = EPVMFOMXEncNodeProcessingState_ReadyToEncode;
                 // if the processing state was not stopping, leave the state as it was (continue port reconfiguration)
@@ -4875,8 +4898,8 @@ void PVMFOMXEncNode::HandleComponentStateChange(OMX_U32 encoder_state)
                             (0, "PVMFOMXEncNode-%s::HandleComponentStateChange: OMX_StateExecuting reached", iNodeTypeId));
 
             // this state can be reached going from OMX_Idle -> OMX_Executing (preparing)
-            //  or going from OMX_Pause -> OMX_Executing (coming from pause)
-            //  either way, this is a response to "DoStart" command
+            //	or going from OMX_Pause -> OMX_Executing (coming from pause)
+            //	either way, this is a response to "DoStart" command
 
             if ((iCurrentCommand.size() > 0) &&
                     (iCurrentCommand.front().iCmd == PVMFOMXEncNodeCommand::PVOMXENC_NODE_CMD_START))
@@ -4898,7 +4921,7 @@ void PVMFOMXEncNode::HandleComponentStateChange(OMX_U32 encoder_state)
                             (0, "PVMFOMXEncNode-%s::HandleComponentStateChange: OMX_StatePause reached", iNodeTypeId));
 
 
-            //  This state can be reached going from OMX_Executing-> OMX_Pause
+            //	This state can be reached going from OMX_Executing-> OMX_Pause
             if ((iCurrentCommand.size() > 0) &&
                     (iCurrentCommand.front().iCmd == PVMFOMXEncNodeCommand::PVOMXENC_NODE_CMD_PAUSE))
             {
@@ -4961,46 +4984,6 @@ void PVMFOMXEncNode::HandleComponentStateChange(OMX_U32 encoder_state)
 
             PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_ERR,
                             (0, "PVMFOMXEncNode-%s::HandleComponentStateChange: OMX_StateInvalid reached", iNodeTypeId));
-            //Clearup encoder
-            DeleteOMXEncoder();
-
-            if (iCurrentCommand.size() > 0)
-            {//can NOT be CANCEL or CANCEL_ALL. Just to cmd completion for the rest
-                if (iCurrentCommand.front().iCmd == PVMFOMXEncNodeCommand::PVOMXENC_NODE_CMD_RESET)
-                {
-                    //delete all ports and notify observer.
-                    if (iInPort)
-                    {
-                        OSCL_DELETE(((PVMFOMXEncPort*)iInPort));
-                        iInPort = NULL;
-                    }
-
-                    if (iOutPort)
-                    {
-                        OSCL_DELETE(((PVMFOMXEncPort*)iOutPort));
-                        iOutPort = NULL;
-                    }
-
-                    iDataIn.Unbind();
-
-                    // Reset the metadata key list
-                    iAvailableMetadataKeys.clear();
-
-                    iEndOfDataReached = false;
-                    iIsEOSSentToComponent = false;
-                    iIsEOSReceivedFromComponent = false;
-
-                    iProcessingState = EPVMFOMXEncNodeProcessingState_Idle;
-                    //logoff & go back to Created state.
-                    SetState(EPVMFNodeIdle);
-                    CommandComplete(iCurrentCommand, iCurrentCommand.front(), PVMFSuccess);
-                }
-                else
-                {
-                    SetState(EPVMFNodeError);
-                    CommandComplete(iCurrentCommand, iCurrentCommand.front(), PVMFErrResource);
-                }
-            }
 
             break;
         }//end of case OMX_StateInvalid
@@ -5028,7 +5011,7 @@ OMX_ERRORTYPE PVMFOMXEncNode::EmptyBufferDoneProcessing(OMX_OUT OMX_HANDLETYPE a
                     (0, "PVMFOMXEncNode-%s::EmptyBufferDoneProcessing: In", iNodeTypeId));
 
     OSCL_ASSERT((void*) aComponent == (void*) iOMXEncoder); // component should match the component
-    OSCL_ASSERT(aAppData == (OMX_PTR)(this));       // AppData should represent this node ptr
+    OSCL_ASSERT(aAppData == (OMX_PTR)(this));		// AppData should represent this node ptr
 
     // first, get the buffer "context", i.e. pointer to application private data that contains the
     // address of the mempool buffer (so that it can be released)
@@ -5053,8 +5036,8 @@ OMX_ERRORTYPE PVMFOMXEncNode::EmptyBufferDoneProcessing(OMX_OUT OMX_HANDLETYPE a
     // input buffer is to be released,
     // refcount needs to be decremented (possibly - the input msg associated with the buffer will be unbound)
     // NOTE: in case of "moveable" input buffers (passed into component without copying), unbinding decrements a refcount which eventually results
-    //          in input message being released back to upstream mempool once all its fragments are returned
-    //      in case of input buffers passed into component by copying, unbinding has no effect
+    //			in input message being released back to upstream mempool once all its fragments are returned
+    //		in case of input buffers passed into component by copying, unbinding has no effect
     PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,
                     (0, "PVMFOMXEncNode-%s::EmptyBufferDoneProcessing: Release input buffer (with %d refcount remaining of input message)", iNodeTypeId, (pContext->pMediaData).get_count() - 1));
 
@@ -5089,7 +5072,7 @@ OMX_ERRORTYPE PVMFOMXEncNode::FillBufferDoneProcessing(OMX_OUT OMX_HANDLETYPE aC
                     (0, "PVMFOMXEncNode-%s::FillBufferDoneProcessing: In", iNodeTypeId));
 
     OSCL_ASSERT((void*) aComponent == (void*) iOMXEncoder); // component should match the component
-    OSCL_ASSERT(aAppData == (OMX_PTR)(this));       // AppData should represent this node ptr
+    OSCL_ASSERT(aAppData == (OMX_PTR)(this));		// AppData should represent this node ptr
 
     // first, get the buffer "context", i.e. pointer to application private data that contains the
     // address of the mempool buffer (so that it can be released)
@@ -5107,8 +5090,7 @@ OMX_ERRORTYPE PVMFOMXEncNode::FillBufferDoneProcessing(OMX_OUT OMX_HANDLETYPE aC
 
     }
 
-    if (((iOutFormat == PVMF_MIME_H264_VIDEO_MP4) || (iOutFormat == PVMF_MIME_H264_VIDEO_RAW))
-            && (iOMXComponentUsesNALStartCodes))
+    if (iOMXComponentUsesNALStartCodes)
     {
         // find size of first start code, since it can be either 3 or 4 bytes
         uint8* pData = (uint8*)aBuffer->pBuffer + aBuffer->nOffset;
@@ -5155,18 +5137,16 @@ OMX_ERRORTYPE PVMFOMXEncNode::FillBufferDoneProcessing(OMX_OUT OMX_HANDLETYPE aC
         uint32 bufLen = (uint32) aBuffer->nFilledLen;
 
         // in case of mp4 streaming and the very 1st buffer, save vol header separately
-        if ((iOutFormat == PVMF_MIME_M4V) && (iFrameCounter == 1))
+        if ((iOutFormat == PVMF_MIME_M4V) && (iVideoEncodeParam.iContentType == EI_M4V_STREAMING)
+                && (iFrameCounter == 1))
         {
 
             // save the first buffer since this is the VOL header
+
             uint refCounterSize = oscl_mem_aligned_size(sizeof(OsclRefCounterDA));
             OsclMemoryFragment volHeader;
-
-            int vol_len = aBuffer->nFilledLen;
-            bool frameInVolHdr = CheckM4vVopStartCode(pBufdata, &vol_len);
-
             volHeader.ptr = NULL;
-            volHeader.len = vol_len;
+            volHeader.len = aBuffer->nFilledLen; // vol header size should be (28)
             uint8* memBuffer = (uint8*)iAlloc.allocate(refCounterSize + volHeader.len);
             oscl_memset(memBuffer, 0, refCounterSize + volHeader.len);
             OsclRefCounter* refCounter = OSCL_PLACEMENT_NEW(memBuffer, OsclRefCounterDA(memBuffer, (OsclDestructDealloc*) & iAlloc));
@@ -5179,17 +5159,9 @@ OMX_ERRORTYPE PVMFOMXEncNode::FillBufferDoneProcessing(OMX_OUT OMX_HANDLETYPE aC
             // save in class variable
             iVolHeader = OsclRefCounterMemFrag(volHeader, refCounter, volHeader.len);
 
-            if (frameInVolHdr == false)
-            {
-                // release the OMX buffer
-                iOutBufMemoryPool->deallocate(pContext);
-                return OMX_ErrorNone;
-            }
-            else  // there is a frame in this buffer, update the pointer and continue to process it.
-            {
-                pBufdata += vol_len;
-                bufLen -= vol_len;
-            }
+            // release the OMX buffer
+            iOutBufMemoryPool->deallocate(pContext);
+            return OMX_ErrorNone;
         }
 
         if (iFrameCounter == 1)
@@ -5251,38 +5223,17 @@ OMX_ERRORTYPE PVMFOMXEncNode::FillBufferDoneProcessing(OMX_OUT OMX_HANDLETYPE aC
 
             if (nal_type == 0x07) // SPS type NAL
             {
-                int32 nal_size = aBuffer->nFilledLen;
-                AVCAnnexBGetNALUnit(aBuffer->pBuffer, &bitstream, (int32*)&nal_size, false);
                 // can the SPS fit into the buffer
                 if (aBuffer->nFilledLen <= (capacity - length))
                 {
                     iSPSs[iNumSPSs].ptr = destptr;
-                    iSPSs[iNumSPSs++].len = nal_size;
+                    iSPSs[iNumSPSs++].len = aBuffer->nFilledLen;
 
-                    oscl_memcpy(destptr, pBufdata, nal_size); // copy SPS into iParamSet memfragment
-                    length += nal_size;
+                    oscl_memcpy(destptr, pBufdata, aBuffer->nFilledLen); // copy SPS into iParamSet memfragment
+                    length += aBuffer->nFilledLen;
                     iParamSet.getMemFrag().len = length; // update length
-                    destptr += nal_size;
-                    if (nal_size < aBuffer->nFilledLen) {
-                        LOGD("SPS and PPS are located within a single output buffer");
-                        uint8* pData = (uint8*)aBuffer->pBuffer + nal_size +iFirstNALStartCodeSize;
-                        uint32 size = aBuffer->nFilledLen -(nal_size +iFirstNALStartCodeSize);
-                        AVCAnnexBGetNALUnit(pData, &bitstream, (int32*)&size, false);
-                        nal_size = size;
-                        nal_type = bitstream[0] & 0x1F;
-                        if (nal_type == 0x08) // PPS type NAL
-                        {
-                            if (aBuffer->nFilledLen <= (capacity - length))
-                            {
-                                iPPSs[iNumPPSs].ptr = destptr;
-                                iPPSs[iNumPPSs++].len = nal_size;
-                                oscl_memcpy(destptr, bitstream, nal_size); // copy PPS into iParamSet memfragment$
-                                length += nal_size;
-                                iParamSet.getMemFrag().len = length; // update length
-                            }
-                        }
-                    }
                 }
+
 
                 // release the OMX buffer
                 iOutBufMemoryPool->deallocate(pContext);
@@ -5290,7 +5241,7 @@ OMX_ERRORTYPE PVMFOMXEncNode::FillBufferDoneProcessing(OMX_OUT OMX_HANDLETYPE aC
             }
             else if (nal_type == 0x08) // PPS type NAL
             {
-                LOGD("SPS and PPS are located in separate output buffers");
+
                 // can the PPS fit into the buffer?
                 if (aBuffer->nFilledLen <= (capacity - length))
                 {
@@ -5363,9 +5314,9 @@ OMX_ERRORTYPE PVMFOMXEncNode::FillBufferDoneProcessing(OMX_OUT OMX_HANDLETYPE aC
         // wrap the buffer into the MediaDataImpl wrapper, and queue it for sending downstream
         // wrapping will create a refcounter. When refcounter goes to 0 i.e. when media data
         // is released in downstream components, the custom deallocator will automatically release the buffer back to the
-        //  mempool. To do that, the deallocator needs to have info about Context
+        //	mempool. To do that, the deallocator needs to have info about Context
         // NOTE: we had to wait until now to wrap the buffer data because we only know
-        //          now where the actual data is located (based on buffer offset)
+        //			now where the actual data is located (based on buffer offset)
         OsclSharedPtr<PVMFMediaDataImpl> MediaDataCurr = WrapOutputBuffer(pBufdata, bufLen, pContext);
 
         // if you can't get the MediaDataCurr, release the buffer back to the pool
@@ -5382,10 +5333,10 @@ OMX_ERRORTYPE PVMFOMXEncNode::FillBufferDoneProcessing(OMX_OUT OMX_HANDLETYPE aC
 
             //DV - NOTE:
             //In case of AVC, OMX_EndOfFrameFlag is used to mark the end of NAL
-            //                End of frame is determined by comparing timestamps
-            //              As a consequence, there is a lag of one buffer
-            //              i.e. we send/queue the previous buffer and keep the current one so that
-            //              When the next buffer arrives, we can compare timestamps etc.
+            //				  End of frame is determined by comparing timestamps
+            //				As a consequence, there is a lag of one buffer
+            //				i.e. we send/queue the previous buffer and keep the current one so that
+            //				When the next buffer arrives, we can compare timestamps etc.
 
             // In case of MP4, OMX_EndOFFrameFlag is used to mark end of frame and there is no lag
 
@@ -5423,7 +5374,6 @@ OMX_ERRORTYPE PVMFOMXEncNode::FillBufferDoneProcessing(OMX_OUT OMX_HANDLETYPE aC
                 MediaDataOut = MediaDataCurr;
                 // record timestamp, flags etc.
                 iTimeStampOut = aBuffer->nTimeStamp;
-
                 // check for Key Frame
                 iKeyFrameFlagOut = (aBuffer->nFlags & OMX_BUFFERFLAG_SYNCFRAME);
                 iEndOfNALFlagOut = 0; // set this to 0 for mp4
@@ -5514,14 +5464,6 @@ bool PVMFOMXEncNode::QueueOutputBuffer(OsclSharedPtr<PVMFMediaDataImpl> &mediada
     PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,
                     (0, "PVMFOMXEncNode-%s::QueueOutputFrame: In", iNodeTypeId));
 
-    // Check if the port is still connected
-    if (iOutPort == NULL)
-    {
-        PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_DEBUG,
-                        (0, "PVMFOMXEncNode-%s::QueueOutputFrame() OutgoingQueue Out Port is disconnected"));
-        return false;
-    }
-
     // First check if we can put outgoing msg. into the queue
     if (iOutPort->IsOutgoingQueueBusy())
     {
@@ -5560,10 +5502,7 @@ bool PVMFOMXEncNode::QueueOutputBuffer(OsclSharedPtr<PVMFMediaDataImpl> &mediada
         mediaDataOut->setMediaFragFilledLen(0, aDataLen);
 
         // Set timestamp
-        // first convert OMX_TICKS into output timescale
-        uint32 output_timestamp = ConvertOMXTicksIntoTimestamp(iTimeStampOut);
-
-        mediaDataOut->setTimestamp(output_timestamp);
+        mediaDataOut->setTimestamp(iTimeStampOut);
 
         // Set Streamid
         mediaDataOut->setStreamID(iStreamID);
@@ -5571,13 +5510,13 @@ bool PVMFOMXEncNode::QueueOutputBuffer(OsclSharedPtr<PVMFMediaDataImpl> &mediada
         // Set sequence number
         mediaDataOut->setSeqNum(iSeqNum++);
 
-        PVLOGGER_LOGMSG(PVLOGMSG_INST_REL, iDataPathLogger, PVLOGMSG_INFO, (0, ":PVMFOMXEncNode-%s::QueueOutputFrame(): - SeqNum=%d, Ticks=%l TS=%d", iNodeTypeId, iSeqNum, iTimeStampOut, output_timestamp));
+        PVLOGGER_LOGMSG(PVLOGMSG_INST_REL, iDataPathLogger, PVLOGMSG_INFO, (0, ":PVMFOMXEncNode-%s::QueueOutputFrame(): - SeqNum=%d, TS=%d", iNodeTypeId, iSeqNum, iTimeStampOut));
 
 
         // Check if Fsi needs to be sent (VOL header)
         if (sendYuvFsi)
         {
-            if (iOutFormat == PVMF_MIME_M4V)
+            if (iVideoEncodeParam.iContentType == EI_M4V_STREAMING)
             {
                 mediaDataOut->setFormatSpecificInfo(iVolHeader);
 
@@ -5696,7 +5635,6 @@ OsclSharedPtr<PVMFMediaDataImpl> PVMFOMXEncNode::WrapOutputBuffer(uint8 *pData, 
         {
             // skip start code
             pData += iFirstNALStartCodeSize;
-            aDataLen -= iFirstNALStartCodeSize;
         }
 
         memFrag.ptr = pData;
@@ -5865,6 +5803,26 @@ void PVMFOMXEncNode::DoPrepare(PVMFOMXEncNodeCommand& aCmd)
                 Role = (OMX_STRING)"audio_encoder.aac";
                 iNodeTypeId = LOG_ID_AUDIO_AAC;
             }
+			else if ((iOutFormat == PVMF_MIME_G711))
+		    {
+			    Role = (OMX_STRING)"audio_encoder.g711";
+                iNodeTypeId = LOG_ID_AUDIO_G711;
+		    }
+		    else if (iOutFormat == PVMF_MIME_EVRC)
+			{
+			    Role = (OMX_STRING)"audio_encoder.evrc";
+			    iNodeTypeId = LOG_ID_AUDIO_EVRC;
+            }
+            else if (iOutFormat == PVMF_MIME_G729)
+            {
+				Role = (OMX_STRING)"audio_encoder.g729";
+				iNodeTypeId = LOG_ID_AUDIO_G729;
+		    }
+		    else if (iOutFormat == PVMF_MIME_MP3)
+			{
+			    Role = (OMX_STRING)"audio_encoder.mp3";
+			    iNodeTypeId = LOG_ID_AUDIO_MP3;
+            }
             else
             {
                 // Illegal codec specified.
@@ -5891,7 +5849,7 @@ void PVMFOMXEncNode::DoPrepare(PVMFOMXEncNodeCommand& aCmd)
             OMX_STRING *CompOfRole;
             OMX_S8 CompName[PV_OMX_MAX_COMPONENT_NAME_LENGTH];
             // call once to find out the number of components that can fit the role
-            OMX_MasterGetComponentsOfRole(Role, &num_comps, NULL);
+            OMX_GetComponentsOfRole(Role, &num_comps, NULL);
             uint32 ii;
 
             PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_DEBUG,
@@ -5905,37 +5863,29 @@ void PVMFOMXEncNode::DoPrepare(PVMFOMXEncNodeCommand& aCmd)
                     CompOfRole[ii] = (OMX_STRING) oscl_malloc(PV_OMX_MAX_COMPONENT_NAME_LENGTH * sizeof(OMX_U8));
 
                 // call 2nd time to get the component names
-                OMX_MasterGetComponentsOfRole(Role, &num_comps, (OMX_U8 **)CompOfRole);
+                OMX_GetComponentsOfRole(Role, &num_comps, (OMX_U8 **)CompOfRole);
 
                 for (ii = 0; ii < num_comps; ii++)
                 {
                     // try to create component
-                    err = OMX_MasterGetHandle(&iOMXEncoder, (OMX_STRING) CompOfRole[ii], (OMX_PTR) this, (OMX_CALLBACKTYPE *) & iCallbacks);
-
+                    err = OMX_GetHandle(&iOMXEncoder, (OMX_STRING) CompOfRole[ii], (OMX_PTR) this, (OMX_CALLBACKTYPE *) & iCallbacks);
+                    // if successful, no need to continue
                     if ((err == OMX_ErrorNone) && (iOMXEncoder != NULL))
                     {
                         oscl_strncpy((OMX_STRING)CompName, (OMX_STRING) CompOfRole[ii], PV_OMX_MAX_COMPONENT_NAME_LENGTH);
 
                         PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_DEBUG,
                                         (0, "PVMFOMXEncNode-%s::DoPrepare(): Got Component %s handle ", iNodeTypeId, CompOfRole[ii]));
-                        LOGE("PVMFOMXEncNode-%s::DoPrepare(): Got Component %s handle ", iNodeTypeId, CompOfRole[ii]);
 
-                        if ((CheckComponentForMultRoles((OMX_STRING)CompName, (OMX_STRING)CompOfRole[ii])) &&
-                            (CheckComponentCapabilities(&iOutFormat)))
-                        {
-                            // Found a component and it passed all tests.   Break out of the loop
-                            break;
-                        }
+                        break;
                     }
-
-                    // Component failed negotiations
-                    if (iOMXEncoder != NULL)
+                    else
                     {
-                        OMX_MasterFreeHandle(iOMXEncoder);
-                        iOMXEncoder = NULL;
+                        PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_DEBUG,
+                                        (0, "PVMFOMXEncNode-%s::DoPrepare(): Cannot get component %s handle, try another component if available", iNodeTypeId, CompOfRole[ii]));
                     }
-                }
 
+                }
                 // whether successful or not, need to free CompOfRoles
                 for (ii = 0; ii < num_comps; ii++)
                 {
@@ -5963,18 +5913,130 @@ void PVMFOMXEncNode::DoPrepare(PVMFOMXEncNodeCommand& aCmd)
                 return;
             }
 
+
+
             if (!iOMXEncoder)
             {
                 CommandComplete(iInputCommands, aCmd, PVMFErrNoResources);
                 return;
             }
 
+
+            // find out how many roles the component supports
+            OMX_U32 NumRoles;
+            err = OMX_GetRolesOfComponent((OMX_STRING)CompName, &NumRoles, NULL);
+            if (err != OMX_ErrorNone)
+            {
+                PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR,
+                                (0, "PVMFOMXEncNode-%s::DoPrepare() Problem getting component roles", iNodeTypeId));
+
+                CommandComplete(iInputCommands, aCmd, PVMFErrResource);
+                return;
+            }
+
+            // if the component supports multiple roles, call OMX_SetParameter
+            if (NumRoles > 1)
+            {
+                OMX_PARAM_COMPONENTROLETYPE RoleParam;
+                CONFIG_SIZE_AND_VERSION(RoleParam);
+                oscl_strncpy((OMX_STRING)RoleParam.cRole, (OMX_STRING)Role, OMX_MAX_STRINGNAME_SIZE);
+                err = OMX_SetParameter(iOMXEncoder, OMX_IndexParamStandardComponentRole, &RoleParam);
+                if (err != OMX_ErrorNone)
+                {
+                    PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR,
+                                    (0, "PVMFOMXEncNode-%s::DoPrepare() Problem setting component role", iNodeTypeId));
+
+                    CommandComplete(iInputCommands, aCmd, PVMFErrResource);
+                    return;
+                }
+            }
+
+
+            // GET CAPABILITY FLAGS FROM PV COMPONENT, IF this fails, use defaults
+            PV_OMXComponentCapabilityFlagsType Cap_flags;
+            err = OMX_GetParameter(iOMXEncoder, (OMX_INDEXTYPE) PV_OMX_COMPONENT_CAPABILITY_TYPE_INDEX, &Cap_flags);
+            if (err != OMX_ErrorNone)
+            {
+                SetDefaultCapabilityFlags();
+            }
+            else
+            {
+                iIsOMXComponentMultiThreaded = (OMX_TRUE == Cap_flags.iIsOMXComponentMultiThreaded) ? true : false;
+                iOMXComponentSupportsExternalInputBufferAlloc = (OMX_TRUE == Cap_flags.iOMXComponentSupportsExternalInputBufferAlloc) ? true : false;
+                iOMXComponentSupportsExternalOutputBufferAlloc = (OMX_TRUE == Cap_flags.iOMXComponentSupportsExternalOutputBufferAlloc) ? true : false;
+                iOMXComponentSupportsMovableInputBuffers = (OMX_TRUE == Cap_flags.iOMXComponentSupportsMovableInputBuffers) ? true : false;
+                iOMXComponentSupportsPartialFrames = (OMX_TRUE == Cap_flags.iOMXComponentSupportsPartialFrames) ? true : false;
+                iOMXComponentUsesNALStartCodes = (OMX_TRUE == Cap_flags.iOMXComponentUsesNALStartCodes) ? true : false;
+                iOMXComponentCanHandleIncompleteFrames = (OMX_TRUE == Cap_flags.iOMXComponentCanHandleIncompleteFrames) ? true : false;
+                iOMXComponentUsesFullAVCFrames = (OMX_TRUE == Cap_flags.iOMXComponentUsesFullAVCFrames) ? true : false;
+            }
+
+            /*	iOMXComponentUsesNALStartCodes:				The component inserts start codes before NALs
+
+             	iOMXComponentUsesFullAVCFrames
+             		&& !iOMXComponentUsesNALStartCodes:		The component outputs full frames, and stores NAL start codes using the
+             												OMX ExtraData structure in the output buffer
+             	iOMXComponentUsesFullAVCFrames
+             		&& iOMXComponentUsesNALStartCodes:		The component outputs full frames, and delimits NALs by their start codes
+
+             	iOutFormat == PVMF_MIME_H264_VIDEO_RAW
+             		&& !iOMXComponentUsesNALStartCodes:		The node inserts the start codes and hides them / exposes them when needed
+
+             	iOutFormat == PVMF_MIME_H264_VIDEO_RAW
+             		&& !iOMXComponentUsesNALStartCodes
+             		&& iOMXComponentUsesFullAVCFrames:		This is an invalid combination.  If the node wants raw output, and the component
+             												uses full frames, and no start codes, then there is no way to detect the
+             												NAL boundaries.
+
+             */
+
+            if (iOutFormat == PVMF_MIME_H264_VIDEO_RAW &&
+                    iOMXComponentUsesFullAVCFrames && !iOMXComponentUsesNALStartCodes)
+            {
+                // This is an invalid combination (see above). Therefore, return an error.
+
+
+                PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR,
+                                (0, "PVMFOMXEncNode-%s::DoPrepare() Component cannot support %s format", iNodeTypeId, PVMF_MIME_H264_VIDEO_RAW));
+
+                CommandComplete(iInputCommands, aCmd, PVMFErrNotSupported);
+                return;
+            }
+
+
+            // find out about parameters
+            if ((iOutFormat == PVMF_MIME_AMR_IETF) || (iOutFormat == PVMF_MIME_AMRWB_IETF) || (iOutFormat == PVMF_MIME_AMR_IF2) ||
+                    (iOutFormat == PVMF_MIME_ADIF) || (iOutFormat == PVMF_MIME_ADTS) || (iOutFormat == PVMF_MIME_MPEG4_AUDIO) ||
+					(iOutFormat == PVMF_MIME_G711) || (iOutFormat == PVMF_MIME_EVRC) || (iOutFormat == PVMF_MIME_G729) || (iOutFormat == PVMF_MIME_MP3))
+            {
+                if (!NegotiateAudioComponentParameters())
+                {
+                    PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR,
+                                    (0, "PVMFOMXEncNode-%s::DoPrepare() Cannot get component parameters", iNodeTypeId));
+
+                    CommandComplete(iInputCommands, aCmd, PVMFErrNoResources);
+                    return;
+                }
+            }
+            else
+            {
+
+                if (!NegotiateVideoComponentParameters())
+                {
+                    PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR,
+                                    (0, "PVMFOMXEncNode-%s::DoPrepare() Cannot get component parameters", iNodeTypeId));
+
+                    CommandComplete(iInputCommands, aCmd, PVMFErrNoResources);
+                    return;
+                }
+            }
+
             // create active objects to handle callbacks in case of multithreaded implementation
 
             // NOTE: CREATE THE THREADSAFE CALLBACK AOs REGARDLESS OF WHETHER MULTITHREADED COMPONENT OR NOT
-            //      If it is not multithreaded, we won't use them
-            //      The Flag iIsComponentMultiThreaded decides which mechanism is used for callbacks.
-            //      This flag is set by looking at component capabilities (or to true by default)
+            //		If it is not multithreaded, we won't use them
+            //		The Flag iIsComponentMultiThreaded decides which mechanism is used for callbacks.
+            //		This flag is set by looking at component capabilities (or to true by default)
 
             if (iThreadSafeHandlerEventHandler)
             {
@@ -6041,16 +6103,8 @@ void PVMFOMXEncNode::DoPrepare(PVMFOMXEncNodeCommand& aCmd)
                 return;
             }
 
-            if (in_ctrl_struct_ptr)
-            {
-                oscl_free(in_ctrl_struct_ptr);
-                in_ctrl_struct_ptr = NULL;
-            }
-            if (in_buff_hdr_ptr)
-            {
-                oscl_free(in_buff_hdr_ptr);
-                in_buff_hdr_ptr = NULL;
-            }
+            in_ctrl_struct_ptr = NULL;
+            in_buff_hdr_ptr = NULL;
 
             in_ctrl_struct_ptr = (OsclAny **) oscl_malloc(iNumInputBuffers * sizeof(OsclAny *));
 
@@ -6076,7 +6130,7 @@ void PVMFOMXEncNode::DoPrepare(PVMFOMXEncNodeCommand& aCmd)
 
 
             if (!ProvideBuffersToComponent(iInBufMemoryPool, // allocator
-                                           iInputAllocSize,  // size to allocate from pool (hdr only or hdr+ buffer)
+                                           iInputAllocSize,	 // size to allocate from pool (hdr only or hdr+ buffer)
                                            iNumInputBuffers, // number of buffers
                                            iOMXComponentInputBufferSize, // actual buffer size
                                            iInputPortIndex, // port idx
@@ -6102,16 +6156,8 @@ void PVMFOMXEncNode::DoPrepare(PVMFOMXEncNodeCommand& aCmd)
                 return;
             }
 
-            if (out_ctrl_struct_ptr)
-            {
-                oscl_free(out_ctrl_struct_ptr);
-                out_ctrl_struct_ptr = NULL;
-            }
-            if (out_buff_hdr_ptr)
-            {
-                oscl_free(out_buff_hdr_ptr);
-                out_buff_hdr_ptr = NULL;
-            }
+            out_ctrl_struct_ptr = NULL;
+            out_buff_hdr_ptr = NULL;
 
             out_ctrl_struct_ptr = (OsclAny **) oscl_malloc(iNumOutputBuffers * sizeof(OsclAny *));
 
@@ -6137,7 +6183,7 @@ void PVMFOMXEncNode::DoPrepare(PVMFOMXEncNodeCommand& aCmd)
 
 
             if (!ProvideBuffersToComponent(iOutBufMemoryPool, // allocator
-                                           iOutputAllocSize,     // size to allocate from pool (hdr only or hdr+ buffer)
+                                           iOutputAllocSize,	 // size to allocate from pool (hdr only or hdr+ buffer)
                                            iNumOutputBuffers, // number of buffers
                                            iOMXComponentOutputBufferSize, // actual buffer size
                                            iOutputPortIndex, // port idx
@@ -6367,7 +6413,7 @@ void PVMFOMXEncNode::DoStop(PVMFOMXEncNodeCommand& aCmd)
 
                 // prevent the node from sending more buffers etc.
                 // if port reconfiguration is in process, let the state remain one of the port config states
-                //  if there is a start command, we can do it seemlessly (by continuing the port reconfig)
+                //	if there is a start command, we can do it seemlessly (by continuing the port reconfig)
                 if (iProcessingState == EPVMFOMXEncNodeProcessingState_ReadyToEncode)
                     iProcessingState = EPVMFOMXEncNodeProcessingState_Stopping;
 
@@ -6555,7 +6601,26 @@ void PVMFOMXEncNode::DoReset(PVMFOMXEncNodeCommand& aCmd)
                 err = OMX_GetState(iOMXEncoder, &sState);
                 if (err != OMX_ErrorNone)
                 {
-                    sState = OMX_StateInvalid;
+                    //Error condition report
+                    PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR,
+                                    (0, "PVMFOMXEncNode-%s::DoReset(): Can't get State of encoder!", iNodeTypeId));
+                    if (iResetInProgress)
+                    {
+                        // cmd is in current q
+                        iResetInProgress = false;
+                        if ((iCurrentCommand.size() > 0) &&
+                                (iCurrentCommand.front().iCmd == PVMFOMXEncNodeCommand::PVOMXENC_NODE_CMD_RESET)
+                           )
+                        {
+                            CommandComplete(iCurrentCommand, iCurrentCommand.front(), PVMFErrResource);
+                        }
+
+                    }
+                    else
+                    {
+                        CommandComplete(iInputCommands, aCmd, PVMFErrResource);
+                    }
+                    return;
                 }
 
                 if (sState == OMX_StateLoaded)
@@ -6569,9 +6634,47 @@ void PVMFOMXEncNode::DoReset(PVMFOMXEncNodeCommand& aCmd)
                                         (0, "PVMFOMXEncNode-%s::DoReset() OMX comp is in loaded state. Wait for official callback to change variables etc.", iNodeTypeId));
                         return;
                     }
+                    else
+                    {
+                        //delete all ports and notify observer.
+                        if (iInPort)
+                        {
+                            OSCL_DELETE(((PVMFOMXEncPort*)iInPort));
+                            iInPort = NULL;
+                        }
+
+                        if (iOutPort)
+                        {
+                            OSCL_DELETE(((PVMFOMXEncPort*)iOutPort));
+                            iOutPort = NULL;
+                        }
+
+                        iDataIn.Unbind();
+
+
+                        // Reset the metadata key list
+                        iAvailableMetadataKeys.clear();
+
+                        iEndOfDataReached = false;
+                        iIsEOSSentToComponent = false;
+                        iIsEOSReceivedFromComponent = false;
+
+
+                        iProcessingState = EPVMFOMXEncNodeProcessingState_Idle;
+                        //logoff & go back to Created state.
+                        SetState(EPVMFNodeIdle);
+
+                        CommandComplete(iInputCommands, aCmd, PVMFSuccess);
+
+                        //CommandComplete(iInputCommands, aCmd, PVMFErrResource);
+                        return;
+                    }
                 }
-                else if (sState == OMX_StateIdle)
+
+                if (sState == OMX_StateIdle)
                 {
+
+
                     //this command is asynchronous.  move the command from
                     //the input command queue to the current command, where
                     //it will remain until it is completed.
@@ -6590,10 +6693,11 @@ void PVMFOMXEncNode::DoReset(PVMFOMXEncNodeCommand& aCmd)
                     }
 
                     // if buffers aren't all back (due to timing issues with different callback AOs
-                    //      state change can be reported before all buffers are returned)
+                    //		state change can be reported before all buffers are returned)
                     if (iNumOutstandingInputBuffers > 0 || iNumOutstandingOutputBuffers > 0)
                     {
-                        LOGE("PVMFOMXEncNode-%s::DoReset() Waiting for %d input and-or %d output buffers", iNodeTypeId, iNumOutstandingInputBuffers, iNumOutstandingOutputBuffers);
+                        PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,
+                                        (0, "PVMFOMXEncNode-%s::DoReset() Waiting for %d input and-or %d output buffers", iNodeTypeId, iNumOutstandingInputBuffers, iNumOutstandingOutputBuffers));
 
                         return;
                     }
@@ -6623,7 +6727,7 @@ void PVMFOMXEncNode::DoReset(PVMFOMXEncNodeCommand& aCmd)
                         if (false == iOutputBuffersFreed)
                         {
                             if (!FreeBuffersFromComponent(iOutBufMemoryPool, // allocator
-                                                          iOutputAllocSize,  // size to allocate from pool (hdr only or hdr+ buffer)
+                                                          iOutputAllocSize,	 // size to allocate from pool (hdr only or hdr+ buffer)
                                                           iNumOutputBuffers, // number of buffers
                                                           iOutputPortIndex, // port idx
                                                           false // this is not input
@@ -6651,7 +6755,7 @@ void PVMFOMXEncNode::DoReset(PVMFOMXEncNodeCommand& aCmd)
                         if (false == iInputBuffersFreed)
                         {
                             if (!FreeBuffersFromComponent(iInBufMemoryPool, // allocator
-                                                          iInputAllocSize,   // size to allocate from pool (hdr only or hdr+ buffer)
+                                                          iInputAllocSize,	 // size to allocate from pool (hdr only or hdr+ buffer)
                                                           iNumInputBuffers, // number of buffers
                                                           iInputPortIndex, // port idx
                                                           true // this is input
@@ -6691,7 +6795,7 @@ void PVMFOMXEncNode::DoReset(PVMFOMXEncNodeCommand& aCmd)
                     return;
 
                 }
-                else if ((sState == OMX_StateExecuting) || (sState == OMX_StatePause))
+                if ((sState == OMX_StateExecuting) || (sState == OMX_StatePause))
                 {
                     //this command is asynchronous.  move the command from
                     //the input command queue to the current command, where
@@ -6763,21 +6867,34 @@ void PVMFOMXEncNode::DoReset(PVMFOMXEncNodeCommand& aCmd)
 
                         // prevent the node from sending more buffers etc.
                         // if port reconfiguration is in process, let the state remain one of the port config states
-                        //  if there is a start command, we can do it seemlessly (by continuing the port reconfig)
+                        //	if there is a start command, we can do it seemlessly (by continuing the port reconfig)
                         if (iProcessingState == EPVMFOMXEncNodeProcessingState_ReadyToEncode)
                             iProcessingState = EPVMFOMXEncNodeProcessingState_Stopping;
                     }
                     return;
+
                 }
                 else
                 {
                     //Error condition report
                     PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR,
-                                    (0, "PVMFOMXEncNode-%s::DoReset(): Encoder is not in the Idle state! %d", iNodeTypeId, sState ));
-                    //do it here rather than relying on DTOR to avoid node reinit problems.
-                    DeleteOMXEncoder();
-                    //still return success.
-                }//end of if (sState == OMX_StateLoaded)
+                                    (0, "PVMFOMXEncNode-%s::DoReset(): Encoder is not in the Idle state!", iNodeTypeId));
+                    if (iResetInProgress)
+                    {
+                        iResetInProgress = false;
+                        if ((iCurrentCommand.size() > 0) &&
+                                (iCurrentCommand.front().iCmd == PVMFOMXEncNodeCommand::PVOMXENC_NODE_CMD_RESET)
+                           )
+                        {
+                            CommandComplete(iCurrentCommand, iCurrentCommand.front(), PVMFErrInvalidState);
+                        }
+                    }
+                    else
+                    {
+                        CommandComplete(iInputCommands, aCmd, PVMFErrInvalidState);
+                    }
+                    break;
+                }//end of if (sState == OMX_StateIdle)
             }//end of if (iOMXEncoder != NULL)
 
             //delete all ports and notify observer.
@@ -7563,7 +7680,7 @@ bool PVMFOMXEncNode::DeleteOMXEncoder()
     if (iOMXEncoder != NULL)
     {
         /* Free Component handle. */
-        err = OMX_MasterFreeHandle(iOMXEncoder);
+        err = OMX_FreeHandle(iOMXEncoder);
         if (err != OMX_ErrorNone)
         {
             //Error condition report
@@ -8213,13 +8330,13 @@ PVMFStatus PVMFOMXEncNode::GetProfileAndLevel(PVMF_MPEGVideoProfileType& aProfil
     {
         PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR, (0, "PVMFOMXEncNode-%s::GetProfileAndLevel() iEncoder is Null", iNodeTypeId));
         aProfile = PV_MPEG_VIDEO_RESERVED_PROFILE;
-        aLevel  = PV_MPEG_VIDEO_LEVEL_UNKNOWN;
+        aLevel	= PV_MPEG_VIDEO_LEVEL_UNKNOWN;
         return PVMFFailure;
     }
 
     PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR, (0, "PVMFOMXEncNode-%s::GetProfileAndLevel() iEncoder is Null", iNodeTypeId));
     aProfile = PV_MPEG_VIDEO_RESERVED_PROFILE;
-    aLevel  = PV_MPEG_VIDEO_LEVEL_UNKNOWN;
+    aLevel	= PV_MPEG_VIDEO_LEVEL_UNKNOWN;
     // DV: FOR NOW, JUST RETURN FAILURE, WE DON'T SUPPORT THIS FEATURE YET
     return PVMFFailure;
 
@@ -8235,7 +8352,7 @@ void PVMFOMXEncNode::LogDiagnostics()
         iDiagnosticsLogged = true;
         PVLOGGER_LOGMSG(PVLOGMSG_INST_PROF, iDiagnosticsLogger, PVLOGMSG_INFO, (0, "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"));
         PVLOGGER_LOGMSG(PVLOGMSG_INST_PROF, iDiagnosticsLogger, PVLOGMSG_INFO, (0, "PVMFOMXEncNode-%s - Number of Media Msgs Sent = %d", iNodeTypeId, iSeqNum));
-        PVLOGGER_LOGMSG(PVLOGMSG_INST_PROF, iDiagnosticsLogger, PVLOGMSG_INFO, (0, "PVMFOMXEncNode-%s - TS of last encoded msg = %d", iNodeTypeId, ConvertOMXTicksIntoTimestamp(iTimeStampOut)));
+        PVLOGGER_LOGMSG(PVLOGMSG_INST_PROF, iDiagnosticsLogger, PVLOGMSG_INFO, (0, "PVMFOMXEncNode-%s - TS of last encoded msg = %d", iNodeTypeId, iTimeStampOut));
     }
 }
 
@@ -8386,7 +8503,21 @@ OSCL_EXPORT_REF bool PVMFOMXEncNode::SetRateControlType(uint32 aLayer, PVMFVENRa
             break;
     }
 
-    iVideoEncodeParam.iRateControlType = aRateControl;
+    switch (aRateControl)
+    {
+        case PVMFVEN_RATE_CONTROL_CONSTANT_Q:
+            iVideoEncodeParam.iRateControlType = ECONSTANT_Q;
+            break;
+        case PVMFVEN_RATE_CONTROL_CBR:
+            iVideoEncodeParam.iRateControlType = ECBR_1;
+            break;
+        case PVMFVEN_RATE_CONTROL_VBR:
+            iVideoEncodeParam.iRateControlType = EVBR_1;
+            break;
+        default:
+            return false;
+    }
+
     return true;
 }
 
@@ -8405,10 +8536,20 @@ OSCL_EXPORT_REF bool PVMFOMXEncNode::SetDataPartitioning(bool aDataPartitioning)
             break;
     }
 
-    iVideoEncodeParam.iDataPartitioning = aDataPartitioning;
+    if (iVideoEncodeParam.iContentType == EI_H263 || iVideoEncodeParam.iContentType == EI_H264)
+    {
+        PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_ERR,
+                        (0, "PVMFOMXEncNode-%s::SetDataPartitioning: Error data partitioning not supported for H263 or H264", iNodeTypeId));
 
-    PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_DEBUG,
-                    (0, "PVMFOMXEncNode-%s::SetDataPartitioning Called", iNodeTypeId));
+        // ignore the error
+        return true;
+        //return false;
+    }
+
+    if (aDataPartitioning)
+        iVideoEncodeParam.iContentType = EI_M4V_STREAMING;
+    else
+        iVideoEncodeParam.iContentType = EI_M4V_DOWNLOAD;
 
     return true;
 }
@@ -8473,8 +8614,16 @@ OSCL_EXPORT_REF bool PVMFOMXEncNode::SetRVLC(bool aRVLC)
             break;
     }
 
-    iVideoEncodeParam.iRVLCEnable = aRVLC;
+    if (iVideoEncodeParam.iContentType == EI_H263 || iVideoEncodeParam.iContentType == EI_H264)
+    {
+        PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_ERR,
+                        (0, "PVMFOMXEncNode-%s::SetRVLC : RVLC not supported for H263 or H264", iNodeTypeId));
 
+        // ignore the error
+        return true;
+    }
+
+    iVideoEncodeParam.iRVLCEnable = aRVLC;
     return true;
 }
 
@@ -8504,7 +8653,7 @@ OSCL_EXPORT_REF bool PVMFOMXEncNode::GetVolHeader(OsclRefCounterMemFrag& aVolHea
             return false;
     }
 
-    if (iOutFormat != PVMF_MIME_M4V)
+    if ((iVideoEncodeParam.iContentType == EI_H263) || (iVideoEncodeParam.iContentType == EI_H264))
     {
         PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_ERR,
                         (0, "PVMFOMXEncNode-%s::GetVolHeader: Error - VOL header only for M4V encode", iNodeTypeId));
@@ -8513,12 +8662,12 @@ OSCL_EXPORT_REF bool PVMFOMXEncNode::GetVolHeader(OsclRefCounterMemFrag& aVolHea
 
     uint8 *ptr = (uint8 *) iVolHeader.getMemFragPtr();
     //If data partioning mode
-    if (iVideoEncodeParam.iDataPartitioning == true)
+    if (iVideoEncodeParam.iContentType == EI_M4V_STREAMING)
     {
         ptr[iVolHeader.getMemFragSize() - 1] = 0x8F;
     }
     //else combined mode
-    else
+    else if (iVideoEncodeParam.iContentType == EI_M4V_DOWNLOAD)
     {
         ptr[iVolHeader.getMemFragSize() - 1] = 0x1F;
     }
@@ -8586,19 +8735,23 @@ PVMFStatus PVMFOMXEncNode::SetCodecType(PVMFFormatType aCodec)
 
     if (aCodec == PVMF_MIME_H2631998)
     {
+        iVideoEncodeParam.iContentType = EI_H263;
         iOutFormat = PVMF_MIME_H2631998;
     }
     else if (aCodec == PVMF_MIME_H2632000)
     {
+        iVideoEncodeParam.iContentType = EI_H263;
         iOutFormat = PVMF_MIME_H2632000;
     }
     else if (aCodec == PVMF_MIME_M4V)
     {
+        iVideoEncodeParam.iContentType = EI_M4V_STREAMING;
         iOutFormat = PVMF_MIME_M4V;
     }
     else if (aCodec == PVMF_MIME_H264_VIDEO_RAW ||
              aCodec == PVMF_MIME_H264_VIDEO_MP4)
     {
+        iVideoEncodeParam.iContentType = EI_H264;
         iOutFormat = aCodec;
     }
     else if (aCodec == PVMF_MIME_AMR_IETF ||
@@ -8610,6 +8763,22 @@ PVMFStatus PVMFOMXEncNode::SetCodecType(PVMFFormatType aCodec)
     else if (aCodec == PVMF_MIME_ADTS ||
              aCodec == PVMF_MIME_ADIF ||
              aCodec == PVMF_MIME_MPEG4_AUDIO)
+    {
+        iOutFormat = aCodec;
+    }
+	else if (aCodec == PVMF_MIME_G711)
+    {
+        iOutFormat = aCodec;
+    }
+    else if (aCodec == PVMF_MIME_EVRC)
+	{
+	    iOutFormat = aCodec;
+    }
+    else if (aCodec == PVMF_MIME_G729)
+	{
+	    iOutFormat = aCodec;
+	}
+    else if (aCodec == PVMF_MIME_MP3)
     {
         iOutFormat = aCodec;
     }
@@ -8658,6 +8827,34 @@ PVMFStatus PVMFOMXEncNode::SetInputFormat(PVMFFormatType aFormat)
     }
 
     iInFormat = aFormat;
+
+    if (aFormat == PVMF_MIME_YUV420)
+    {
+        iVideoInputFormat.iVideoFormat = EI_YUV420;
+    }
+    else if (aFormat == PVMF_MIME_YUV422)
+    {
+        iVideoInputFormat.iVideoFormat = EI_UYVY;
+    }
+    else if (aFormat == PVMF_MIME_RGB24)
+    {
+        iVideoInputFormat.iVideoFormat = EI_RGB24;
+    }
+    else if (aFormat == PVMF_MIME_RGB12)
+    {
+        iVideoInputFormat.iVideoFormat = EI_RGB12;
+    }
+    else if (aFormat == PVMF_MIME_PCM16)
+    {
+        // nothing to do here, but don't fail
+    }
+    else
+    {
+        PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_ERR,
+                        (0, "PVMFOMXEncNode-%s::SetInputFormat: Error - Unsupported format", iNodeTypeId));
+        return PVMFFailure;
+    }
+
     return PVMFSuccess;
 }
 
@@ -8939,6 +9136,34 @@ PVMFStatus PVMFOMXEncNode::SetInputSamplingRate(uint32 aSamplingRate)
 
         return PVMFFailure;
     }
+    if ((iOutFormat == PVMF_MIME_G711) && (aSamplingRate != 8000))
+		{
+		    PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR,
+		                     (0, "PVMFOMXEncNode-%s::SetInputBitsSamplingRate() failed - %d", iNodeTypeId, aSamplingRate));
+
+		    return PVMFFailure;
+    }
+    if ((iOutFormat == PVMF_MIME_EVRC) && (aSamplingRate != 8000))
+    {
+        PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR,
+			             (0, "PVMFOMXEncNode-%s::SetInputBitsSamplingRate() failed - %d", iNodeTypeId, aSamplingRate));
+
+        return PVMFFailure;
+    }
+    if ((iOutFormat == PVMF_MIME_G729) && (aSamplingRate != 8000))
+	{
+	    PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR,
+	                     (0, "PVMFOMXEncNode-%s::SetInputBitsSamplingRate() failed - %d", iNodeTypeId, aSamplingRate));
+
+	    return PVMFFailure;
+    }
+    if ((iOutFormat == PVMF_MIME_MP3) && (aSamplingRate != 8000))
+	{
+	    PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR,
+	                     (0, "PVMFOMXEncNode-%s::SetInputBitsSamplingRate() failed - %d", iNodeTypeId, aSamplingRate));
+
+	    return PVMFFailure;
+    }
 
     iAudioInputFormat.iInputSamplingRate = aSamplingRate;
 
@@ -9131,7 +9356,7 @@ PVMFStatus PVMFOMXEncNode::GetConfigParameter(PvmiKvp*& aParameters, int& aNumPa
     switch (aIndex)
     {
 
-        case SAMPLING_RATE: // "sampling_rate"
+        case SAMPLING_RATE:	// "sampling_rate"
             if (PVMI_KVPATTR_CUR == aReqattr)
             {
                 // get the parameter here
@@ -9150,7 +9375,7 @@ PVMFStatus PVMFOMXEncNode::GetConfigParameter(PvmiKvp*& aParameters, int& aNumPa
             }
             break;
 
-        case CHANNELS:  // "channels"
+        case CHANNELS:	// "channels"
 
             if (PVMI_KVPATTR_CUR == aReqattr)
             {
@@ -9168,7 +9393,7 @@ PVMFStatus PVMFOMXEncNode::GetConfigParameter(PvmiKvp*& aParameters, int& aNumPa
             }
             break;
 
-        case ENCODING_MODE: // "encoding_mode"
+        case ENCODING_MODE:	// "encoding_mode"
             if (PVMI_KVPATTR_CUR == aReqattr)
             {
                 // Return current value
@@ -9949,232 +10174,4 @@ bool PVMFOMXEncNode::AVCAnnexBGetNALUnit(uint8 *bitstream, uint8 **nal_unit, int
 
     return true;
 }
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool PVMFOMXEncNode::CheckM4vVopStartCode(uint8* data, int* len)
-{
-    int32 count = 0;
-    int32 i = *len;
-
-    if (i < 4)  // at least the size of frame header
-    {
-        return false;
-    }
-    while (--i)
-    {
-        if ((count > 1) && (data[0] == 0x01) && (data[1] == 0xB6))
-        {
-            i += 2;
-            break;
-        }
-
-        if (*data++)
-            count = 0;
-        else
-            count++;
-    }
-
-    // i is number of bytes left (including 00 00 01 B6)
-    if (i > 0)
-    {
-        *len = (*len - i - 1); // len before finding VOP start code
-        return true;
-    }
-
-    return false;
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////
-OMX_TICKS PVMFOMXEncNode::ConvertTimestampIntoOMXTicks(const MediaClockConverter& src)
-{
-    // This is similar to mediaclockconverter set_value method - except without using the modulo for upper part of 64 bits
-
-    // Timescale value cannot be zero
-    OSCL_ASSERT(src.get_timescale() != 0);
-    if (src.get_timescale() == 0)
-    {
-        PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR,
-                        (0, "PVMFOMXEncNode-%s::ConvertTimestampIntoOMXTicks Input timescale is 0", iNodeTypeId));
-
-        SetState(EPVMFNodeError);
-        ReportErrorEvent(PVMFErrResourceConfiguration);
-        return (OMX_TICKS) 0;
-    }
-
-    OSCL_ASSERT(iTimeScale != 0);
-    if (0 == iTimeScale)
-    {
-        PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR,
-                        (0, "PVMFOMXEncNode-%s::ConvertTimestampIntoOMXTicks target timescale is 0", iNodeTypeId));
-
-        SetState(EPVMFNodeError);
-        ReportErrorEvent(PVMFErrResourceConfiguration);
-        return (OMX_TICKS) 0;
-    }
-
-    uint64 value = (uint64(src.get_wrap_count())) << 32;
-    value += src.get_current_timestamp();
-    // rounding up
-    value = (uint64(value) * iTimeScale + uint64(src.get_timescale() - 1)) / src.get_timescale();
-    return (OMX_TICKS) value;
-
-
-}
-////////////////////////////////////////////////////////////////////////////////////
-uint32 PVMFOMXEncNode::ConvertOMXTicksIntoTimestamp(const OMX_TICKS &src)
-{
-    // omx ticks use microsecond timescale (iTimeScale = 1000000)
-    // This is similar to mediaclockconverter set_value method
-
-    // Timescale value cannot be zero
-    OSCL_ASSERT(iOutTimeScale != 0);
-    if (0 == iOutTimeScale)
-    {
-        PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR,
-                        (0, "PVMFOMXEncNode-%s::ConvertOMXTicksIntoTimestamp Output timescale is 0", iNodeTypeId));
-
-        SetState(EPVMFNodeError);
-        ReportErrorEvent(PVMFErrResourceConfiguration);
-        return (uint32) 0;
-    }
-
-    OSCL_ASSERT(iTimeScale != 0);
-    if (0 == iTimeScale)
-    {
-        PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR,
-                        (0, "PVMFOMXEncNode-%s::ConvertOMXTicksIntoTimestamp target timescale is 0", iNodeTypeId));
-
-        SetState(EPVMFNodeError);
-        ReportErrorEvent(PVMFErrResourceConfiguration);
-        return (uint32) 0;
-    }
-
-    uint32 current_ts;
-
-    uint64 value = (uint64) src;
-
-    // rounding up
-    value = (uint64(value) * iOutTimeScale + uint64(iTimeScale - 1)) / iTimeScale;
-
-    current_ts = (uint32)(value & 0xFFFFFFFF);
-    return (uint32) current_ts;
-
-}
-
-////////////////////////////////////////////////////////////////////////////////
-bool PVMFOMXEncNode::CheckComponentForMultRoles(OMX_STRING aCompName, OMX_STRING aRole)
-{
-    OMX_ERRORTYPE err = OMX_ErrorNone;
-
-    // find out how many roles the component supports
-    OMX_U32 NumRoles;
-    err = OMX_MasterGetRolesOfComponent(aCompName, &NumRoles, NULL);
-    if (err != OMX_ErrorNone)
-    {
-        PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR,
-                    (0, "PVMFOMXEncNode-%s::CheckComponentForMultRoles() Problem getting component roles", iNodeTypeId));
-
-        return false;
-    }
-
-    // if the component supports multiple roles, call OMX_SetParameter
-    if (NumRoles > 1)
-    {
-        OMX_PARAM_COMPONENTROLETYPE RoleParam;
-        CONFIG_SIZE_AND_VERSION(RoleParam);
-        oscl_strncpy((OMX_STRING)RoleParam.cRole, aRole, OMX_MAX_STRINGNAME_SIZE);
-        err = OMX_SetParameter(iOMXEncoder, OMX_IndexParamStandardComponentRole, &RoleParam);
-        if (err != OMX_ErrorNone)
-        {
-            PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR,
-                            (0, "PVMFOMXEncNode-%s::CheckComponentForMultRoles() Problem setting component role", iNodeTypeId));
-
-            return false;
-        }
-    }
-
-    return true;
-}
-
-////////////////////////////////////////////////////////////////////////////////
-bool PVMFOMXEncNode::CheckComponentCapabilities(PVMFFormatType* aOutFormat)
-{
-    OMX_ERRORTYPE err = OMX_ErrorNone;
-
-    // GET CAPABILITY FLAGS FROM PV COMPONENT, IF this fails, use defaults
-    PV_OMXComponentCapabilityFlagsType Cap_flags;
-    err = OMX_GetParameter(iOMXEncoder, (OMX_INDEXTYPE) PV_OMX_COMPONENT_CAPABILITY_TYPE_INDEX, &Cap_flags);
-    if (err != OMX_ErrorNone)
-    {
-        SetDefaultCapabilityFlags();
-    }
-    else
-    {
-        iIsOMXComponentMultiThreaded = (OMX_TRUE == Cap_flags.iIsOMXComponentMultiThreaded) ? true : false;
-        iOMXComponentSupportsExternalInputBufferAlloc = (OMX_TRUE == Cap_flags.iOMXComponentSupportsExternalInputBufferAlloc) ? true : false;
-        iOMXComponentSupportsExternalOutputBufferAlloc = (OMX_TRUE == Cap_flags.iOMXComponentSupportsExternalOutputBufferAlloc) ? true : false;
-        iOMXComponentSupportsMovableInputBuffers = (OMX_TRUE == Cap_flags.iOMXComponentSupportsMovableInputBuffers) ? true : false;
-        iOMXComponentSupportsPartialFrames = (OMX_TRUE == Cap_flags.iOMXComponentSupportsPartialFrames) ? true : false;
-        iOMXComponentUsesNALStartCodes = (OMX_TRUE == Cap_flags.iOMXComponentUsesNALStartCodes) ? true : false;
-        iOMXComponentCanHandleIncompleteFrames = (OMX_TRUE == Cap_flags.iOMXComponentCanHandleIncompleteFrames) ? true : false;
-        iOMXComponentUsesFullAVCFrames = (OMX_TRUE == Cap_flags.iOMXComponentUsesFullAVCFrames) ? true : false;
-    }
-
-    /* iOMXComponentUsesNALStartCodes:    The component inserts start codes before NALs
-
-      iOMXComponentUsesFullAVCFrames
-       && !iOMXComponentUsesNALStartCodes:  The component outputs full frames, and stores NAL start codes using the
-                 OMX ExtraData structure in the output buffer
-
-      iOMXComponentUsesFullAVCFrames
-       && iOMXComponentUsesNALStartCodes:  The component outputs full frames, and delimits NALs by their start codes
-
-      aOutFormat == PVMF_MIME_H264_VIDEO_RAW
-       && !iOMXComponentUsesNALStartCodes:  The node inserts the start codes and hides them / exposes them when needed
-
-      aOutFormat == PVMF_MIME_H264_VIDEO_RAW
-       && !iOMXComponentUsesNALStartCodes
-       && iOMXComponentUsesFullAVCFrames:  This is an invalid combination.  If the node wants raw output, and the component
-                 uses full frames, and no start codes, then there is no way to detect the
-                 NAL boundaries.
-    */
-
-    if (*aOutFormat == PVMF_MIME_H264_VIDEO_RAW &&
-            iOMXComponentUsesFullAVCFrames && !iOMXComponentUsesNALStartCodes)
-    {
-        // This is an invalid combination (see above). Therefore, return an error.
-
-
-        PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR,
-                        (0, "PVMFOMXEncNode-%s::CheckComponentCapabilities() Component cannot support %s format", iNodeTypeId, PVMF_MIME_H264_VIDEO_RAW));
-
-        return false;
-    }
-
-    // find out about parameters
-    if (aOutFormat->isAudio())
-    {
-        if (!NegotiateAudioComponentParameters())
-        {
-            PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR,
-                            (0, "PVMFOMXEncNode-%s::CheckComponentCapabilities() Cannot get component parameters", iNodeTypeId));
-
-            return false;
-        }
-    }
-    else
-    {
-
-        if (!NegotiateVideoComponentParameters())
-        {
-            PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR,
-                            (0, "PVMFOMXEncNode-%s::CheckComponentCapabilities() Cannot get component parameters", iNodeTypeId));
-
-            return false;
-        }
-    }
-
-    return true;
-}
-
 

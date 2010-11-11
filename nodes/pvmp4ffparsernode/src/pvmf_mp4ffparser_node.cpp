@@ -75,9 +75,9 @@
 
 #include "oscl_exclusive_ptr.h"
 
-#define PVMF_MP4_MIME_FORMAT_AUDIO_UNKNOWN  "x-pvmf/audio/unknown"
-#define PVMF_MP4_MIME_FORMAT_VIDEO_UNKNOWN  "x-pvmf/video/unknown"
-#define PVMF_MP4_MIME_FORMAT_UNKNOWN        "x-pvmf/unknown-media/unknown"
+#define PVMF_MP4_MIME_FORMAT_AUDIO_UNKNOWN	"x-pvmf/audio/unknown"
+#define PVMF_MP4_MIME_FORMAT_VIDEO_UNKNOWN	"x-pvmf/video/unknown"
+#define PVMF_MP4_MIME_FORMAT_UNKNOWN		"x-pvmf/unknown-media/unknown"
 
 // Read Each Track Individually
 #define TRACK_NO_PER_RESET_PLAYBACK_CALL 1
@@ -163,7 +163,7 @@ PVMFMP4FFParserNode::PVMFMP4FFParserNode(int32 aPriority) :
     iMP4ParserNodeMetadataValueCount = 0;
     iCPMGetLicenseInterfaceCmdId     = 0;
     iCPMGetLicenseCmdId              = 0;
-    iCPMCancelGetLicenseCmdId        = 0;
+    iCPMCancelGetLicenseCmdId		 = 0;
 
     minTime = 0;
     avgTime = 0;
@@ -615,7 +615,7 @@ bool PVMFMP4FFParserNode::queryInterface(const PVUuid& uuid, PVInterface*& iface
     }
     else if (uuid == PVMI_CAPABILITY_AND_CONFIG_PVUUID)
     {
-        PvmiCapabilityAndConfig* myInterface =  OSCL_STATIC_CAST(PvmiCapabilityAndConfig*, this);
+        PvmiCapabilityAndConfig* myInterface = 	OSCL_STATIC_CAST(PvmiCapabilityAndConfig*, this);
         iface = OSCL_STATIC_CAST(PVInterface*, myInterface);
     }
     else if (uuid == PVMFCPMPluginLicenseInterfaceUuid)
@@ -857,7 +857,11 @@ PVMFStatus PVMFMP4FFParserNode::GetMediaPresentationInfo(PVMFMediaPresentationIn
         OsclRefCounterMemFrag config;
         if (!RetrieveTrackConfigInfo(iIdList[i], trackformattype, config))
         {
-            return PVMFFailure;
+			/* Mobile Media Lab. Start */
+			/* For supporting MP3 file format */
+        	if(trackformattype!=PVMF_MIME_MP3)
+			/* Mobile Media Lab. End */ 
+				return PVMFFailure;
         }
         tmpTrackInfo.setTrackConfigInfo(config);
 
@@ -2055,6 +2059,13 @@ PVMFStatus PVMFMP4FFParserNode::DoRequestPort(PVMFMP4FFParserNodeCommand& aCmd, 
     {
         trackportinfo.iFormatTypeInteger = PVMF_MP4_PARSER_NODE_MPEG4_AUDIO;
     }
+	/* Mobile Media Lab. Start */ 
+	/* For supporting MP3 file format */
+    else if (formattype == PVMF_MIME_MP3)
+    {
+        trackportinfo.iFormatTypeInteger = PVMF_MP4_PARSER_NODE_MP3;
+    }
+	/* Mobile Media Lab. End */ 
     else if (formattype == PVMF_MIME_H264_VIDEO_MP4)
     {
         trackportinfo.iFormatTypeInteger = PVMF_MP4_PARSER_NODE_H264_MP4;
@@ -2112,6 +2123,13 @@ PVMFStatus PVMFMP4FFParserNode::DoRequestPort(PVMFMP4FFParserNodeCommand& aCmd, 
     {
         trackportinfo.iNumSamples = MPEG4_AUDIO_NUMSAMPLES;
     }
+	/* Mobile Media Lab. Start */ 
+	/* For supporting MP3 file format */
+    else if (formattype == PVMF_MIME_MP3)
+    {
+        trackportinfo.iNumSamples = MP3_NUMSAMPLES;
+    }
+	/* Mobile Media Lab. End */ 
     else if (formattype == PVMF_MIME_AMR_IETF)
     {
         if (trackportinfo.iNumAMRSamplesToRetrieve > 0)
@@ -2246,6 +2264,14 @@ void PVMFMP4FFParserNode::GetTrackMaxParameters(PVMFFormatType aFormatType, uint
         aMaxDataSize = MPEG4_AUDIO_MAXTRACKDATASIZE;
         aMaxQueueDepth = MPEG4_AUDIO_MAXTRACKQUEUEDEPTH;
     }
+	/* Mobile Media Lab. Start */ 
+	/* For supporting MP3 file format */
+    else if (aFormatType == PVMF_MIME_MP3)
+    {
+        aMaxDataSize = MP3_MAXTRACKDATASIZE;
+        aMaxQueueDepth = MP3_MAXTRACKQUEUEDEPTH;
+    }	
+	/* Mobile Media Lab. End */ 
     else if (aFormatType == PVMF_MIME_AMR_IETF)
     {
         aMaxDataSize = AMR_IETF_MAXTRACKDATASIZE;
@@ -2554,6 +2580,25 @@ bool PVMFMP4FFParserNode::ParseMP4File(PVMFMP4FFParserNodeCmdQueue& aCmdQ,
     }
 
     PVMFStatus status = InitMetaData();
+	/* Mobile Media Lab. Start */
+	if (status != PVMFSuccess)
+	{
+		IMpeg4File::DestroyMP4FileObject(iMP4FileHandle);
+
+        iMP4FileHandle = NULL;
+
+		eventcode = PVMFMP4FFParserErrDecoderSpecificInfoReadFailed;
+
+        CommandComplete(aCmdQ,
+                        aCmd,
+                        PVMFErrResource,
+                        NULL,
+                        &eventuuid,
+                        &eventcode);
+
+		return false;
+	}
+	/* Mobile Media Lab. End */
 
     if (iCPMContentType == PVMF_CPM_FORMAT_OMA2)
     {
@@ -3328,7 +3373,7 @@ PVMFStatus PVMFMP4FFParserNode::DoSetDataSourcePosition(PVMFMP4FFParserNodeComma
     int32 minFileOffset = 0x7FFFFFFF;
     if (0 != trackList[0])
     {
-        tempNPT = targetNPT;        // For logging Purpose
+        tempNPT = targetNPT;		// For logging Purpose
         tempTrackId = trackList[0];
         targetNPT = iMP4FileHandle->resetPlayback(targetNPT, (uint16)TRACK_NO_PER_RESET_PLAYBACK_CALL,
                     &tempTrackId, seektosyncpoint);
@@ -3429,19 +3474,6 @@ PVMFStatus PVMFMP4FFParserNode::DoSetDataSourcePosition(PVMFMP4FFParserNodeComma
     retValPerTrack = (int32*) OSCL_MALLOC(iNodeTrackPortList.size() * sizeof(int32));
     retNumSamplesPerTrack = (uint32*) OSCL_MALLOC(iNodeTrackPortList.size() * sizeof(uint32));
 
-    if ((trackTSAfterRepo == NULL) || (retValPerTrack == NULL) || (retNumSamplesPerTrack == NULL))
-    {
-        PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR,
-                        (0, "PVMFMP4FFParserNode::DoSetDataSourcePosition() Memory alloc for array to keep the timestamp of the samples failed"));
-        OSCL_FREE(trackTSAfterRepo);
-        trackTSAfterRepo = NULL;
-        OSCL_FREE(retValPerTrack);
-        retValPerTrack = NULL;
-        OSCL_FREE(retNumSamplesPerTrack);
-        retNumSamplesPerTrack = NULL;
-        return PVMFErrNoMemory;
-    }
-
     for (i = 0; i < iNodeTrackPortList.size(); i++)
     {
         // Peek the next sample to get the duration of the last sample
@@ -3502,12 +3534,10 @@ PVMFStatus PVMFMP4FFParserNode::DoSetDataSourcePosition(PVMFMP4FFParserNodeComma
                 aEventCode = PVMFFFErrMisc;
             }
             OSCL_ARRAY_DELETE(trackList);
-            OSCL_FREE(trackTSAfterRepo);
+            OSCL_DELETE(trackTSAfterRepo);
+            OSCL_DELETE(retValPerTrack);
+            OSCL_DELETE(retNumSamplesPerTrack);
             trackTSAfterRepo = NULL;
-            OSCL_FREE(retValPerTrack);
-            retValPerTrack = NULL;
-            OSCL_FREE(retNumSamplesPerTrack);
-            retNumSamplesPerTrack = NULL;
             return PVMFErrResource;
         }
     }
@@ -3628,12 +3658,10 @@ PVMFStatus PVMFMP4FFParserNode::DoSetDataSourcePosition(PVMFMP4FFParserNodeComma
 
     PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE, (0, "PVMFMP4FFParserNode::DoSetDataSourcePosition() Out"));
     OSCL_ARRAY_DELETE(trackList);
-    OSCL_FREE(trackTSAfterRepo);
+    OSCL_DELETE(trackTSAfterRepo);
     trackTSAfterRepo = NULL;
-    OSCL_FREE(retValPerTrack);
-    retValPerTrack = NULL;
-    OSCL_FREE(retNumSamplesPerTrack);
-    retNumSamplesPerTrack = NULL;
+    OSCL_DELETE(retValPerTrack);
+    OSCL_DELETE(retNumSamplesPerTrack);
     return PVMFSuccess;
 }
 
@@ -4330,7 +4358,7 @@ bool PVMFMP4FFParserNode::RetrieveTrackData(PVMP4FFNodeTrackPortInfo& aTrackPort
     {
         PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_INFO, (0, "PVMFMP4FFParserNode::RetrieveTrackData() No Resource Found"));
         aTrackPortInfo.iState = PVMP4FFNodeTrackPortInfo::TRACKSTATE_TRACKDATAPOOLEMPTY;
-        aTrackPortInfo.iTrackDataMemoryPool->notifyfreeblockavailable(aTrackPortInfo, aTrackPortInfo.iTrackMaxDataSize);    // Enable flag to receive event when next deallocate() is called on pool
+        aTrackPortInfo.iTrackDataMemoryPool->notifyfreeblockavailable(aTrackPortInfo, aTrackPortInfo.iTrackMaxDataSize);	// Enable flag to receive event when next deallocate() is called on pool
         return false;
     }
 
@@ -4347,7 +4375,7 @@ bool PVMFMP4FFParserNode::RetrieveTrackData(PVMP4FFNodeTrackPortInfo& aTrackPort
     {
         PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_INFO, (0, "PVMFMP4FFParserNode::RetrieveTrackData() Memory allocation for media data memory pool failed"));
         aTrackPortInfo.iState = PVMP4FFNodeTrackPortInfo::TRACKSTATE_MEDIADATAPOOLEMPTY;
-        aTrackPortInfo.iMediaDataMemPool->notifyfreechunkavailable(aTrackPortInfo);     // Enable flag to receive event when next deallocate() is called on pool
+        aTrackPortInfo.iMediaDataMemPool->notifyfreechunkavailable(aTrackPortInfo);		// Enable flag to receive event when next deallocate() is called on pool
         return false;
     }
 
@@ -4429,47 +4457,25 @@ bool PVMFMP4FFParserNode::RetrieveTrackData(PVMP4FFNodeTrackPortInfo& aTrackPort
         if (aTrackPortInfo.iThumbSampleDone == false)
         {
             numsamples = 0;
-            PVMFStatus status = PVMFFailure;
             uint32 keySampleNum = PVMFFF_DEFAULT_THUMB_NAIL_SAMPLE_NUMBER;
             if (!iMP4FileHandle->IsMovieFragmentsPresent())
             {
-                status = FindBestThumbnailKeyFrame(trackid, keySampleNum);
+                FindBestThumbnailKeyFrame(trackid, keySampleNum);
             }
-            if (PVMFSuccess == status)
-            {
-                retval = iMP4FileHandle->getKeyMediaSampleNumAt(trackid, keySampleNum, &iGau);
-            }
-            else
-            {
-                // No keyframe available.
-                // Go for the best possible solution if no key frames are available in stss atom.
-                // Just try to retrieve the first video frame, this could result in a distorted frame
-                // if first video frame is not a sync sample but it might be still better than no thumbnail.
-                // Before retrieving the frame just make sure that there are samples in video track,
-                // if there are no samples in the video track just report failure from here. No thumbnail possible
-                if (iMP4FileHandle->getSampleCountInTrack(trackid) > 0)
-                {
-                    // Just retrieve the first video sample
-                    PVMF_MP4FFPARSERNODE_LOGDATATRAFFIC(
-                        (0, "PVMFMP4FFParserNode:RetrieveTrackData - FindBestThumbnailKeyFrame failed, best possible solution fetch the first video sample"));
-                    numsamples = 1;
-                    retval = iMP4FileHandle->getNextBundledAccessUnits(trackid, &numsamples, &iGau);
-                }
-                else
-                {
-                    // no sample in the video track.
-                    PVMF_MP4FFPARSERNODE_LOGDATATRAFFIC(
-                        (0, "PVMFMP4FFParserNode:RetrieveTrackData - FindBestThumbnailKeyFrame failed, No sample in video track just return EndOfTrack"));
-                    aTrackPortInfo.iState = PVMP4FFNodeTrackPortInfo::TRACKSTATE_SEND_ENDOFTRACK;
-                    return false;
-                }
-            }
-
+            retval = iMP4FileHandle->getKeyMediaSampleNumAt(trackid, keySampleNum, &iGau);
             if (retval == EVERYTHING_FINE || retval == END_OF_TRACK)
             {
                 numsamples = 1;
                 aTrackPortInfo.iThumbSampleDone = true;
             }
+			// RainAde : /* 2009.04.20 by icarus : for fix camcorder thumbnail error */
+			#if 1
+			else if (retval == READ_FAILED && numsamples == 0)
+			{
+	   			numsamples = aTrackPortInfo.iNumSamples;
+				retval = iMP4FileHandle->getNextBundledAccessUnits(trackid, &numsamples, &iGau);
+			}
+			#endif
         }
         else
         {
@@ -4979,7 +4985,6 @@ bool PVMFMP4FFParserNode::RetrieveTrackData(PVMP4FFNodeTrackPortInfo& aTrackPort
             PVMF_MP4FFPARSERNODE_LOGDATATRAFFIC((0, "PVMFMP4FFParserNode::RetrieveTrackData() - Auto Pause Triggered, TS = %d, FileSize=%d",
                                                  aTrackPortInfo.iTimestamp, currentFileSize));
 
-
             // check if content is poorly interleaved only for PS
             // After repositioning, parser will get INSUFFICIENT_DATA immediately and then the poorlyinterleavedcontent event logic will be excercised.
             // To make sure that the reposition behaviour and the playback without interruption behavior are consistent, disable the check for first INSUFFICIENT_DATA after repositioning.
@@ -5340,7 +5345,7 @@ bool PVMFMP4FFParserNode::GenerateAVCNALGroup(PVMP4FFNodeTrackPortInfo& aTrackPo
     OSCL_ASSERT(aMediaFragGroup.GetRep() != NULL);
 
     // Set End-of-NAL bit to 1 always - no NAL fragmentation for now
-    uint32  markerInfo = (mediaDataIn->getMarkerInfo()) | PVMF_MEDIA_DATA_MARKER_INFO_END_OF_NAL_BIT;
+    uint32	markerInfo = (mediaDataIn->getMarkerInfo()) | PVMF_MEDIA_DATA_MARKER_INFO_END_OF_NAL_BIT;
     aMediaFragGroup->setMarkerInfo(markerInfo);
 
     OsclRefCounterMemFrag memFragIn;
@@ -5612,7 +5617,7 @@ bool PVMFMP4FFParserNode::SendEndOfTrackCommand(PVMP4FFNodeTrackPortInfo& aTrack
         //EOS timestamp(aTrackPortInfo.iTimestamp)is considered while deciding the iResumeTimeStamp in the mediaoutput node
         //therefore its length should also be considered while making decision to forward or drop the packet
         //at the mediaoutput node.
-        sharedMediaCmdPtr->setDuration(PVMP4FF_DEFAULT_EOS_DURATION_IN_SEC *(aTrackPortInfo.iClockConverter->get_timescale()));
+        sharedMediaCmdPtr->setDuration(PVMP4FF_DEFAULT_EOS_DURATION_IN_SEC * (aTrackPortInfo.iClockConverter->get_timescale()));
     }
 
     PVMFSharedMediaMsgPtr mediaMsgOut;
@@ -5675,7 +5680,7 @@ void PVMFMP4FFParserNode::HandlePortActivity(const PVMFPortActivity &aActivity)
             //Purge any port activity events already queued
             //for this port.
             {
-                for (uint32 i = 0; i < iPortActivityQueue.size();)
+                for (uint32 i = 0;i < iPortActivityQueue.size();)
                 {
                     if (iPortActivityQueue[i].iPort == aActivity.iPort)
                     {
@@ -7861,7 +7866,6 @@ PVMFStatus PVMFMP4FFParserNode::CheckForMP4HeaderAvailability()
         {
             // progressive playback and no movie atom found
             PVMF_MP4FFPARSERNODE_LOGERROR((0, "PVMFMP4FFParserNode::CheckForMP4HeaderAvailability() - Moov atom not found, needed for progressive playback"));
-            return PVMFErrContentInvalidForProgressivePlayback;
         }
         else
         {
@@ -7894,7 +7898,12 @@ PVMFStatus PVMFMP4FFParserNode::CheckForUnderFlow(PVMP4FFNodeTrackPortInfo* aInf
     {
         uint32 diff32 = (msec - clientClock32);
         PVMF_MP4FFPARSERNODE_LOGDATATRAFFIC((0, "PVMFMP4FFParserNode::CheckForUnderFlow - Diff Bet Client Clock(%d) and Track Media TS(%d) = %d", clientClock32, msec, diff32));
-        if (diff32 < PVMP4FF_UNDERFLOW_THRESHOLD_IN_MS || aInfo->iFormatType == PVMF_MIME_AMR_IETF || aInfo->iFormatType == PVMF_MIME_MPEG4_AUDIO)
+        if (diff32 < PVMP4FF_UNDERFLOW_THRESHOLD_IN_MS || aInfo->iFormatType == PVMF_MIME_AMR_IETF || aInfo->iFormatType == PVMF_MIME_MPEG4_AUDIO
+			/* Mobile Media Lab. Start */ 
+			/* to support mp3 fileformat */
+			|| aInfo->iFormatType == PVMF_MIME_MP3 
+			/* Mobile Media Lab. End */ 
+			)
         {
             PVMF_MP4FFPARSERNODE_LOGDATATRAFFIC((0, "PVMFMP4FFParserNode::CheckForUnderFlow - Time To Auto Pause"));
             return PVMFSuccess;
@@ -8487,7 +8496,7 @@ PVMFStatus PVMFMP4FFParserNode::GetVideoFrameHeight(uint32 aId, int32& aHeight, 
                         {
                             aDisplayHeight = display_height;
                         }
-                        aHeight = height;
+                        aHeight	= height;
                     }
                     iMP4FileHandle->resetPlayback();
                     OSCL_ARRAY_DELETE(sampleBuf);
@@ -8747,7 +8756,7 @@ PVMFStatus PVMFMP4FFParserNode::FindBestThumbnailKeyFrame(uint32 aId, uint32& aK
                    &numsamples,
                    NULL,
                    NULL);
-    if (retval == 1 && numsamples > 0)
+    if (numsamples > 0)
     {
         /* It is possible that for some big contents the number of sync samples is a very big
         ** value. For these contents retrieval of timesatamps and frame numbers of sync sample
@@ -8834,37 +8843,10 @@ PVMFStatus PVMFMP4FFParserNode::FindBestThumbnailKeyFrame(uint32 aId, uint32& aK
             OSCL_ARRAY_DELETE(syncfrnum);
         }
     }
-    else if (retval == 2)
-    {
-        // All samples are sync samples
-        if (numsamples > NUMSAMPLES_BEST_THUMBNAIL_MODE)
-        {
-            numsamples = NUMSAMPLES_BEST_THUMBNAIL_MODE;
-        }
-        PVMF_MP4FFPARSERNODE_LOGDATATRAFFIC((0, "PVMFMP4FFParserNode:FindBestThumbnailKeyFrame - NumKeySamples=%d, TrackID=%d", numsamples, aId));
-
-        //go thru the key frame list and determine the optimal key frame
-        int32 maxKeySampleSize = 0;
-        int32 keySampleSize = 0;
-        aKeyFrameNum = 0;
-        for (uint32 i = 0; i < numsamples; i++)
-        {
-            keySampleSize = iMP4FileHandle->getSampleSizeAt(aId, i);
-
-            if (keySampleSize > maxKeySampleSize)
-            {
-                maxKeySampleSize = keySampleSize;
-                aKeyFrameNum = i;
-            }
-        }
-        PVMF_MP4FFPARSERNODE_LOGDATATRAFFIC((0, "PVMFMP4FFParserNode:FindBestThumbnailKeyFrame - Picked Best KeyFrame=%d", aKeyFrameNum));
-    }
     else
     {
-        PVMF_MP4FFPARSERNODE_LOGDATATRAFFIC((0, "PVMFMP4FFParserNode:FindBestThumbnailKeyFrame - No Samples present in SyncSample Table"));
         numsamples = 0;
         aKeyFrameNum = 0;
-        return PVMFFailure;
     }
     return PVMFSuccess;
 }
@@ -8914,7 +8896,7 @@ PVMFMP4FFParserNode::CancelGetLicense(PVMFSessionId aSessionId, PVMFCommandId aC
 {
     PVMF_MP4FFPARSERNODE_LOGDATATRAFFIC((0, "PVMFMP4FFParserNode::CancelGetLicense - called"));
     PVMFMP4FFParserNodeCommand cmd;
-    cmd.PVMFMP4FFParserNodeCommandBase::Construct(aSessionId, PVMP4FF_NODE_CMD_CANCEL_GET_LICENSE, aCmdId,  aContextData);
+    cmd.PVMFMP4FFParserNodeCommandBase::Construct(aSessionId, PVMP4FF_NODE_CMD_CANCEL_GET_LICENSE, aCmdId,	aContextData);
     return QueueCommandL(cmd);
 }
 

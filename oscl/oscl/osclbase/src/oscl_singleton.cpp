@@ -25,17 +25,75 @@
 #include "oscl_lock_base.h"
 #include "oscl_base_alloc.h"
 
-// static allocation of the sSingletonTable object and keep it forever
-OsclSingletonRegistry::SingletonTable OsclSingletonRegistry::sSingletonTable;
+
+OsclSingletonRegistry::SingletonTable* OsclSingletonRegistry::iSingletonTable = NULL;
+
+
+OSCL_EXPORT_REF void OsclSingletonRegistry::initialize(Oscl_DefAlloc &alloc, int32 &aError)
+{
+    aError = 0;
+    //Allocate the registry on the first init call
+    //Note: there's some chance of thread contention here, since
+    //thread lock isn't available until after this step.
+    if (!iSingletonTable)
+    {
+        OsclAny* table = alloc.allocate(sizeof(SingletonTable));
+        if (table)
+            iSingletonTable = new(table) SingletonTable();
+        else
+        {
+            aError = EPVErrorBaseOutOfMemory;
+            return;
+        }
+    }
+
+    //increment the ref count on each init.
+    iSingletonTable->iTableLock.Lock();
+    iSingletonTable->iRefCount++;
+    iSingletonTable->iTableLock.Unlock();
+}
+
+OSCL_EXPORT_REF void OsclSingletonRegistry::cleanup(Oscl_DefAlloc &alloc, int32 &aError)
+{
+    aError = 0;
+    if (!iSingletonTable)
+    {
+        aError = EPVErrorBaseNotInstalled;//no table!
+        return;
+    }
+
+    //decrement the ref count and cleanup when it reaches zero.
+    iSingletonTable->iTableLock.Lock();
+    iSingletonTable->iRefCount--;
+    if (iSingletonTable->iRefCount == 0)
+    {
+        //cleanup
+        iSingletonTable->iTableLock.Unlock();
+        iSingletonTable->~SingletonTable();
+        alloc.deallocate(iSingletonTable);
+        iSingletonTable = NULL;
+    }
+    else
+    {
+        iSingletonTable->iTableLock.Unlock();
+    }
+}
 
 OSCL_EXPORT_REF OsclAny* OsclSingletonRegistry::getInstance(uint32 ID, int32 &aError)
 {
     OSCL_ASSERT(ID < OSCL_SINGLETON_ID_LAST);
 
     aError = 0;
-    sSingletonTable.iSingletonLocks[ID].Lock();
-    OsclAny* value = sSingletonTable.iSingletons[ID];
-    sSingletonTable.iSingletonLocks[ID].Unlock();
+    if (!iSingletonTable)
+    {
+        aError = EPVErrorBaseNotInstalled;//no table!
+        return NULL;
+    }
+
+    iSingletonTable->iSingletonLocks[ID].Lock();
+    OsclAny* value = iSingletonTable->iSingletons[ID];
+    iSingletonTable->iSingletonLocks[ID].Unlock();
+
     return value;
 }
 
@@ -44,9 +102,15 @@ OSCL_EXPORT_REF void OsclSingletonRegistry::registerInstance(OsclAny* ptr, uint3
     OSCL_ASSERT(ID < OSCL_SINGLETON_ID_LAST);
 
     aError = 0;
-    sSingletonTable.iSingletonLocks[ID].Lock();
-    sSingletonTable.iSingletons[ID] = ptr;
-    sSingletonTable.iSingletonLocks[ID].Unlock();
+    if (!iSingletonTable)
+    {
+        aError = EPVErrorBaseNotInstalled;//no table!
+        return;
+    }
+
+    iSingletonTable->iSingletonLocks[ID].Lock();
+    iSingletonTable->iSingletons[ID] = ptr;
+    iSingletonTable->iSingletonLocks[ID].Unlock();
 }
 
 OSCL_EXPORT_REF OsclAny* OsclSingletonRegistry::lockAndGetInstance(uint32 ID, int32 &aError)
@@ -54,9 +118,16 @@ OSCL_EXPORT_REF OsclAny* OsclSingletonRegistry::lockAndGetInstance(uint32 ID, in
     OSCL_ASSERT(ID < OSCL_SINGLETON_ID_LAST);
 
     aError = 0;
-    sSingletonTable.iSingletonLocks[ID].Lock();
-    OsclAny* value = sSingletonTable.iSingletons[ID];
-    //leave this table entry locked
+
+    if (!iSingletonTable)
+    {
+        aError = EPVErrorBaseNotInstalled;//no table!
+        return NULL;
+    }
+
+    iSingletonTable->iSingletonLocks[ID].Lock();
+    OsclAny* value = iSingletonTable->iSingletons[ID];
+    //leave it locked.
 
     return value;
 }
@@ -67,9 +138,16 @@ OSCL_EXPORT_REF void OsclSingletonRegistry::registerInstanceAndUnlock(OsclAny* p
 
     aError = 0;
 
+    if (!iSingletonTable)
+    {
+        aError = EPVErrorBaseNotInstalled;//no table!
+        return;
+    }
+
     //assume it's already locked.
-    sSingletonTable.iSingletons[ID] = ptr;
-    sSingletonTable.iSingletonLocks[ID].Unlock();
+
+    iSingletonTable->iSingletons[ID] = ptr;
+    iSingletonTable->iSingletonLocks[ID].Unlock();
 }
 
 #endif //OSCL_HAS_SINGLETON_SUPPORT

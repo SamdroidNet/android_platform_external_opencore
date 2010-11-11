@@ -399,20 +399,19 @@ class PVFMAudioMIO;
 class OsclMemPoolResizableAllocator;
 
 class PVFrameAndMetadataUtility : public OsclTimerObject,
-        public PVFrameAndMetadataInterface,
-        public PvmiCapabilityAndConfig,
-        public PVCommandStatusObserver,
-        public PVErrorEventObserver,
-        public PVInformationalEventObserver,
-        public PVFMVideoMIOGetFrameObserver,
-        public OsclTimerObserver
+            public PVFrameAndMetadataInterface,
+            public PvmiCapabilityAndConfig,
+            public PVCommandStatusObserver,
+            public PVErrorEventObserver,
+            public PVInformationalEventObserver,
+            public PVFMVideoMIOGetFrameObserver,
+            public OsclTimerObserver
 {
     public:
         static PVFrameAndMetadataUtility* New(char *aOutputFormatMIMEType,
                                               PVCommandStatusObserver *aCmdObserver,
                                               PVErrorEventObserver *aErrorObserver,
-                                              PVInformationalEventObserver *aInfoObserver,
-                                              bool aHwAccelerated = true);
+                                              PVInformationalEventObserver *aInfoObserver);
         ~PVFrameAndMetadataUtility();
 
         // From PVFrameAndMetadataInterface
@@ -430,8 +429,8 @@ class PVFrameAndMetadataUtility : public OsclTimerObject,
         PVCommandId RemoveDataSource(PVPlayerDataSource& aDataSource, const OsclAny* aContextData = NULL);
         PVMFStatus  SetMode(uint32 aMode);
 
-        void        SetThumbnailDimensions(uint32 aWidth, uint32 aHeight);
-        void        GetThumbnailDimensions(uint32 &aWidth, uint32 &aHeight);
+        void		SetThumbnailDimensions(uint32 aWidth, uint32 aHeight);
+        void		GetThumbnailDimensions(uint32 &aWidth, uint32 &aHeight);
         // From PvmiCapabilityAndConfig
         void setObserver(PvmiConfigAndCapabilityCmdObserver* aObserver);
         PVMFStatus getParametersSync(PvmiMIOSession aSession, PvmiKeyType aIdentifier, PvmiKvp*& aParameters, int& aNumParamElements, PvmiCapabilityContext aContext);
@@ -445,10 +444,9 @@ class PVFrameAndMetadataUtility : public OsclTimerObject,
         PVMFStatus verifyParametersSync(PvmiMIOSession aSession, PvmiKvp* aParameters, int aNumElements);
 
     private:
-        bool iHwAccelerated;
         PVMFBasicErrorInfoMessage* CreateBasicErrInfoMessage(PVMFErrorInfoMessageInterface* nextmsg, PVFMErrorEventType aErrEvent = PVFMErrPlayerEngine);
 
-        PVFrameAndMetadataUtility(bool aHwAccelerated);
+        PVFrameAndMetadataUtility();
         void Construct(char *aOutputFormatMIMEType,
                        PVCommandStatusObserver *aCmdObserver,
                        PVErrorEventObserver *aErrorObserver,

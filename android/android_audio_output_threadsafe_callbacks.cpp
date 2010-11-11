@@ -40,10 +40,7 @@ OsclReturnCode AndroidAudioOutputThreadSafeCallbackAO::ProcessEvent(OsclAny* Eve
     {
         AndroidAudioOutput* ptr = (AndroidAudioOutput*) iObserver;
         // Call RunIfNotReady() for the AudioMIO
-    if(ptr->IsAdded())
-    {
         ptr->RunIfNotReady();
-    }
     }
     return OsclSuccess;
 }

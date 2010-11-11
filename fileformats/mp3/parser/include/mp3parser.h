@@ -160,7 +160,7 @@ typedef struct vbriHeader_tag
     int32 fTableEntry;
     int32 *TOC;
     int32 sampleRate;
-} VBRIHeaderType;
+}VBRIHeaderType;
 
 
 typedef enum VBRType
@@ -415,7 +415,7 @@ class MP3Parser
 
         uint32 GetDurationFromMetadata();
 
-        MP3ErrorType FillTOCTable(uint32 aFilePos, uint32 aTimeStampToFrame);
+        void FillTOCTable(uint32 aFilePos, uint32 aTimeStampToFrame);
 
         //duration related values
         uint32 iClipDurationInMsec;

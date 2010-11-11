@@ -27,9 +27,15 @@
 #include "pvmf_fileoutput_config.h"
 #endif
 
+/* Mobile Media Lab. Start */
+#if USE_DMC_MP4_MUX
+#include "smp4fm_oc_clipcfg.h"
+#else
 #ifndef PVMP4FFCN_CLIPCONFIG_H_INCLUDED
 #include "pvmp4ffcn_clipconfig.h"
 #endif
+#endif
+/* Mobile Media Lab. End */
 
 #ifndef PV_MP4_H263_ENC_EXTENSION_H_INCLUDED
 #include "pvmp4h263encextension.h"
@@ -387,9 +393,15 @@ bool pv_mediainput_async_test_opencomposestop::ConfigOutputFile()
 ////////////////////////////////////////////////////////////////////////////
 bool pv_mediainput_async_test_opencomposestop::ConfigMp43gpComposer()
 {
-
+	/* Mobile Media Lab. Start */
+#if USE_DMC_MP4_MUX
+	SMp4fmOcClipCfgIf * clipConfig;
+	clipConfig = OSCL_STATIC_CAST(SMp4fmOcClipCfgIf *, iComposerConfig);
+#else		
     PVMp4FFCNClipConfigInterface* clipConfig;
     clipConfig = OSCL_STATIC_CAST(PVMp4FFCNClipConfigInterface*, iComposerConfig);
+#endif	
+	/* Mobile Media Lab. End */
     if (!clipConfig)
     {
         PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_ERR,
@@ -472,6 +484,21 @@ bool pv_mediainput_async_test_opencomposestop::ConfigMp43gpComposer()
 
     clipConfig->SetRecordingYear(iRecordingYear);
 
+	/* Mobile Media Lab. Start */
+#if USE_DMC_MP4_MUX
+	if (iTestCaseNum == K3GPPDownloadModeTest || iTestCaseNum == K3GPPDownloadModeLongetivityTest)
+	{
+		clipConfig->SetAuthoringMode(SMP4FM_OC_3GPP_DOWNLOAD_MODE);
+	}
+	else if (iTestCaseNum == K3GPPProgressiveDownloadModeTest || iTestCaseNum == K3GPPProgressiveDownloadModeLongetivityTest)
+	{
+		clipConfig->SetAuthoringMode(SMP4FM_OC_3GPP_PROGRESSIVE_DOWNLOAD_MODE);
+	}
+	else if (iTestCaseNum == KMovieFragmentModeTest || iTestCaseNum == KMovieFragmentModeLongetivityTest)
+	{
+		clipConfig->SetAuthoringMode(SMP4FM_OC_MOVIE_FRAGMENT_MODE);
+	}
+#else	
     if (iTestCaseNum == K3GPPDownloadModeTest || iTestCaseNum == K3GPPDownloadModeLongetivityTest)
     {
         clipConfig->SetAuthoringMode(PVMP4FFCN_3GPP_DOWNLOAD_MODE);
@@ -484,8 +511,8 @@ bool pv_mediainput_async_test_opencomposestop::ConfigMp43gpComposer()
     {
         clipConfig->SetAuthoringMode(PVMP4FFCN_MOVIE_FRAGMENT_MODE);
     }
-
-
+#endif
+	/* Mobile Media Lab. Start */
 
 
     if (aLocation_info._location_name != NULL)
@@ -675,7 +702,7 @@ void pv_mediainput_async_test_opencomposestop::Cleanup()
         iAuthor = NULL;
     }
 
-//  iMIOComponent.DeleteInputNode();
+//	iMIOComponent.DeleteInputNode();
     iOutputFileName = NULL;
     iFileServer.Close();
     if (iFileHandle)
@@ -1400,7 +1427,7 @@ bool pv_mediainput_async_test_opencomposestop::CapConfigSync()
         // set the KVP array
         PvmiKvp paramkvp1;
         // set cache size for composer node
-        //  PVMI_FILEIO_PV_CACHE_SIZE (MACRO defined in "pvmi_fileio_kvp.h")
+        //	PVMI_FILEIO_PV_CACHE_SIZE (MACRO defined in "pvmi_fileio_kvp.h")
         OSCL_StackString<64> paramkey1(_STRLIT_CHAR(PVMI_FILEIO_PV_CACHE_SIZE));
         paramkey1 += _STRLIT_CHAR(";valtype=uint32");
         // set KVP values
@@ -1439,7 +1466,7 @@ bool pv_mediainput_async_test_opencomposestop::CapConfigSync()
         /*
         else
         {
-            return false;
+        	return false;
         }*/
 
         //MIME for file output node

@@ -213,7 +213,7 @@ int SDP_Parser::validate_media_line(const char *start, const char *end, Oscl_Vec
             {
                 applicationFlag = true;
             }
-            else    //don't support this media. so skip the section
+            else	//don't support this media. so skip the section
                 return 0;
         }
 
@@ -240,6 +240,10 @@ SDP_ERROR_CODE SDP_Parser::parseSDP(const char *sdpText, int text_length, SDPInf
     const char *line_start_ptr, *line_end_ptr;
     bool session_info_parsed = false;
 
+	/* Mobile Media Lab. Streaming - Start */ 
+	uint iVideoDisplayWidth=0, iVideoDisplayHeight=0;
+	int sent_wh_info=0;
+	/* Mobile Media Lab. Streaming - End */ 
     /**************************************************************************/
 
     // The purpose of this outer loop is to partition the SDP into different
@@ -440,6 +444,64 @@ SDP_ERROR_CODE SDP_Parser::parseSDP(const char *sdpText, int text_length, SDPInf
                             return SDP_PAYLOAD_MISMATCH;
                         }
                     }
+					/* Mobile Media Lab. Streaming - Start */ 
+                    StrPtrLen cliprect("a=cliprect:");
+                    if (!oscl_strncmp(line_start_ptr, cliprect.c_str(), cliprect.length()))
+                    {
+						uint start_x=0, start_y=0, end_x=0, end_y=0;
+                        const char *sptr = line_start_ptr + cliprect.length();
+                        sptr = skip_whitespace(sptr, line_end_ptr);
+						const char* eptr = sptr;
+
+						for (;*eptr != ',' ; ++eptr);
+
+                        if (!PV_atoi(sptr, 'd', (int)(eptr - sptr), start_y))
+                        {
+                            PVMF_SDP_PARSER_LOGERROR((0, "SDP_Parser::parseSDP - Parsing a=cliprect:1 Failed"));
+                            return SDP_BAD_MEDIA_WIDTH;
+                        }
+
+                        eptr = eptr + 1;
+                        sptr = eptr;
+						for (;*eptr != ',' ; ++eptr);
+
+                        if (!PV_atoi(sptr, 'd', eptr - sptr, start_x))
+                        {
+                            PVMF_SDP_PARSER_LOGERROR((0, "SDP_Parser::parseSDP - Parsing a=cliprect:2 Failed"));
+                            return SDP_BAD_MEDIA_HEIGHT;
+                        }
+
+                        eptr = eptr + 1;
+                        sptr = eptr;
+						for (;*eptr != ',' ; ++eptr);
+
+                        if (!PV_atoi(sptr, 'd', eptr - sptr, end_y))
+                        {
+                            PVMF_SDP_PARSER_LOGERROR((0, "SDP_Parser::parseSDP - Parsing a=cliprect:3 Failed"));
+                            return SDP_BAD_MEDIA_WIDTH;
+                        }
+
+                        eptr = eptr + 1;
+                        sptr = eptr;
+                        if (sptr > line_end_ptr)
+                            return SDP_BAD_MEDIA_FORMAT;
+                        eptr = skip_to_line_term(sptr, line_end_ptr);
+                        if (!PV_atoi(sptr, 'd', (int)(eptr - sptr), end_x))
+                        {
+                            PVMF_SDP_PARSER_LOGERROR((0, "SDP_Parser::parseSDP - Parsing a=cliprect:4 Failed"));
+                            return SDP_BAD_MEDIA_HEIGHT;
+                        }
+
+						iVideoDisplayWidth = end_x - start_x;
+						iVideoDisplayHeight = end_y - start_y;
+
+						if(!sent_wh_info)
+						{
+							sdp->setDisplaySize(iVideoDisplayWidth, iVideoDisplayHeight);
+							sent_wh_info = 1;
+						}
+                    }
+					/* Mobile Media Lab. Streaming - End */ 
                     StrPtrLen framesize("a=framesize:");
                     if (!oscl_strncmp(line_start_ptr, framesize.c_str(), framesize.length()))
                     {
@@ -467,6 +529,39 @@ SDP_ERROR_CODE SDP_Parser::parseSDP(const char *sdpText, int text_length, SDPInf
                             PVMF_SDP_PARSER_LOGERROR((0, "SDP_Parser::parseSDP - Payload Mismatch in a=framesize: line"));
                             return SDP_PAYLOAD_MISMATCH;
                         }
+
+						/* Mobile Media Lab. Streaming - Start */ 
+                        sptr = eptr;
+                        sptr = skip_whitespace(sptr , line_end_ptr);
+
+                        for (;*eptr != '-' ; ++eptr);
+
+                        if (!PV_atoi(sptr, 'd', (int)(eptr - sptr), iVideoDisplayWidth))
+                        {
+                            PVMF_SDP_PARSER_LOGERROR((0, "SDP_Parser::parseSDP - Payload Mismatch in a=framesize: frame_width line"));
+                            return SDP_BAD_MEDIA_WIDTH;
+                        }
+
+                        eptr = eptr + 1;
+                        sptr = eptr;
+                        if (sptr > line_end_ptr)
+                        {
+							PVMF_SDP_PARSER_LOGERROR((0, "SDP_Parser::parseSDP - Payload Mismatch in a=framesize: sptr line"));
+							return SDP_BAD_MEDIA_FRAMESIZE;
+                        }
+                        eptr = skip_to_line_term(sptr, line_end_ptr);
+                        if (!PV_atoi(sptr, 'd', (int)(eptr - sptr), iVideoDisplayHeight))
+                        {
+							PVMF_SDP_PARSER_LOGERROR((0, "SDP_Parser::parseSDP - Payload Mismatch in a=framesize: frame_height line"));
+                            return SDP_BAD_MEDIA_HEIGHT;
+                        }
+
+						if(!sent_wh_info)
+						{
+							sdp->setDisplaySize(iVideoDisplayWidth, iVideoDisplayHeight);
+							sent_wh_info = 1;
+						}
+						/* Mobile Media Lab. Streaming - End */ 
                     }
 
                 } // end if media is supported
@@ -719,7 +814,7 @@ SDP_ERROR_CODE SDP_Parser::parseSDP(const char *sdpText, int text_length, SDPInf
                             OSCL_DELETE((mediaParser));
                         }
                         mediaParser = NULL;
-                    }   // End of for
+                    }	// End of for
                 }
                 if (rtpmap_lines == 0) // no rtpmap found in media
                 {
@@ -1007,7 +1102,7 @@ SDP_Parser::convertToMilliSec(RtspRangeType range , int &startTime, int &stopTim
             stopTime = 0;
             return -1;
         }
-        // break;   This statement was removed to avoid compiler warning for Unreachable Code
+        // break;	This statement was removed to avoid compiler warning for Unreachable Code
 
         default:
         {
@@ -1015,7 +1110,7 @@ SDP_Parser::convertToMilliSec(RtspRangeType range , int &startTime, int &stopTim
             stopTime = 0;
             return -1;
         }
-        // break;   This statement was removed to avoid compiler warning for Unreachable Code
+        // break;	This statement was removed to avoid compiler warning for Unreachable Code
     }
     return 0;
 }

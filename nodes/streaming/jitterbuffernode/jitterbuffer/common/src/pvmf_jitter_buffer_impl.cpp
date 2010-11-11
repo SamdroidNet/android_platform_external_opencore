@@ -106,7 +106,7 @@ void PVMFJitterBufferImpl::ResetParams(bool aReleaseMemory)
     iJitterBufferDurationCallBkPending = false;
 
     ipMediaClockConverter = NULL;
-    iTimeScale  = 0;
+    iTimeScale	= 0;
 }
 
 void PVMFJitterBufferImpl::DestroyAllocators()
@@ -132,13 +132,13 @@ void PVMFJitterBufferImpl::DestroyAllocators()
 
 OSCL_EXPORT_REF void PVMFJitterBufferImpl::StreamingSessionStarted()
 {
-    iStreamingState = STREAMINGSTATE_STARTED;
+    iStreamingState	= STREAMINGSTATE_STARTED;
     iNumUnderFlow = 0;
 }
 
 OSCL_EXPORT_REF void PVMFJitterBufferImpl::StreamingSessionPaused()
 {
-    iStreamingState =   STREAMINGSTATE_PAUSED;
+    iStreamingState	=	STREAMINGSTATE_PAUSED;
     CancelEventCallBack(JB_NOTIFY_WAIT_FOR_OOO_PACKET_COMPLETE);
     CancelEventCallBack(JB_MONITOR_REBUFFERING);
     CancelEventCallBack(JB_BUFFERING_DURATION_COMPLETE);
@@ -146,7 +146,7 @@ OSCL_EXPORT_REF void PVMFJitterBufferImpl::StreamingSessionPaused()
 
 OSCL_EXPORT_REF void PVMFJitterBufferImpl::StreamingSessionStopped()
 {
-    iStreamingState =   STREAMINGSTATE_STOPPED;
+    iStreamingState	=	STREAMINGSTATE_STOPPED;
     CancelEventCallBack(JB_NOTIFY_WAIT_FOR_OOO_PACKET_COMPLETE);
     CancelEventCallBack(JB_MONITOR_REBUFFERING);
     CancelEventCallBack(JB_BUFFERING_DURATION_COMPLETE);
@@ -278,7 +278,7 @@ OSCL_EXPORT_REF PVMFJitterBufferRegisterMediaMsgStatus PVMFJitterBufferImpl::Reg
     PVMFJitterBufferRegisterMediaMsgStatus retval = PVMF_JB_REGISTER_MEDIA_MSG_SUCCESS;
     PVMFSharedMediaDataPtr dataPacket;
 
-    if (aMsg->getFormatID() > PVMF_MEDIA_CMD_FORMAT_IDS_START)  //IsCmdMsg
+    if (aMsg->getFormatID() > PVMF_MEDIA_CMD_FORMAT_IDS_START)	//IsCmdMsg
     {
         RegisterCmdPacket(aMsg);
     }
@@ -599,7 +599,6 @@ PVMFJitterBufferRegisterMediaMsgStatus PVMFJitterBufferImpl::AddPacket(PVMFShare
         {
             oSSRCFromSetUpResponseAvailable = true;
             SSRCLock = aDataPacket->getStreamID();
-            iObserver->MediaTrackSSRCEstablished(this, SSRCLock);
             PVMF_JB_LOGDATATRAFFIC_IN((0, "PVMFJitterBufferImpl::addPacket: Ser No SSRC, set to 1st pkt SSRC %d", SSRCLock));
         }
         /* Filter based on SSRC */
@@ -732,7 +731,7 @@ PVMFJitterBufferRegisterMediaMsgStatus PVMFJitterBufferImpl::AddPacket(PVMFShare
 
         bool bNoErr = true;
         Oscl_Vector<PVMFSharedMediaDataPtr, OsclMemAllocator>::iterator it;
-        for (it = iFirstDataPackets.begin(); it != iFirstDataPackets.end();     it++)
+        for (it = iFirstDataPackets.begin(); it != iFirstDataPackets.end();		it++)
         {
             if ((*it)->getStreamID() == SSRCLock)
             {
@@ -784,7 +783,7 @@ PVMFJitterBufferRegisterMediaMsgStatus PVMFJitterBufferImpl::AddPacket(PVMFShare
             * Calculate adjusted RTP TS - Will be used to update
             * the estimated server clock, if any only if some rtp-info
             * params have been set
-                */
+            	*/
             ComputeMaxAdjustedRTPTS();
         }
 
@@ -1143,7 +1142,7 @@ OSCL_EXPORT_REF bool PVMFJitterBufferImpl::IsDelayEstablished(uint32& aClockDiff
     aClockDiff = iDurationInMilliSeconds;
     if (GetState() == PVMF_JITTER_BUFFER_IN_TRANSITION)
     {
-        PVMF_JB_LOGCLOCK((0, "PVMFJitterBufferNode::IsDelayEstablished - Jitter Buffer In Transition - Preparing for Seek"));
+        PVMF_JB_LOGCLOCK((0, "PVMFJitterBufferNode::IsJitterBufferReady - Jitter Buffer In Transition - Preparing for Seek"));
         irDelayEstablished = false;
         irJitterDelayPercent = 0;
         return irDelayEstablished;
@@ -1157,8 +1156,8 @@ OSCL_EXPORT_REF bool PVMFJitterBufferImpl::IsDelayEstablished(uint32& aClockDiff
     irEstimatedServerClock.GetCurrentTime32(estServerClock, overflowFlag, PVMF_MEDIA_CLOCK_MSEC, timebase32);
     irClientPlayBackClock.GetCurrentTime32(clientClock, overflowFlag, PVMF_MEDIA_CLOCK_MSEC, timebase32);
 
-    PVMF_JB_LOGCLOCK((0, "PVMFJitterBufferNode::IsDelayEstablished - Time Delay Check - EstServClock=%d", estServerClock));
-    PVMF_JB_LOGCLOCK((0, "PVMFJitterBufferNode::IsDelayEstablished - Time Delay Check - ClientClock=%d", clientClock));
+    PVMF_JB_LOGCLOCK((0, "PVMFJitterBufferNode::IsJitterBufferReady - Time Delay Check - EstServClock=%d", estServerClock));
+    PVMF_JB_LOGCLOCK((0, "PVMFJitterBufferNode::IsJitterBufferReady - Time Delay Check - ClientClock=%d", clientClock));
 
     if (iEOSSignalled)
     {
@@ -1166,7 +1165,7 @@ OSCL_EXPORT_REF bool PVMFJitterBufferImpl::IsDelayEstablished(uint32& aClockDiff
         * No check needed - We are past the clip time, just play out the last
         * bit in the jitter buffer
         */
-        PVMF_JB_LOGCLOCK((0, "PVMFJitterBufferNode::IsDelayEstablished - Session Duration Expired"));
+        PVMF_JB_LOGCLOCK((0, "PVMFJitterBufferNode::IsJitterBufferReady - Session Duration Expired"));
         if (irDelayEstablished == false)
         {
             /*
@@ -1181,9 +1180,7 @@ OSCL_EXPORT_REF bool PVMFJitterBufferImpl::IsDelayEstablished(uint32& aClockDiff
     }
     else
     {
-        uint32 diff32ms = 0;
-        bool isEarly = PVTimeComparisonUtils::IsEarlier(estServerClock, clientClock, diff32ms);
-        if (isEarly && diff32ms > 0)
+        if (estServerClock < clientClock)
         {
             /* Could happen during repositioning */
             if (irDelayEstablished == true)
@@ -1194,19 +1191,20 @@ OSCL_EXPORT_REF bool PVMFJitterBufferImpl::IsDelayEstablished(uint32& aClockDiff
                 /* Start timer */
                 PVMFAsyncEvent jbEvent(PVMFInfoEvent, PVMFInfoUnderflow, NULL, NULL);
                 ReportJBInfoEvent(jbEvent);
-                PVMF_JB_LOGCLOCK((0, "PVMFJitterBufferNode::IsDelayEstablished - Time Delay Check - EstServClock=%d",
+                PVMF_JB_LOGCLOCK((0, "PVMFJitterBufferNode::IsJitterBufferReady - Time Delay Check - EstServClock=%d",
                                   Oscl_Int64_Utils::get_uint64_lower32(estServerClock)));
-                PVMF_JB_LOGCLOCK((0, "PVMFJitterBufferNode::IsDelayEstablished - Time Delay Check - ClientClock=%d",
+                PVMF_JB_LOGCLOCK((0, "PVMFJitterBufferNode::IsJitterBufferReady - Time Delay Check - ClientClock=%d",
                                   Oscl_Int64_Utils::get_uint64_lower32(clientClock)));
-                PVMF_JB_LOGCLOCK((0, "PVMFJitterBufferNode::IsDelayEstablished - Estimated Serv Clock Less Than ClientClock!!!!"));
-                PVMF_JB_LOGCLOCK_REBUFF((0, "PVMFJitterBufferNode::IsDelayEstablished - Time Delay Check - EstServClock=%d",
+                PVMF_JB_LOGCLOCK((0, "PVMFJitterBufferNode::IsJitterBufferReady - Estimated Serv Clock Less Than ClientClock!!!!"));
+                PVMF_JB_LOGCLOCK_REBUFF((0, "PVMFJitterBufferNode::IsJitterBufferReady - Time Delay Check - EstServClock=%d",
                                          Oscl_Int64_Utils::get_uint64_lower32(estServerClock)));
-                PVMF_JB_LOGCLOCK_REBUFF((0, "PVMFJitterBufferNode::IsDelayEstablished - Time Delay Check - ClientClock=%d",
+                PVMF_JB_LOGCLOCK_REBUFF((0, "PVMFJitterBufferNode::IsJitterBufferReady - Time Delay Check - ClientClock=%d",
                                          Oscl_Int64_Utils::get_uint64_lower32(clientClock)));
-                PVMF_JB_LOGCLOCK_REBUFF((0, "PVMFJitterBufferNode::IsDelayEstablished - Estimated Serv Clock Less Than ClientClock!!!!"));
+                PVMF_JB_LOGCLOCK_REBUFF((0, "PVMFJitterBufferNode::IsJitterBufferReady - Estimated Serv Clock Less Than ClientClock!!!!"));
             }
             return irDelayEstablished;
         }
+        const uint32 diff32ms = estServerClock - clientClock;
         aClockDiff = diff32ms;
         if (diff32ms >= iDurationInMilliSeconds)
         {
@@ -1228,7 +1226,7 @@ OSCL_EXPORT_REF bool PVMFJitterBufferImpl::IsDelayEstablished(uint32& aClockDiff
             }
 
             prevMinPercentOccupancy = minPercentOccupancy;
-            PVMF_JB_LOGCLOCK((0, "PVMFJitterBufferNode::IsDelayEstablished - minPercentOccupancy=%d, consecutiveLowBufferCount=%d",
+            PVMF_JB_LOGCLOCK((0, "PVMFJitterBufferNode::IsJitterBufferReady - minPercentOccupancy=%d, consecutiveLowBufferCount=%d",
                               minPercentOccupancy,
                               consecutiveLowBufferCount));
 
@@ -1238,23 +1236,23 @@ OSCL_EXPORT_REF bool PVMFJitterBufferImpl::IsDelayEstablished(uint32& aClockDiff
                 iOverflowFlag = true;
                 PVMFAsyncEvent jbEvent(PVMFInfoEvent, PVMFInfoOverflow, NULL, NULL);
                 ReportJBInfoEvent(jbEvent);
-                PVMF_JB_LOGCLOCK((0, "PVMFJitterBufferNode::IsDelayEstablished reporting PVMFInfoSourceOverflow"));
+                PVMF_JB_LOGCLOCK((0, "PVMFJitterBufferNode::IsJitterBufferReady reporting PVMFInfoSourceOverflow"));
             }
 
             if (irDelayEstablished == false)
             {
                 if (CheckNumElements())
                 {
-                    PVMF_JB_LOGCLOCK((0, "PVMFJitterBufferNode::IsDelayEstablished - Cancelling Jitter Buffer Duration Timer"));
+                    PVMF_JB_LOGCLOCK((0, "PVMFJitterBufferNode::IsJitterBufferReady - Cancelling Jitter Buffer Duration Timer"));
                     irDelayEstablished = true;
                     irJitterDelayPercent = 100;
                     PVMFAsyncEvent jbEvent(PVMFInfoEvent, PVMFInfoDataReady, NULL, NULL);
                     ReportJBInfoEvent(jbEvent);
-                    PVMF_JB_LOGCLOCK((0, "PVMFJitterBufferNode::IsDelayEstablished - Time Delay Established - EstServClock=%d", estServerClock));
-                    PVMF_JB_LOGCLOCK((0, "PVMFJitterBufferNode::IsDelayEstablished - Time Delay Established - ClientClock=%d",  clientClock));
-                    PVMF_JB_LOGCLOCK_REBUFF((0, "PVMFJitterBufferNode::IsDelayEstablished - Time Delay Established - EstServClock=%d",
+                    PVMF_JB_LOGCLOCK((0, "PVMFJitterBufferNode::IsJitterBufferReady - Time Delay Established - EstServClock=%d", estServerClock));
+                    PVMF_JB_LOGCLOCK((0, "PVMFJitterBufferNode::IsJitterBufferReady - Time Delay Established - ClientClock=%d",  clientClock));
+                    PVMF_JB_LOGCLOCK_REBUFF((0, "PVMFJitterBufferNode::IsJitterBufferReady - Time Delay Established - EstServClock=%d",
                                              estServerClock));
-                    PVMF_JB_LOGCLOCK_REBUFF((0, "PVMFJitterBufferNode::IsDelayEstablished - Time Delay Established - ClientClock=%d",
+                    PVMF_JB_LOGCLOCK_REBUFF((0, "PVMFJitterBufferNode::IsJitterBufferReady - Time Delay Established - ClientClock=%d",
                                              clientClock));
                 }
                 else
@@ -1295,7 +1293,7 @@ OSCL_EXPORT_REF bool PVMFJitterBufferImpl::IsDelayEstablished(uint32& aClockDiff
             {
                 irJitterDelayPercent = 0;
             }
-            PVMF_JB_LOGCLOCK((0, "PVMFJitterBufferNode::IsDelayEstablished: Delay Percent = %d", irJitterDelayPercent));
+            PVMF_JB_LOGCLOCK((0, "PVMFJitterBufferNode::IsJitterBufferReady: Delay Percent = %d", irJitterDelayPercent));
         }
         /* if we are not rebuffering check for flow control */
         PerformFlowControl(false);
@@ -1374,7 +1372,7 @@ OSCL_EXPORT_REF void PVMFJitterBufferImpl::SetPlayRange(int32 aStartTimeInMS, bo
     iStartTimeInMS = aStartTimeInMS;
     if (aStopTimeAvailable)
     {
-        iPlayStopTimeAvailable  = aStopTimeAvailable;
+        iPlayStopTimeAvailable	= aStopTimeAvailable;
         iStopTimeInMS = aStopTimeInMS;
     }
 

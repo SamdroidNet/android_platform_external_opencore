@@ -122,9 +122,9 @@ typedef PVMFNodeCommandQueue<PvmfMediaInputNodeCmd, OsclMemAllocator> PvmfMediaI
  * class PvmfMediaInputNode is a node wrapper around the io interface
  */
 class PvmfMediaInputNode : public OsclActiveObject,
-        public PVMFNodeInterface,
-        public PvmiMIOObserver,
-        public PvmiCapabilityAndConfig
+            public PVMFNodeInterface,
+            public PvmiMIOObserver,
+            public PvmiCapabilityAndConfig
 {
     public:
         static PVMFNodeInterface* Create(PvmiMIOControl* aIOInterfacePtr);
@@ -211,11 +211,6 @@ class PvmfMediaInputNode : public OsclActiveObject,
 
         // function used in getParametersSync of capability class
         PVMFStatus GetConfigParameter(PvmiKvp*& aParameters, int& aNumParamElements, int32 aIndex, PvmiKvpAttr reqattr);
-        // To support config interface
-        void QueryInterface(const PVUuid &aUuid, OsclAny*&aPtr)
-        {
-            aPtr = (aUuid == PVMI_CAPABILITY_AND_CONFIG_PVUUID) ? ((PvmiCapabilityAndConfig*)this) : NULL;
-        }
     private:
         typedef enum
         {
@@ -328,11 +323,9 @@ class PvmfMediaInputNode : public OsclActiveObject,
             uint8 mode;
             uint32 duration;
             uint32 track_no;
-        } TimeStamp_KSV;
+        }TimeStamp_KSV;
         TimeStamp_KSV iErrorTimeStamp;
 #endif
-
-        PVMFBufferPoolAllocator iPrivateDataFsiFragmentAlloc;
 };
 
 #endif // PVMF_MEDIA_INPUT_NODE_H_INCLUDED

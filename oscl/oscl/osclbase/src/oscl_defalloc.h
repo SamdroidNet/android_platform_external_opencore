@@ -62,10 +62,22 @@
 #define ALLOC_AND_CONSTRUCT(n) alloc_and_construct(n)
 #endif
 
+// This macro is defined is osclconfig_compiler_warnings.h
+// This GCC #pragma turns off compiler warning for the rest of this header file
+// This needs to be done because with the GCC 4.1 toolchain, many compiler warnings
+// are generated because Oscl_Alloc and Oscl_Dealloc have virtual functions, but
+// no virtual destructor.
+// An attempt has been made to add the virtual destructors, however, it resulted
+// in run time crashes indicative of double freeing of memory.
+// This is a temporary fix, until the crashes are resolved.
+//
+#ifdef OSCL_DISABLE_GCC_WARNING_SYSTEM_HEADER
+#pragma GCC system_header
+#endif
+
 class Oscl_Alloc
 {
     public:
-        virtual ~Oscl_Alloc() {}
         virtual OsclAny* allocate(const uint32 size) = 0;
 
         //Allocator with file name and line number inputs to aid memory auditing.
@@ -85,7 +97,6 @@ class Oscl_Dealloc
 {
     public:
         virtual void deallocate(OsclAny* p) = 0;
-        virtual ~Oscl_Dealloc() {}
 };
 
 
@@ -112,12 +123,11 @@ class Oscl_DefAlloc : public Oscl_Alloc, public Oscl_Dealloc
 class OsclDestructDealloc
 {
     public:
-        virtual ~OsclDestructDealloc() {}
         virtual void destruct_and_dealloc(OsclAny* ptr) = 0;
 };
 
 class OsclAllocDestructDealloc
-        : public OsclDestructDealloc, public Oscl_DefAlloc
+            : public OsclDestructDealloc, public Oscl_DefAlloc
 {
 
     public:
@@ -132,8 +142,8 @@ class Oscl_TAlloc : public OsclDestructDealloc
         typedef T           * pointer;
         typedef const T     * const_pointer;
         typedef uint32      size_type;
-        typedef T&          reference;
-        typedef const T&    const_reference;
+        typedef T&			reference;
+        typedef const T&	const_reference;
 
         virtual ~Oscl_TAlloc() {};
 

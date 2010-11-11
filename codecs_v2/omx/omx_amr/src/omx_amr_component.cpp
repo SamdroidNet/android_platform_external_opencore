@@ -29,9 +29,9 @@
 #endif
 
 #define OMX_HALFRANGE_THRESHOLD 0x7FFFFFFF
-/**** The duration of one output AMR frame (in microsec) is fixed and equal to 20000 microsec - needed for timestamp updates ****/
-/**** Note that AMR sampling rate is always 8khz, so a frame of 20000 microsec always corresponds to 160 (16-bit) samples = 320 bytes */
-#define OMX_AMR_DEC_FRAME_INTERVAL 20000
+/**** The duration of one output AMR frame (in ms) is fixed and equal to 20ms - needed for timestamp updates ****/
+/**** Note that AMR sampling rate is always 8khz, so a frame of 20 ms always corresponds to 160 (16-bit) samples = 320 bytes */
+#define OMX_AMR_DEC_FRAME_INTERVAL 20
 
 OSCL_DLL_ENTRY_POINT_DEFAULT()
 
@@ -85,10 +85,16 @@ OSCL_EXPORT_REF OMX_ERRORTYPE AmrOmxComponentDestructor(OMX_IN OMX_HANDLETYPE pH
 
 #if DYNAMIC_LOAD_OMX_AMR_COMPONENT
 class AmrOmxSharedLibraryInterface: public OsclSharedLibraryInterface,
-        public OmxSharedLibraryInterface
+            public OmxSharedLibraryInterface
 
 {
     public:
+        static AmrOmxSharedLibraryInterface *Instance()
+        {
+            static AmrOmxSharedLibraryInterface amromxinterface;
+            return &amromxinterface;
+        };
+
         OsclAny *QueryOmxComponentInterface(const OsclUuid& aOmxTypeId, const OsclUuid& aInterfaceId)
         {
             if (PV_OMX_AMRDEC_UUID == aOmxTypeId)
@@ -112,7 +118,7 @@ class AmrOmxSharedLibraryInterface: public OsclSharedLibraryInterface,
             }
             return NULL;
         };
-
+    private:
         AmrOmxSharedLibraryInterface() {};
 };
 
@@ -121,12 +127,7 @@ extern "C"
 {
     OSCL_EXPORT_REF OsclAny* PVGetInterface()
     {
-        return (OsclAny*) OSCL_NEW(AmrOmxSharedLibraryInterface, ());
-    }
-    OSCL_EXPORT_REF void PVReleaseInterface(OsclSharedLibraryInterface* aInstance)
-    {
-        AmrOmxSharedLibraryInterface* module = (AmrOmxSharedLibraryInterface*)aInstance;
-        OSCL_DELETE(module);
+        return AmrOmxSharedLibraryInterface::Instance();
     }
 }
 
@@ -280,8 +281,6 @@ OMX_ERRORTYPE OpenmaxAmrAO::ConstructComponent(OMX_PTR pAppData, OMX_PTR pProxy)
 
     iInputBufferRemainingBytes = 0;
 
-    oscl_strncpy((OMX_STRING)iComponentRole, (OMX_STRING)"audio_decoder.amrnb", OMX_MAX_STRINGNAME_SIZE);
-
     if (ipAmrDec)
     {
         OSCL_DELETE(ipAmrDec);
@@ -318,9 +317,9 @@ OMX_ERRORTYPE OpenmaxAmrAO::ConstructComponent(OMX_PTR pAppData, OMX_PTR pProxy)
 
 
 /** This function is called by the omx core when the component
-    * is disposed by the IL client with a call to FreeHandle().
-    * \param Component, the component to be disposed
-    */
+	* is disposed by the IL client with a call to FreeHandle().
+	* \param Component, the component to be disposed
+	*/
 
 OMX_ERRORTYPE OpenmaxAmrAO::DestroyComponent()
 {
@@ -442,14 +441,15 @@ void OpenmaxAmrAO::DecodeWithoutMarker()
 
     QueueType* pInputQueue = ipPorts[OMX_PORT_INPUTPORT_INDEX]->pBufferQueue;
     QueueType* pOutputQueue = ipPorts[OMX_PORT_OUTPUTPORT_INDEX]->pBufferQueue;
-    ComponentPortType*  pOutPort = ipPorts[OMX_PORT_OUTPUTPORT_INDEX];
+    ComponentPortType*	pOutPort = ipPorts[OMX_PORT_OUTPUTPORT_INDEX];
     OMX_COMPONENTTYPE  *pHandle = &iOmxComponent;
 
-    OMX_U8*                 pOutBuffer;
-    OMX_U32                 OutputLength;
-    OMX_U8*                 pTempInBuffer;
-    OMX_U32                 TempInLength;
-    OMX_BOOL                DecodeReturn = OMX_FALSE;
+    OMX_U8*					pOutBuffer;
+    OMX_U32					OutputLength;
+    OMX_U8*					pTempInBuffer;
+    OMX_U32					TempInLength;
+    OMX_BOOL				ResizeNeeded = OMX_FALSE;
+    OMX_BOOL				DecodeReturn = OMX_FALSE;
 
     OMX_U32 TempInputBufferSize = (2 * sizeof(uint8) * (ipPorts[OMX_PORT_INPUTPORT_INDEX]->PortParam.nBufferSize));
 
@@ -485,7 +485,56 @@ void OpenmaxAmrAO::DecodeWithoutMarker()
             //Set the current timestamp to the output buffer timestamp
             ipOutputBuffer->nTimeStamp = iCurrentTimestamp;
 
+            // Copy the output buffer that was stored locally before dynamic port reconfiguration
+            // in the new omx buffer received.
+            if (OMX_TRUE == iSendOutBufferAfterPortReconfigFlag)
+            {
+                if ((ipTempOutBufferForPortReconfig)
+                        && (iSizeOutBufferForPortReconfig <= ipOutputBuffer->nAllocLen))
+                {
+                    oscl_memcpy(ipOutputBuffer->pBuffer, ipTempOutBufferForPortReconfig, iSizeOutBufferForPortReconfig);
+                    ipOutputBuffer->nFilledLen = iSizeOutBufferForPortReconfig;
+                    ipOutputBuffer->nTimeStamp = iTimestampOutBufferForPortReconfig;
+                }
 
+                iSendOutBufferAfterPortReconfigFlag = OMX_FALSE;
+
+                //Send the output buffer back only when it has become full
+                if ((ipOutputBuffer->nAllocLen - ipOutputBuffer->nFilledLen) < iOutputFrameLength)
+                {
+                    ReturnOutputBuffer(ipOutputBuffer, pOutPort);
+                }
+
+                //Free the temp output buffer
+                if (ipTempOutBufferForPortReconfig)
+                {
+                    oscl_free(ipTempOutBufferForPortReconfig);
+                    ipTempOutBufferForPortReconfig = NULL;
+                    iSizeOutBufferForPortReconfig = 0;
+                }
+
+                //Dequeue new output buffer if required to continue decoding the next frame
+                if (OMX_TRUE == iNewOutBufRequired)
+                {
+                    if (0 == (GetQueueNumElem(pOutputQueue)))
+                    {
+                        PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_NOTICE, (0, "OpenmaxAmrAO : DecodeWithoutMarker OUT output buffer unavailable"));
+                        return;
+                    }
+
+                    ipOutputBuffer = (OMX_BUFFERHEADERTYPE*) DeQueue(pOutputQueue);
+                    if (NULL == ipOutputBuffer)
+                    {
+                        PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_NOTICE, (0, "OpenmaxAmrAO : DecodeWithoutMarker Error, Output Buffer Dequeue returned NULL, OUT"));
+                        return;
+                    }
+
+                    ipOutputBuffer->nFilledLen = 0;
+                    iNewOutBufRequired = OMX_FALSE;
+
+                    ipOutputBuffer->nTimeStamp = iCurrentTimestamp;
+                }
+            }
         }
 
         /* Code for the marking buffer. Takes care of the OMX_CommandMarkBuffer
@@ -528,7 +577,8 @@ void OpenmaxAmrAO::DecodeWithoutMarker()
                                                     (OMX_U32*) & OutputLength,
                                                     &(pTempInBuffer),
                                                     &TempInLength,
-                                                    &iFrameCount);
+                                                    &iFrameCount,
+                                                    &ResizeNeeded);
 
 
             //If decoder returned error, report it to the client via a callback
@@ -545,6 +595,49 @@ void OpenmaxAmrAO::DecodeWithoutMarker()
                  NULL);
             }
 
+            if (ResizeNeeded == OMX_TRUE)
+            {
+                if (0 != OutputLength)
+                {
+                    iOutputFrameLength = OutputLength;
+                }
+
+                iResizePending = OMX_TRUE;
+
+                /* Do not return the output buffer generated yet, store it locally
+                 * and wait for the dynamic port reconfig to complete */
+                if ((NULL == ipTempOutBufferForPortReconfig))
+                {
+                    ipTempOutBufferForPortReconfig = (OMX_U8*) oscl_malloc(sizeof(uint8) * OutputLength);
+                    if (NULL == ipTempOutBufferForPortReconfig)
+                    {
+                        PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_NOTICE, (0, "OpenmaxAmrAO : DecodeWithoutMarker error, insufficient resources"));
+                        return;
+                    }
+                }
+
+                //Copy the omx output buffer to the temporary internal buffer
+                oscl_memcpy(ipTempOutBufferForPortReconfig, pOutBuffer, OutputLength);
+                iSizeOutBufferForPortReconfig = OutputLength;
+
+                iTimestampOutBufferForPortReconfig = iCurrentTimestamp;
+
+                iCurrentTimestamp += OMX_AMR_DEC_FRAME_INTERVAL;
+                //Make this length 0 so that no output buffer is returned by the component
+                OutputLength = 0;
+
+                // send port settings changed event
+                OMX_COMPONENTTYPE* pHandle = (OMX_COMPONENTTYPE*) ipAppPriv->CompHandle;
+
+                (*(ipCallbacks->EventHandler))
+                (pHandle,
+                 iCallbackData,
+                 OMX_EventPortSettingsChanged, //The command was completed
+                 OMX_PORT_OUTPUTPORT_INDEX,
+                 0,
+                 NULL);
+
+            }
 
             ipOutputBuffer->nFilledLen += OutputLength;
 
@@ -617,7 +710,7 @@ void OpenmaxAmrAO::DecodeWithoutMarker()
          * This may block the AO longer than required.
          */
         if ((iTempInputBufferLength != 0 || GetQueueNumElem(pInputQueue) > 0)
-                && (GetQueueNumElem(pOutputQueue) > 0))
+                && (GetQueueNumElem(pOutputQueue) > 0) && (ResizeNeeded == OMX_FALSE))
 
         {
             RunIfNotReady();
@@ -636,13 +729,14 @@ void OpenmaxAmrAO::DecodeWithMarker()
     QueueType* pInputQueue = ipPorts[OMX_PORT_INPUTPORT_INDEX]->pBufferQueue;
     QueueType* pOutputQueue = ipPorts[OMX_PORT_OUTPUTPORT_INDEX]->pBufferQueue;
 
-    ComponentPortType*  pInPort = ipPorts[OMX_PORT_INPUTPORT_INDEX];
-    ComponentPortType*  pOutPort = ipPorts[OMX_PORT_OUTPUTPORT_INDEX];
+    ComponentPortType*	pInPort = ipPorts[OMX_PORT_INPUTPORT_INDEX];
+    ComponentPortType*	pOutPort = ipPorts[OMX_PORT_OUTPUTPORT_INDEX];
 
-    OMX_U8*                 pOutBuffer;
-    OMX_U32                 OutputLength;
-    OMX_BOOL                DecodeReturn = OMX_FALSE;
-    OMX_COMPONENTTYPE*      pHandle = &iOmxComponent;
+    OMX_U8*					pOutBuffer;
+    OMX_U32					OutputLength;
+    OMX_BOOL				DecodeReturn = OMX_FALSE;
+    OMX_COMPONENTTYPE*		pHandle = &iOmxComponent;
+    OMX_BOOL				ResizeNeeded = OMX_FALSE;
 
     if ((!iIsInputBufferEnded) || (iEndofStream))
     {
@@ -679,7 +773,56 @@ void OpenmaxAmrAO::DecodeWithMarker()
             //Set the current timestamp to the output buffer timestamp
             ipOutputBuffer->nTimeStamp = iCurrentTimestamp;
 
+            // Copy the output buffer that was stored locally before dynamic port reconfiguration
+            // in the new omx buffer received.
+            if (OMX_TRUE == iSendOutBufferAfterPortReconfigFlag)
+            {
+                if ((ipTempOutBufferForPortReconfig)
+                        && (iSizeOutBufferForPortReconfig <= ipOutputBuffer->nAllocLen))
+                {
+                    oscl_memcpy(ipOutputBuffer->pBuffer, ipTempOutBufferForPortReconfig, iSizeOutBufferForPortReconfig);
+                    ipOutputBuffer->nFilledLen = iSizeOutBufferForPortReconfig;
+                    ipOutputBuffer->nTimeStamp = iTimestampOutBufferForPortReconfig;
+                }
 
+                iSendOutBufferAfterPortReconfigFlag = OMX_FALSE;
+
+                //Send the output buffer back only when it has become full
+                if ((ipOutputBuffer->nAllocLen - ipOutputBuffer->nFilledLen) < iOutputFrameLength)
+                {
+                    ReturnOutputBuffer(ipOutputBuffer, pOutPort);
+                }
+
+                //Free the temp output buffer
+                if (ipTempOutBufferForPortReconfig)
+                {
+                    oscl_free(ipTempOutBufferForPortReconfig);
+                    ipTempOutBufferForPortReconfig = NULL;
+                    iSizeOutBufferForPortReconfig = 0;
+                }
+
+                //Dequeue new output buffer if required to continue decoding the next frame
+                if (OMX_TRUE == iNewOutBufRequired)
+                {
+                    if (0 == (GetQueueNumElem(pOutputQueue)))
+                    {
+                        PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_NOTICE, (0, "OpenmaxAmrAO :DecodeWithMarker OUT output buffer unavailable"));
+                        return;
+                    }
+
+                    ipOutputBuffer = (OMX_BUFFERHEADERTYPE*) DeQueue(pOutputQueue);
+                    if (NULL == ipOutputBuffer)
+                    {
+                        PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_NOTICE, (0, "OpenmaxAmrAO : DecodeWithMarker Error, Output Buffer Dequeue returned NULL, OUT"));
+                        return;
+                    }
+
+                    ipOutputBuffer->nFilledLen = 0;
+                    iNewOutBufRequired = OMX_FALSE;
+
+                    ipOutputBuffer->nTimeStamp = iCurrentTimestamp;
+                }
+            }
         }
 
         /* Code for the marking buffer. Takes care of the OMX_CommandMarkBuffer
@@ -711,7 +854,8 @@ void OpenmaxAmrAO::DecodeWithMarker()
                                                     (OMX_U32*) & OutputLength,
                                                     &(ipFrameDecodeBuffer),
                                                     &(iInputCurrLength),
-                                                    &iFrameCount);
+                                                    &iFrameCount,
+                                                    &ResizeNeeded);
 
             //If decoder returned error, report it to the client via a callback
             if ((OMX_FALSE == DecodeReturn) && (OMX_FALSE == iEndofStream))
@@ -727,6 +871,54 @@ void OpenmaxAmrAO::DecodeWithMarker()
                  NULL);
             }
 
+            if (ResizeNeeded == OMX_TRUE)
+            {
+                if (0 != OutputLength)
+                {
+                    iOutputFrameLength = OutputLength;
+
+                }
+
+                iResizePending = OMX_TRUE;
+
+                /* Do not return the output buffer generated yet, store it locally
+                 * and wait for the dynamic port reconfig to complete */
+                if ((NULL == ipTempOutBufferForPortReconfig))
+                {
+                    ipTempOutBufferForPortReconfig = (OMX_U8*) oscl_malloc(sizeof(uint8) * OutputLength);
+                    if (NULL == ipTempOutBufferForPortReconfig)
+                    {
+                        PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_NOTICE, (0, "OpenmaxAmrAO : DecodeWithMarker error, insufficient resources"));
+                        return;
+                    }
+                }
+
+                //Copy the omx output buffer to the temporary internal buffer
+                oscl_memcpy(ipTempOutBufferForPortReconfig, pOutBuffer, OutputLength);
+                iSizeOutBufferForPortReconfig = OutputLength;
+
+                iTimestampOutBufferForPortReconfig = iCurrentTimestamp;
+
+                iCurrentTimestamp += OMX_AMR_DEC_FRAME_INTERVAL;
+                //Make this length 0 so that no output buffer is returned by the component
+                OutputLength = 0;
+
+
+                // send port settings changed event
+                OMX_COMPONENTTYPE* pHandle = (OMX_COMPONENTTYPE*) ipAppPriv->CompHandle;
+
+                // set the flag to disable further processing until Client reacts to this
+                //	by doing dynamic port reconfiguration
+
+                (*(ipCallbacks->EventHandler))
+                (pHandle,
+                 iCallbackData,
+                 OMX_EventPortSettingsChanged, //The command was completed
+                 OMX_PORT_OUTPUTPORT_INDEX,
+                 0,
+                 NULL);
+
+            }
 
             ipOutputBuffer->nFilledLen += OutputLength;
             if (OutputLength > 0)
@@ -798,7 +990,7 @@ void OpenmaxAmrAO::DecodeWithMarker()
          * This may block the AO longer than required.
          */
         if ((iInputCurrLength != 0 || GetQueueNumElem(pInputQueue) > 0)
-                && (GetQueueNumElem(pOutputQueue) > 0))
+                && (GetQueueNumElem(pOutputQueue) > 0) && (ResizeNeeded == OMX_FALSE))
         {
             RunIfNotReady();
         }
@@ -863,33 +1055,21 @@ OMX_ERRORTYPE OpenmaxAmrAO::ComponentInit()
     // Added an extra check based on whether client has set nb or wb as Role in
     // SetParameter() for index OMX_IndexParamStandardComponentRole
     OMX_AUDIO_AMRBANDMODETYPE AmrBandMode = ipPorts[OMX_PORT_INPUTPORT_INDEX]->AudioAmrParam.eAMRBandMode;
-
-    if (0 == oscl_strcmp((OMX_STRING)iComponentRole, (OMX_STRING)"audio_decoder.amrnb"))
+    if ((OMX_TRUE == iComponentRoleFlag) && (0 == oscl_strcmp((OMX_STRING)iComponentRole, (OMX_STRING)"audio_decoder.amrnb")))
     {
-        if (OMX_TRUE == iComponentRoleFlag)
+        if ((AmrBandMode < OMX_AUDIO_AMRBandModeNB0) || (AmrBandMode > OMX_AUDIO_AMRBandModeNB7))
         {
-            if ((AmrBandMode < OMX_AUDIO_AMRBandModeNB0) || (AmrBandMode > OMX_AUDIO_AMRBandModeNB7))
-            {
-                //Narrow band component does not support these band modes
-                return OMX_ErrorInvalidComponent;
-            }
+            //Narrow band component does not support these band modes
+            return OMX_ErrorInvalidComponent;
         }
-        // set the fixed frame size
-        iOutputFrameLength = AMR_NB_OUTPUT_FRAME_SIZE_IN_BYTES;
     }
-    else if (0 == oscl_strcmp((OMX_STRING)iComponentRole, (OMX_STRING)"audio_decoder.amrwb"))
+    else if ((OMX_TRUE == iComponentRoleFlag) && (0 == oscl_strcmp((OMX_STRING)iComponentRole, (OMX_STRING)"audio_decoder.amrwb")))
     {
-        if (OMX_TRUE == iComponentRoleFlag)
+        if ((AmrBandMode < OMX_AUDIO_AMRBandModeWB0) || (AmrBandMode > OMX_AUDIO_AMRBandModeWB8))
         {
-            if ((AmrBandMode < OMX_AUDIO_AMRBandModeWB0) || (AmrBandMode > OMX_AUDIO_AMRBandModeWB8))
-            {
-                //Wide band component does not support these band modes
-                return OMX_ErrorInvalidComponent;
-            }
+            //Wide band component does not support these band modes
+            return OMX_ErrorInvalidComponent;
         }
-
-        // set the fixed frame size
-        iOutputFrameLength = AMR_WB_OUTPUT_FRAME_SIZE_IN_BYTES;
     }
 
     //amr lib init
@@ -974,8 +1154,9 @@ void OpenmaxAmrAO::DoSilenceInsertion()
     QueueType* pOutputQueue = ipPorts[OMX_PORT_OUTPUTPORT_INDEX]->pBufferQueue;
     ComponentPortType* pOutPort = ipPorts[OMX_PORT_OUTPUTPORT_INDEX];
 
-    OMX_U8* pOutBuffer = NULL;
-    OMX_U32 OutputLength;
+    OMX_U8*	pOutBuffer = NULL;
+    OMX_U32	OutputLength;
+    //OMX_BOOL ResizeNeeded = OMX_FALSE;
     OMX_BOOL DecodeReturn;
 
 

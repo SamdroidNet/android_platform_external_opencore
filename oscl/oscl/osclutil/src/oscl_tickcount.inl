@@ -58,12 +58,26 @@ OSCL_COND_EXPORT_REF OSCL_INLINE uint32 OsclTickCount::TickCount()
     struct timeval tv;
 
     static struct timeval stv = {0, 0};
-    static  uint32 prev_val = 0;
+    static	uint32 prev_val = 0;
 
     if ((0 == stv.tv_sec) && (0 == stv.tv_usec))
         gettimeofday(&stv, NULL);
 
     gettimeofday(&tv, NULL);
+    if ( stv.tv_sec > tv.tv_sec )
+    {
+	gettimeofday(&stv ,NULL);
+	gettimeofday(&tv ,NULL);
+	prev_val = 0;
+    } else if ( stv.tv_sec == tv.tv_sec ) 
+    {
+    	if ( stv.tv_usec > tv.tv_usec ) 
+	{
+	gettimeofday(&stv ,NULL);
+	gettimeofday(&tv ,NULL);
+	prev_val = 0;
+	}
+    }
     uint32 clk_val = (tv.tv_sec - stv.tv_sec) * 1000 + (tv.tv_usec - stv.tv_usec) / 1000;
 
     if ((clk_val - prev_val) > ROLLBACK_THRESHOLD)

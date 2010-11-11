@@ -32,21 +32,14 @@
 #endif
 
 using namespace android;
-static pthread_key_t ptkey=NULL;
+bool gotkey=false;
+pthread_key_t ptkey=NULL;
 
-static void keydestructor(void*)
+void keydestructor(void*)
 {
     // This thread is about to exit, so we can un-initialize
     // PV for this thread.
     UninitializeForThread();
-}
-
-static pthread_once_t create_tls_entry_once = PTHREAD_ONCE_INIT;
-
-static void CreateTLSEntry() {
-    LOG_ALWAYS_FATAL_IF(
-            0 != pthread_key_create(&ptkey, keydestructor),
-            "Ran out of TLS entries");
 }
 
 template<class DestructClass>
@@ -59,9 +52,22 @@ public:
     }
 };
 
+
 bool InitializeForThread()
 {
-    pthread_once(&create_tls_entry_once, &CreateTLSEntry);
+    // TODO: fix the race condition here that surfaces when
+    // two threads call the initializer at pretty much the
+    // same time. This does not happen in practice, but we
+    // should guard against it anyway.
+
+    if (!gotkey)
+    {
+        if (0 != pthread_key_create(&ptkey, keydestructor)) {
+            LOGE("Out of TLS keys");
+            return false;
+        }
+        gotkey = true;
+    }
 
     if (NULL == pthread_getspecific(ptkey)) {
         // PV hasn't yet been initialized for this thread;

@@ -27,7 +27,7 @@
 #include "pvmf_video.h"
 #include "pvmf_common_audio_decnode.h"
 
-#define LOG_OUTPUT_TO_FILE  1
+#define LOG_OUTPUT_TO_FILE	1
 
 // Define entry point for this DLL
 OSCL_DLL_ENTRY_POINT_DEFAULT()
@@ -462,7 +462,7 @@ void PVRefFileOutput::deleteMediaTransfer(PvmiMIOSession& aSession, PvmiMediaTra
     {
         // All media transfer requests are not completed yet. Do a leave
         OSCL_LEAVE(OsclErrBusy);
-        // return;  This statement was removed to avoid compiler warning for Unreachable Code
+        // return;	This statement was removed to avoid compiler warning for Unreachable Code
     }
 
     if (iPeer)
@@ -708,7 +708,7 @@ PVMFCommandId PVRefFileOutput::CancelCommand(PVMFCommandId aCmdId, const OsclAny
 
     //see if the response is still queued.
     PVMFStatus status = PVMFFailure;
-    for (uint32 i = 0; i < iCommandResponseQueue.size(); i++)
+    for (uint32 i = 0;i < iCommandResponseQueue.size();i++)
     {
         if (iCommandResponseQueue[i].iCmdId == aCmdId)
         {
@@ -1151,7 +1151,7 @@ PVMFCommandId PVRefFileOutput::writeAsync(uint8 aFormatType, int32 aFormatIndex,
                                     uint32 bsize = iVideoWidth * iVideoHeight * 3 / 2;
                                     u = aData + fsize;
                                     v = aData + fsize * 5 / 4;
-                                    for (int j = 0; j < fsize / 4; j++)
+                                    for (int j = 0;j < fsize / 4;j++)
                                     {
                                         ch = u[j];
                                         u[j] = v[j];
@@ -1268,7 +1268,7 @@ void PVRefFileOutput::cancelCommand(PVMFCommandId  command_id)
     //when received so it isn't really possible to cancel.
     //just report completion immediately.
 
-    for (uint32 i = 0; i < iWriteResponseQueue.size(); i++)
+    for (uint32 i = 0;i < iWriteResponseQueue.size();i++)
     {
         if (iWriteResponseQueue[i].iCmdId == command_id)
         {
@@ -1388,6 +1388,9 @@ PVMFStatus PVRefFileOutput::getParametersSync(PvmiMIOSession aSession, PvmiKeyTy
                     aParameters[num_parameter_elements++].value.pChar_value = (char*)PVMF_MIME_AMR_IF2;
                     aParameters[num_parameter_elements++].value.pChar_value = (char*)PVMF_MIME_EVRC;
                     aParameters[num_parameter_elements++].value.pChar_value = (char*)PVMF_MIME_MP3;
+                    aParameters[num_parameter_elements++].value.pChar_value = (char*)PVMF_MIME_AC3;
+                    aParameters[num_parameter_elements++].value.pChar_value = (char*)PVMF_MIME_G711;
+                    aParameters[num_parameter_elements++].value.pChar_value = (char*)PVMF_MIME_G729;
                     aParameters[num_parameter_elements++].value.pChar_value = (char*)PVMF_MIME_ADIF;
                     aParameters[num_parameter_elements++].value.pChar_value = (char*)PVMF_MIME_ADTS;
                     aParameters[num_parameter_elements++].value.pChar_value = (char*)PVMF_MIME_LATM;
@@ -1613,7 +1616,7 @@ void PVRefFileOutput::setParametersSync(PvmiMIOSession aSession,
     OSCL_UNUSED_ARG(aSession);
     aRet_kvp = NULL;
 
-    for (int32 i = 0; i < num_elements; i++)
+    for (int32 i = 0;i < num_elements;i++)
     {
         //Check against known audio parameter keys...
         if (pv_mime_strcmp(aParameters[i].key, MOUT_AUDIO_FORMAT_KEY) == 0)
@@ -1996,6 +1999,9 @@ PVMFStatus PVRefFileOutput::verifyParametersSync(PvmiMIOSession aSession,
                      (pv_mime_strcmp(aParameters[paramind].value.pChar_value, PVMF_MIME_AMR_IF2) == 0) ||
                      (pv_mime_strcmp(aParameters[paramind].value.pChar_value, PVMF_MIME_EVRC) == 0) ||
                      (pv_mime_strcmp(aParameters[paramind].value.pChar_value, PVMF_MIME_MP3) == 0) ||
+                     (pv_mime_strcmp(aParameters[paramind].value.pChar_value, PVMF_MIME_AC3) == 0) ||
+                     (pv_mime_strcmp(aParameters[paramind].value.pChar_value, PVMF_MIME_G711) == 0) ||
+                     (pv_mime_strcmp(aParameters[paramind].value.pChar_value, PVMF_MIME_G729) == 0) ||
                      (pv_mime_strcmp(aParameters[paramind].value.pChar_value, PVMF_MIME_ADIF) == 0) ||
                      (pv_mime_strcmp(aParameters[paramind].value.pChar_value, PVMF_MIME_ADTS) == 0) ||
                      (pv_mime_strcmp(aParameters[paramind].value.pChar_value, PVMF_MIME_LATM) == 0) ||
@@ -2309,7 +2315,7 @@ void PVRefFileOutput::InitializeAVI(int width, int height)
 {
 
     uint32 fsize, bsize;
-    fsize = width * height;          // avi physical frame size
+    fsize = width * height;			 // avi physical frame size
     bsize = width * height * 3;  // frame buffer size
 
     //Init the AVIMainHeader
@@ -2332,7 +2338,7 @@ void PVRefFileOutput::InitializeAVI(int width, int height)
     iAVIStreamHeader.fccType = streamtypeVIDEO;
     /* support only YUV for now */
     iAVIStreamHeader.fccHandler = mmioFOURCC('I', '4', '2', '0'); // BI_RGB
-    iAVIStreamHeader.dwFlags = 0;           // containing AVITF_ flags
+    iAVIStreamHeader.dwFlags = 0;			// containing AVITF_ flags
     iAVIStreamHeader.wPriority = 0;
     iAVIStreamHeader.wLanguage = 0;
     iAVIStreamHeader.dwScale = 1000;
@@ -2356,7 +2362,7 @@ void PVRefFileOutput::InitializeAVI(int width, int height)
     bi_hdr.biYPelsPerMeter = 0;
     bi_hdr.biClrUsed = 0;
     bi_hdr.biClrImportant = 0;
-    bi_hdr.biBitCount = 24;             // every WORD a pixel
+    bi_hdr.biBitCount = 24;				// every WORD a pixel
     bi_hdr.biSizeImage = bsize;
     bi_hdr.biCompression = iAVIStreamHeader.fccHandler;
 }
@@ -2454,7 +2460,7 @@ void PVRefFileOutput::AddChunk(uint8* chunk, uint32 size, uint32 ckid)
     {
         iAVIIndex.offset = iPreviousOffset + size + 8;
         iPreviousOffset = iAVIIndex.offset;
-//      iAVIIndex.offset = 4 + (size + 8) * iVideoCount; //iIndexBuffer.length + size * iVideoCount;
+//		iAVIIndex.offset = 4 + (size + 8) * iVideoCount; //iIndexBuffer.length + size * iVideoCount;
         iVideoCount++;
     }
     iAVIIndex.length = size;
@@ -2592,7 +2598,7 @@ bool PVRefBufferAlloc::queryInterface(const PVUuid& uuid, PVInterface*& aInterfa
     if (PVMFFixedSizeBufferAllocUUID == uuid)
     {
         // Send back ptr to the allocator interface object
-        PVMFFixedSizeBufferAlloc* myInterface   = OSCL_STATIC_CAST(PVMFFixedSizeBufferAlloc*, this);
+        PVMFFixedSizeBufferAlloc* myInterface	= OSCL_STATIC_CAST(PVMFFixedSizeBufferAlloc*, this);
         refCount++; // increment interface refcount before returning ptr
         aInterface = OSCL_STATIC_CAST(PVInterface*, myInterface);
         return true;

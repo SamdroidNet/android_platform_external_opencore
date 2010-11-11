@@ -73,9 +73,9 @@ class PVCmdResponse : public PVMFCmdResp
         }
 
         /**
-         * WILL BE DEPRECATED SINCE IT IS NOT BEING USED. CURRENTLY RETURNS 0
-         * @return Returns the type of Response we get
-         */
+        * WILL BE DEPRECATED SINCE IT IS NOT BEING USED. CURRENTLY RETURNS 0
+        * @return Returns the type of Response we get
+        */
         PVResponseType GetResponseType()const
         {
             return 0;
@@ -107,9 +107,8 @@ class PVCmdResponse : public PVMFCmdResp
 
         /**
          * WILL BE DEPRECATED WHEN PVMFCmdResp REMOVES EVENT DATA
-         * @return Returns additional data asociated with the command.
-         *         This is to be interpreted based on the command issued
-         *         and the return status
+         * @return Returns additional data asociated with the command.  This is to be interpreted
+                   based on the command issued and the return status
          */
         OsclAny* GetResponseData()const
         {
@@ -182,8 +181,8 @@ class PVAsyncInformationalEvent : public PVMFAsyncEvent
         }
 
         /**
-         * @return Returns the opaque data asociated with the event.
-         */
+        * @return Returns the opaque data asociated with the event.
+        */
         void GetEventData(PVExclusivePtr& aPtr)const
         {
             aPtr = PVMFAsyncEvent::GetEventData();
@@ -205,7 +204,7 @@ class PVAsyncErrorEvent : public PVMFAsyncEvent
         PVAsyncErrorEvent(PVEventType aEventType,
                           PVExclusivePtr aEventData = NULL,
                           uint8* aLocalBuffer = NULL,
-                          int32 aLocalBufferSize = 0) :
+                          int32 aLocalBufferSize = 0):
                 PVMFAsyncEvent(PVMFErrorEvent, aEventType, NULL, NULL, aEventData, aLocalBuffer, aLocalBufferSize)
         {
         }
@@ -218,7 +217,7 @@ class PVAsyncErrorEvent : public PVMFAsyncEvent
                           PVInterface* aEventExtInterface,
                           PVExclusivePtr aEventData = NULL,
                           uint8* aLocalBuffer = NULL,
-                          int32 aLocalBufferSize = 0) :
+                          int32 aLocalBufferSize = 0):
                 PVMFAsyncEvent(PVMFErrorEvent, aEventType, aContext, aEventExtInterface, aEventData, aLocalBuffer, aLocalBufferSize)
         {
         }
@@ -246,8 +245,8 @@ class PVAsyncErrorEvent : public PVMFAsyncEvent
         }
 
         /**
-         * @return Returns the opaque data asociated with the event.
-         */
+        * @return Returns the opaque data asociated with the event.
+        */
         void GetEventData(PVExclusivePtr& aPtr)const
         {
             aPtr = PVMFAsyncEvent::GetEventData();

@@ -79,12 +79,30 @@
 #endif
 
 // Macros for AMR header
-#define AMR_HEADER      "#!AMR\n"
-#define AMR_HEADER_SIZE 6
+#define	AMR_HEADER		"#!AMR\n"
+#define AMR_HEADER_SIZE	6
 
 // Macros for AMR-WB header
-#define AMRWB_HEADER        "#!AMR-WB\n"
-#define AMRWB_HEADER_SIZE   9
+#define	AMRWB_HEADER		"#!AMR-WB\n"
+#define AMRWB_HEADER_SIZE	9
+
+// Macros for G711 header
+#define	G711_HEADER		"#!G711\n"
+#define G711_HEADER_SIZE	7
+
+// Macros for EVRC header
+#define	EVRC_HEADER		"#!EVRC\n"
+#define EVRC_HEADER_SIZE	7
+
+// Macros for G729 header
+#define	G729_HEADER		"#!G729\n"
+#define G729_HEADER_SIZE	7
+
+// Macro for MP3
+#define ID3_TAG				"ID3"
+#define ID3_TAG_SIZE		3
+
+#define MP3ENC_HEADER_SIZE	55
 
 ////////////////////////////////////////////////////////////////////////////
 class PVMFFileOutputAlloc : public Oscl_DefAlloc
@@ -162,11 +180,11 @@ typedef PVMFNodeCommandQueue<PVMFFileOutputNodeCommand, PVMFFileOutputNodeAlloca
 #define PVMF_BASEMIMETYPE "pvxxx"
 
 ////////////////////////////////////////////////////////////////////////////
-class PVMFFileOutputNode :  public OsclActiveObject, public PVMFNodeInterface,
-        public PvmfFileOutputNodeConfigInterface,
-        public PvmfComposerSizeAndDurationInterface,
-        public PvmfNodesSyncControlInterface,
-        public PvmiCapabilityAndConfig
+class PVMFFileOutputNode :	public OsclActiveObject, public PVMFNodeInterface,
+            public PvmfFileOutputNodeConfigInterface,
+            public PvmfComposerSizeAndDurationInterface,
+            public PvmfNodesSyncControlInterface,
+            public PvmiCapabilityAndConfig
 {
     public:
         PVMFFileOutputNode(int32 aPriority);

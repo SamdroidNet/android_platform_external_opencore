@@ -126,13 +126,13 @@ PVMFCommandId AndroidAudioOutput::QueryUUID(const PvmfMimeString& aMimeType,
     LOGV("QueryUUID in");
     int32 err;
     OSCL_TRY(err,
-            aUuids.push_back(PVMI_CAPABILITY_AND_CONFIG_PVUUID);
-            if (iActiveTiming) {
+        aUuids.push_back(PVMI_CAPABILITY_AND_CONFIG_PVUUID);
+        if (iActiveTiming) {
             PVUuid uuid;
             iActiveTiming->queryUuid(uuid);
             aUuids.push_back(uuid);
-            }
-            );
+        }
+    );
     return QueueCmdResponse(err == OsclErrNone ? PVMFSuccess : PVMFFailure, aContext);
 }
 
@@ -203,7 +203,7 @@ PVMFCommandId AndroidAudioOutput::DiscardData(PVMFTimestamp aTimestamp, const Os
     if(iActiveTiming){
         LOGV("Force clock update");
         iActiveTiming->ForceClockUpdate();
-    }
+	}
 
     bool sched = false;
     PVMFCommandId audcmdid;
@@ -420,12 +420,14 @@ int AndroidAudioOutput::audout_thread_func()
                         len = 0;
                     }
                 }
-                if (iDataQueued || len) {
-                    LOGV("start");
-                    mAudioSink->start();
-                    state = STARTED;
+                if (iDataQueued || len || data) {
+					LOGV("start");
+					mAudioSink->start();
+					state = STARTED;
                 } else {
                     LOGV("clock running and no data queued - don't start track");
+
+					//Thread.sleep(1000);
                 }
             }
             else{
@@ -519,6 +521,8 @@ int AndroidAudioOutput::audout_thread_func()
         if (iExitAudioThread) {
             LOGV("exit received");
             if (len) sendResponse(cmdid, context, timestamp);
+            iExitAudioThread = false;
+            iAudioThreadReturnSem->Signal();
             break;
         }
 

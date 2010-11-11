@@ -42,17 +42,17 @@ PVA_FF_MovieAtom::PVA_FF_MovieAtom(uint32 fileAuthoringFlags)
 
     // Initializations
 
-    _pAssetInfoCopyRightAtom        = NULL;
-    _pAssetInfoAuthorAtom           = NULL;
-    _pAssetInfoTitleAtom            = NULL;
-    _pAssetInfoDescAtom             = NULL;
-    _pAssetInfoPerformerAtom        = NULL;
-    _pAssetInfoGenreAtom            = NULL;
-    _pAssetInfoRatingAtom           = NULL;
-    _pAssetInfoClassificationAtom   = NULL;
-    _pAssetInfoKeyWordsAtom         = NULL;
-    _pAssetInfoLocationInfoAtom     = NULL;
-    _pAssetInfoKeyAlbumAtom         = NULL;
+    _pAssetInfoCopyRightAtom		= NULL;
+    _pAssetInfoAuthorAtom			= NULL;
+    _pAssetInfoTitleAtom			= NULL;
+    _pAssetInfoDescAtom				= NULL;
+    _pAssetInfoPerformerAtom		= NULL;
+    _pAssetInfoGenreAtom			= NULL;
+    _pAssetInfoRatingAtom			= NULL;
+    _pAssetInfoClassificationAtom	= NULL;
+    _pAssetInfoKeyWordsAtom			= NULL;
+    _pAssetInfoLocationInfoAtom		= NULL;
+    _pAssetInfoKeyAlbumAtom			= NULL;
     _pAssetInfoKeyRecordingYearAtom = NULL;
 
     _oMovieFragmentEnabled = false;
@@ -170,13 +170,13 @@ PVA_FF_MovieAtom::addTrackAtom(PVA_FF_TrackAtom *a)
 }
 
 void
-PVA_FF_MovieAtom::setTargetBitrate(uint32 trackID, uint32 avgBitRate, uint32 maxBitRate, uint32 bufferSizeDB)
+PVA_FF_MovieAtom::setTargetBitRate(uint32 trackID, uint32 bitrate)
 {
     PVA_FF_TrackAtom *track = getMediaTrack(trackID);
 
     if (track != NULL)
     {
-        track->setTargetBitrate(avgBitRate, maxBitRate, bufferSizeDB);
+        track->setTargetBitrate(bitrate);
     }
     return;
 }

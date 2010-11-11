@@ -47,10 +47,9 @@ OSCL_DLL_ENTRY_POINT_DEFAULT()
 OSCL_EXPORT_REF PVFrameAndMetadataInterface *PVFrameAndMetadataFactory::CreateFrameAndMetadataUtility(char *aOutputFormatMIMEType,
         PVCommandStatusObserver* aCmdStatusObserver,
         PVErrorEventObserver *aErrorEventObserver,
-        PVInformationalEventObserver *aInfoEventObserver,
-        bool aHwAccelerated)
+        PVInformationalEventObserver *aInfoEventObserver)
 {
-    return PVFrameAndMetadataUtility::New(aOutputFormatMIMEType, aCmdStatusObserver, aErrorEventObserver, aInfoEventObserver, aHwAccelerated);
+    return PVFrameAndMetadataUtility::New(aOutputFormatMIMEType, aCmdStatusObserver, aErrorEventObserver, aInfoEventObserver);
 }
 
 

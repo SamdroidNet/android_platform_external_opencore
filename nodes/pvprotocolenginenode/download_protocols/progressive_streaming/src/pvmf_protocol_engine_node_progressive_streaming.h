@@ -25,7 +25,7 @@
 
 
 ////////////////////////////////////////////////////////////////////////////////////
-//////  ProgressiveStreamingContainer
+//////	ProgressiveStreamingContainer
 ////////////////////////////////////////////////////////////////////////////////////
 class ProgressiveStreamingContainer : public ProgressiveDownloadContainer
 {
@@ -59,7 +59,7 @@ class ProgressiveStreamingContainer : public ProgressiveDownloadContainer
 
 
 ////////////////////////////////////////////////////////////////////////////////////
-//////  pvProgressiveStreamingOutput
+//////	pvProgressiveStreamingOutput
 ////////////////////////////////////////////////////////////////////////////////////
 class pvProgressiveStreamingOutput : public pvHttpDownloadOutput
 {
@@ -100,7 +100,7 @@ class pvProgressiveStreamingOutput : public pvHttpDownloadOutput
 
 
 ////////////////////////////////////////////////////////////////////////////////////
-//////  progressiveStreamingControl
+//////	progressiveStreamingControl
 ////////////////////////////////////////////////////////////////////////////////////
 class progressiveStreamingControl : public progressiveDownloadControl
 {
@@ -115,7 +115,7 @@ class progressiveStreamingControl : public progressiveDownloadControl
 };
 
 ////////////////////////////////////////////////////////////////////////////////////
-//////  ProgressiveStreamingProgress
+//////	ProgressiveStreamingProgress
 ////////////////////////////////////////////////////////////////////////////////////
 class ProgressiveStreamingProgress : public ProgressiveDownloadProgress
 {
@@ -135,7 +135,7 @@ class ProgressiveStreamingProgress : public ProgressiveDownloadProgress
 
 
 ////////////////////////////////////////////////////////////////////////////////////
-//////  progressiveStreamingEventReporter
+//////	progressiveStreamingEventReporter
 ////////////////////////////////////////////////////////////////////////////////////
 class progressiveStreamingEventReporter : public downloadEventReporter
 {
@@ -153,13 +153,13 @@ class progressiveStreamingEventReporter : public downloadEventReporter
             OSCL_UNUSED_ARG(downloadStatus);
         }
         // in case of progressive streaming, add buffer fullness information into buffer status report
-        OSCL_IMPORT_REF void reportBufferStatusEvent(int aDownloadPercent);
+        OSCL_IMPORT_REF void reportBufferStatusEvent(const uint32 aDownloadPercent);
         // called by reportBufferStatusEvent
         uint32 getBufferFullness();
 };
 
 ////////////////////////////////////////////////////////////////////////////////////
-//////  PVProgressiveStreamingCfgFileContainer
+//////	PVProgressiveStreamingCfgFileContainer
 ////////////////////////////////////////////////////////////////////////////////////
 class PVProgressiveStreamingCfgFileContainer : public PVProgressiveDownloadCfgFileContainer
 {
@@ -179,3 +179,4 @@ class PVProgressiveStreamingCfgFileContainer : public PVProgressiveDownloadCfgFi
 
 
 #endif
+

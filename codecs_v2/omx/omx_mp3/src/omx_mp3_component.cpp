@@ -81,9 +81,15 @@ OSCL_EXPORT_REF OMX_ERRORTYPE Mp3OmxComponentDestructor(OMX_IN OMX_HANDLETYPE pH
 }
 #if DYNAMIC_LOAD_OMX_MP3_COMPONENT
 class Mp3OmxSharedLibraryInterface: public OsclSharedLibraryInterface,
-        public OmxSharedLibraryInterface
+            public OmxSharedLibraryInterface
 {
     public:
+        static Mp3OmxSharedLibraryInterface *Instance()
+        {
+            static Mp3OmxSharedLibraryInterface omxinterface;
+            return &omxinterface;
+        };
+
         OsclAny *QueryOmxComponentInterface(const OsclUuid& aOmxTypeId, const OsclUuid& aInterfaceId)
         {
             if (PV_OMX_MP3DEC_UUID == aOmxTypeId)
@@ -108,6 +114,7 @@ class Mp3OmxSharedLibraryInterface: public OsclSharedLibraryInterface,
             return NULL;
         };
 
+    private:
         Mp3OmxSharedLibraryInterface() {};
 };
 
@@ -116,13 +123,7 @@ extern "C"
 {
     OSCL_EXPORT_REF OsclAny* PVGetInterface()
     {
-        return (OsclAny*) OSCL_NEW(Mp3OmxSharedLibraryInterface, ());
-    }
-
-    OSCL_EXPORT_REF void PVReleaseInterface(OsclSharedLibraryInterface* aInstance)
-    {
-        Mp3OmxSharedLibraryInterface* module = (Mp3OmxSharedLibraryInterface*)aInstance;
-        OSCL_DELETE(module);
+        return Mp3OmxSharedLibraryInterface::Instance();
     }
 }
 
@@ -283,8 +284,6 @@ OMX_ERRORTYPE OpenmaxMp3AO::ConstructComponent(OMX_PTR pAppData, OMX_PTR pProxy)
     pOutPort->AudioParam.nIndex = 0;
     pOutPort->AudioParam.eEncoding = OMX_AUDIO_CodingPCM;
 
-    oscl_strncpy((OMX_STRING)iComponentRole, (OMX_STRING)"audio_decoder.mp3", OMX_MAX_STRINGNAME_SIZE);
-
     iOutputFrameLength = OUTPUT_BUFFER_SIZE_MP3;
 
     if (ipMp3Dec)
@@ -302,7 +301,7 @@ OMX_ERRORTYPE OpenmaxMp3AO::ConstructComponent(OMX_PTR pAppData, OMX_PTR pProxy)
     oscl_memset(ipMp3Dec, 0, sizeof(Mp3Decoder));
 
     iSamplesPerFrame = DEFAULT_SAMPLES_PER_FRAME_MP3;
-    iOutputMicroSecPerFrame = iCurrentFrameTS.GetFrameDuration();
+    iOutputMilliSecPerFrame = iCurrentFrameTS.GetFrameDuration();
 
 #if PROXY_INTERFACE
 
@@ -325,8 +324,8 @@ OMX_ERRORTYPE OpenmaxMp3AO::ConstructComponent(OMX_PTR pAppData, OMX_PTR pProxy)
 
 
 /** This function is called by the omx core when the component
-    * is disposed by the IL client with a call to FreeHandle().
-    */
+	* is disposed by the IL client with a call to FreeHandle().
+	*/
 
 OMX_ERRORTYPE OpenmaxMp3AO::DestroyComponent()
 {
@@ -410,8 +409,8 @@ void OpenmaxMp3AO::ProcessData()
     ComponentPortType* pOutPort = ipPorts[OMX_PORT_OUTPUTPORT_INDEX];
     OMX_COMPONENTTYPE* pHandle = &iOmxComponent;
 
-    OMX_U8* pOutBuffer;
-    OMX_U32 OutputLength;
+    OMX_U8*	pOutBuffer;
+    OMX_U32	OutputLength;
     OMX_S32 DecodeReturn;
     OMX_BOOL ResizeNeeded = OMX_FALSE;
 
@@ -523,7 +522,7 @@ void OpenmaxMp3AO::ProcessData()
         //Mark buffer code ends here
 
         pOutBuffer = &ipOutputBuffer->pBuffer[ipOutputBuffer->nFilledLen];
-        OutputLength = (ipOutputBuffer->nAllocLen - ipOutputBuffer->nFilledLen) >> 1;
+        OutputLength = 0;
 
         /* Copy the left-over data from last input buffer that is stored in temporary
          * buffer to the next incoming buffer.
@@ -558,12 +557,12 @@ void OpenmaxMp3AO::ProcessData()
                 iSamplesPerFrame = OutputLength / ipPorts[OMX_PORT_OUTPUTPORT_INDEX]->AudioPcmMode.nChannels;
 
                 iCurrentFrameTS.SetParameters(ipPorts[OMX_PORT_OUTPUTPORT_INDEX]->AudioPcmMode.nSamplingRate, iSamplesPerFrame);
-                iOutputMicroSecPerFrame = iCurrentFrameTS.GetFrameDuration();
+                iOutputMilliSecPerFrame = iCurrentFrameTS.GetFrameDuration();
 
             }
 
             // set the flag to disable further processing until Client reacts to this
-            //  by doing dynamic port reconfiguration
+            //	by doing dynamic port reconfiguration
             iResizePending = OMX_TRUE;
 
             /* Do not return the output buffer generated yet, store it locally
@@ -651,8 +650,7 @@ void OpenmaxMp3AO::ProcessData()
         {
             ipInputBuffer->nFilledLen = iInputCurrLength;
         }
-        else if ((MP3DEC_INCOMPLETE_FRAME == DecodeReturn) ||
-                 (MP3DEC_OUTPUT_BUFFER_TOO_SMALL == DecodeReturn))
+        else if (MP3DEC_INCOMPLETE_FRAME == DecodeReturn)
         {
             /* If decoder returns MP4AUDEC_INCOMPLETE_FRAME,
              * this indicates the input buffer contains less than a frame data
@@ -660,7 +658,6 @@ void OpenmaxMp3AO::ProcessData()
              */
             oscl_memcpy(ipTempInputBuffer, ipFrameDecodeBuffer, iInputCurrLength);
             iTempInputBufferLength = iInputCurrLength;
-
             ipInputBuffer->nFilledLen = 0;
             iInputCurrLength = 0;
         }
@@ -692,12 +689,8 @@ void OpenmaxMp3AO::ProcessData()
             iInputCurrLength = 0;
         }
 
-        /*
-         *  Send the output buffer back when it has become full
-         *  or when there is not room to hold next decoded output
-         */
-        if ((ipOutputBuffer->nAllocLen - ipOutputBuffer->nFilledLen) < (iOutputFrameLength) ||
-                (MP3DEC_OUTPUT_BUFFER_TOO_SMALL == DecodeReturn))
+        //Send the output buffer back when it has become full
+        if ((ipOutputBuffer->nAllocLen - ipOutputBuffer->nFilledLen) < (iOutputFrameLength))
         {
             ReturnOutputBuffer(ipOutputBuffer, pOutPort);
             ipOutputBuffer = NULL;
@@ -823,7 +816,7 @@ void OpenmaxMp3AO::CheckForSilenceInsertion()
     CurrTimestamp = iCurrentFrameTS.GetCurrentTimestamp();
     TimestampGap = iFrameTimestamp - CurrTimestamp;
 
-    if ((TimestampGap > OMX_HALFRANGE_THRESHOLD) || (TimestampGap < iOutputMicroSecPerFrame && iFrameCount > 0))
+    if ((TimestampGap > OMX_HALFRANGE_THRESHOLD) || (TimestampGap < iOutputMilliSecPerFrame && iFrameCount > 0))
     {
         PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_NOTICE, (0, "OpenmaxMp3AO : CheckForSilenceInsertion OUT - No need to insert silence"));
         return;
@@ -834,9 +827,9 @@ void OpenmaxMp3AO::CheckForSilenceInsertion()
     {
         iSilenceInsertionInProgress = OMX_TRUE;
         //Determine the number of silence frames to insert
-        if (0 != iOutputMicroSecPerFrame)
+        if (0 != iOutputMilliSecPerFrame)
         {
-            iSilenceFramesNeeded = TimestampGap / iOutputMicroSecPerFrame;
+            iSilenceFramesNeeded = TimestampGap / iOutputMilliSecPerFrame;
         }
         PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_NOTICE, (0, "OpenmaxMp3AO : CheckForSilenceInsertion OUT - Silence Insertion required here"));
     }
@@ -849,7 +842,7 @@ void OpenmaxMp3AO::DoSilenceInsertion()
 {
     QueueType* pOutputQueue = ipPorts[OMX_PORT_OUTPUTPORT_INDEX]->pBufferQueue;
     ComponentPortType* pOutPort = ipPorts[OMX_PORT_OUTPUTPORT_INDEX];
-    OMX_U8* pOutBuffer = NULL;
+    OMX_U8*	pOutBuffer = NULL;
 
 
     PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_NOTICE, (0, "OpenmaxMp3AO : DoSilenceInsertion IN"));

@@ -81,7 +81,6 @@ typedef struct PVOMXMasterRegistryStruct
 {
     OMX_U8 CompName[PV_OMX_MAX_COMPONENT_NAME_LENGTH];
     OMX_U8 CompRole[PV_OMX_MAX_COMPONENT_NAME_LENGTH];
-    OMX_BOOL bHWAccelerated;
     OMX_U32 OMXCoreIndex;
     OMX_U32 CompIndex;
 } PVOMXMasterRegistryStruct;
@@ -99,7 +98,7 @@ typedef struct PVOMXCompHandles
 // affect other handles in other instances. In other words, for most purposes - it is safe to search through the array without
 // actually locking it - even if another
 // instance of the player/author modifies this array (by adding or deleting its own component handles) in the meanwhile.
-static OMX_ERRORTYPE GetRegIndexForHandle(OMX_HANDLETYPE hComponent, OMX_U32 &index, OMXMasterCoreGlobalData *data)
+OMX_ERRORTYPE GetRegIndexForHandle(OMX_HANDLETYPE hComponent, OMX_U32 &index, OMXMasterCoreGlobalData *data)
 {
     // we need to first find the handle among instantiated components
     // then we retrieve the core based on component handle
@@ -131,7 +130,7 @@ static OMX_ERRORTYPE GetRegIndexForHandle(OMX_HANDLETYPE hComponent, OMX_U32 &in
 }
 
 // ALL the standard OpenMAX IL core functions are implemented below
-static OMX_ERRORTYPE _OMX_MasterInit(OMXMasterCoreGlobalData *data)
+static OMX_ERRORTYPE _OMX_Init(OMXMasterCoreGlobalData *data)
 {
     OMX_ERRORTYPE Status = OMX_ErrorNone;
     OMX_U32 jj;
@@ -276,11 +275,6 @@ static OMX_ERRORTYPE _OMX_MasterInit(OMXMasterCoreGlobalData *data)
                             strncpy((OMX_STRING)pOMXMasterRegistry[master_index].CompRole, (OMX_STRING)ComponentRoles[role], PV_OMX_MAX_COMPONENT_NAME_LENGTH);
                             pOMXMasterRegistry[master_index].OMXCoreIndex = jj;
                             pOMXMasterRegistry[master_index].CompIndex = component_index;
-                            if (strstr(ComponentName, "OMX.PV.")) {
-                                pOMXMasterRegistry[master_index].bHWAccelerated = OMX_FALSE;
-                            } else {
-                                pOMXMasterRegistry[master_index].bHWAccelerated = OMX_TRUE;
-                            }
                             master_index++;
 
                         }
@@ -312,17 +306,17 @@ static OMX_ERRORTYPE _OMX_MasterInit(OMXMasterCoreGlobalData *data)
 }
 
 //this routine is needed to avoid a longjmp clobber warning
-static void _Try_OMX_MasterInit(int32& aError, OMX_ERRORTYPE& aStatus, OMXMasterCoreGlobalData *data)
+static void _Try_OMX_Init(int32& aError, OMX_ERRORTYPE& aStatus, OMXMasterCoreGlobalData *data)
 {
-    OSCL_TRY(aError, aStatus = _OMX_MasterInit(data););
+    OSCL_TRY(aError, aStatus = _OMX_Init(data););
 }
 //this routine is needed to avoid a longjmp clobber warning
-static void _Try_OMX_MasterCreate(int32& aError, OMXMasterCoreGlobalData*& aData)
+static void _Try_OMX_Create(int32& aError, OMXMasterCoreGlobalData*& aData)
 {
     OSCL_TRY(aError, aData = OSCL_NEW(OMXMasterCoreGlobalData, ()););
 }
 
-OSCL_EXPORT_REF OMX_ERRORTYPE OMX_MasterInit()
+OSCL_EXPORT_REF OMX_ERRORTYPE OMX_Init()
 {
     OMX_ERRORTYPE status = OMX_ErrorNone;
 
@@ -348,7 +342,7 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OMX_MasterInit()
     {
         //First call
         //create the OMX Master Core singleton data
-        _Try_OMX_MasterCreate(error, data);
+        _Try_OMX_Create(error, data);
         if (error != OsclErrNone)
         {
             status = OMX_ErrorInsufficientResources;//some leave happened.
@@ -357,7 +351,7 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OMX_MasterInit()
         //If create succeeded, then init the OMX globals.
         if (status == OMX_ErrorNone)
         {
-            _Try_OMX_MasterInit(error, status, data);
+            _Try_OMX_Init(error, status, data);
             if (error != OsclErrNone)
             {
                 status = OMX_ErrorUndefined;//probably no memory.
@@ -383,7 +377,7 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OMX_MasterInit()
 }
 
 
-static OMX_ERRORTYPE _OMX_MasterDeinit(OMXMasterCoreGlobalData *data)
+static OMX_ERRORTYPE _OMX_Deinit(OMXMasterCoreGlobalData *data)
 {
     OMX_U32 jj;
     OMX_ERRORTYPE Status = OMX_ErrorNone;
@@ -410,7 +404,7 @@ static OMX_ERRORTYPE _OMX_MasterDeinit(OMXMasterCoreGlobalData *data)
         for (jj = 0; jj < data->iNumOMXCores; jj++)
         {
             Status = (*(pInterface[jj]->GetpOMX_Deinit()))();
-            // interface delete will take place as part of library closing
+            OSCL_DELETE(pInterface[jj]);
         }
 
         OSCL_FREE(pInterface);
@@ -426,9 +420,7 @@ static OMX_ERRORTYPE _OMX_MasterDeinit(OMXMasterCoreGlobalData *data)
             if (pLibrary[jj])
             {
                 pLibrary[jj]->Close();
-#if 1 //JJDBG
                 OSCL_DELETE(pLibrary[jj]);
-#endif
             }
         }
         OSCL_FREE(pLibrary);
@@ -440,18 +432,18 @@ static OMX_ERRORTYPE _OMX_MasterDeinit(OMXMasterCoreGlobalData *data)
 }
 
 //this routine is needed to avoid a longjmp clobber warning.
-static void _Try_OMX_MasterDeinit(int32 &aError, OMX_ERRORTYPE& aStatus, OMXMasterCoreGlobalData* data)
+static void _Try_OMX_Deinit(int32 &aError, OMX_ERRORTYPE& aStatus, OMXMasterCoreGlobalData* data)
 {
-    OSCL_TRY(aError, aStatus = _OMX_MasterDeinit(data););
+    OSCL_TRY(aError, aStatus = _OMX_Deinit(data););
 }
 
 //this routine is needed to avoid a longjmp clobber warning.
-static void _Try_Data_MasterCleanup(int32 &aError, OMXMasterCoreGlobalData* aData)
+static void _Try_Data_Cleanup(int32 &aError, OMXMasterCoreGlobalData* aData)
 {
     OSCL_TRY(aError, OSCL_DELETE(aData););
 }
 
-OSCL_EXPORT_REF OMX_ERRORTYPE OMX_MasterDeinit()
+OSCL_EXPORT_REF OMX_ERRORTYPE OMX_Deinit()
 {
     OMX_ERRORTYPE status = OMX_ErrorNone;
 
@@ -466,12 +458,12 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OMX_MasterDeinit()
         {
 
             //Cleanup the OMX globals.
-            _Try_OMX_MasterDeinit(error, status, data);
+            _Try_OMX_Deinit(error, status, data);
             if (error != OsclErrNone)
                 status = OMX_ErrorUndefined;//some leave happened.
 
             //Regardless of the cleanup result, cleanup the OMX singleton.
-            _Try_Data_MasterCleanup(error, data);
+            _Try_Data_Cleanup(error, data);
             data = NULL;
             if (error != OsclErrNone)
                 status = OMX_ErrorUndefined;//some leave happened.
@@ -486,7 +478,7 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OMX_MasterDeinit()
 }
 
 
-OSCL_EXPORT_REF OMX_ERRORTYPE OMX_APIENTRY OMX_MasterComponentNameEnum(
+OSCL_EXPORT_REF OMX_ERRORTYPE OMX_APIENTRY OMX_ComponentNameEnum(
     OMX_OUT OMX_STRING cComponentName,
     OMX_IN  OMX_U32 nNameLength,
     OMX_IN  OMX_U32 nIndex)
@@ -531,12 +523,11 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OMX_APIENTRY OMX_MasterComponentNameEnum(
     }
 }
 
-OSCL_EXPORT_REF OMX_ERRORTYPE OMX_APIENTRY   OMX_MasterGetHandle(
+OSCL_EXPORT_REF OMX_ERRORTYPE OMX_APIENTRY   OMX_GetHandle(
     OMX_OUT OMX_HANDLETYPE* pHandle,
     OMX_IN  OMX_STRING cComponentName,
     OMX_IN  OMX_PTR pAppData,
-    OMX_IN  OMX_CALLBACKTYPE* pCallBacks,
-    OMX_BOOL bHWAccelerated)
+    OMX_IN  OMX_CALLBACKTYPE* pCallBacks)
 {
     OMX_ERRORTYPE Status = OMX_ErrorNone;
     OMX_U32 ii, kk;
@@ -563,51 +554,26 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OMX_APIENTRY   OMX_MasterGetHandle(
             return OMX_ErrorInsufficientResources;
         }
 
-        OMX_S32 hwCodecFoundWhenSoftwareCodecIsRequested = -1;
         for (ii = 0; ii < (data->iTotalNumOMXComponents); ii++)
         {
             // go through the list of supported components and find the component based on its name (identifier)
             if (!oscl_strcmp((OMX_STRING)pOMXMasterRegistry[ii].CompName, cComponentName))
             {
-                // when we are not requesting a HW accelelrated codec
-                // we prefer to find a software-based codec.
-                if (!bHWAccelerated) {
-                    if (!pOMXMasterRegistry[ii].bHWAccelerated)
-                    {
-                        break;
-                    }
-                    else if (hwCodecFoundWhenSoftwareCodecIsRequested == -1)
-                    {
-                        // Store the first hardware-based codec found
-                        // In case we could not find any software-based codec, we will
-                        // use this hareware-based codec
-                        hwCodecFoundWhenSoftwareCodecIsRequested = ii;
-                    }
-                } else {
-                    break;
-                }
+                // found a matching name
+                break;
             }
         }
         if (ii == (data->iTotalNumOMXComponents))
         {
-            if (hwCodecFoundWhenSoftwareCodecIsRequested == -1)
+            // could not find a component with the given name
+            OsclSingletonRegistry::registerInstanceAndUnlock(data, OSCL_SINGLETON_ID_OMXMASTERCORE, error);
+            if (error)
             {
-                // could not find ANY component with the given name
-                OsclSingletonRegistry::registerInstanceAndUnlock(data, OSCL_SINGLETON_ID_OMXMASTERCORE, error);
-                if (error)
-                {
-                    //registry error
-                    Status = OMX_ErrorUndefined;
-                    return Status;
-                }
-                return OMX_ErrorComponentNotFound;
+                //registry error
+                Status = OMX_ErrorUndefined;
+                return Status;
             }
-            else
-            {
-                // we have not found a sw-based codec while requesting sw-based codecs.
-                // but we found a hw-based codec, and as a last resort, use it anyway.
-                ii = hwCodecFoundWhenSoftwareCodecIsRequested;
-            }
+            return OMX_ErrorComponentNotFound;
         }
 
         // call the appropriate GetHandle for the component
@@ -660,7 +626,7 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OMX_APIENTRY   OMX_MasterGetHandle(
 
 }
 
-OSCL_EXPORT_REF OMX_ERRORTYPE OMX_APIENTRY OMX_MasterFreeHandle(OMX_IN OMX_HANDLETYPE hComponent)
+OSCL_EXPORT_REF OMX_ERRORTYPE OMX_APIENTRY OMX_FreeHandle(OMX_IN OMX_HANDLETYPE hComponent)
 {
     OMX_ERRORTYPE Status = OMX_ErrorNone;
     OMX_U32 RegIndex;
@@ -715,7 +681,7 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OMX_APIENTRY OMX_MasterFreeHandle(OMX_IN OMX_HANDL
     }
 }
 
-OSCL_EXPORT_REF OMX_ERRORTYPE OMX_MasterSetupTunnel(
+OSCL_EXPORT_REF OMX_ERRORTYPE OMX_SetupTunnel(
     OMX_IN  OMX_HANDLETYPE hOutput,
     OMX_IN  OMX_U32 nPortOutput,
     OMX_IN  OMX_HANDLETYPE hInput,
@@ -776,7 +742,7 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OMX_MasterSetupTunnel(
     }
 }
 
-OSCL_EXPORT_REF OMX_ERRORTYPE OMX_MasterGetContentPipe(
+OSCL_EXPORT_REF OMX_ERRORTYPE OMX_GetContentPipe(
     OMX_OUT OMX_HANDLETYPE *hPipe,
     OMX_IN OMX_STRING szURI)
 {
@@ -815,7 +781,7 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OMX_MasterGetContentPipe(
     return Status;
 }
 
-OSCL_EXPORT_REF OMX_ERRORTYPE OMX_MasterGetComponentsOfRole(
+OSCL_EXPORT_REF OMX_ERRORTYPE OMX_GetComponentsOfRole(
     OMX_IN      OMX_STRING role,
     OMX_INOUT   OMX_U32 *pNumComps,
     OMX_INOUT   OMX_U8  **compNames)
@@ -858,7 +824,7 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OMX_MasterGetComponentsOfRole(
 }
 
 
-OSCL_EXPORT_REF OMX_ERRORTYPE OMX_MasterGetRolesOfComponent(
+OSCL_EXPORT_REF OMX_ERRORTYPE OMX_GetRolesOfComponent(
     OMX_IN      OMX_STRING compName,
     OMX_INOUT   OMX_U32* pNumRoles,
     OMX_OUT     OMX_U8** roles)
@@ -935,19 +901,29 @@ OMX_BOOL PV_OMXConfigParser(
                 aInputs.iMimeType = PVMF_MIME_AMR;
 
             }
-            else if (0 == oscl_strcmp(pInputs->cComponentRole, (OMX_STRING)"audio_decoder.amrnb"))
-            {
-                aInputs.iMimeType = PVMF_MIME_AMR;
-
-            }
-            else if (0 == oscl_strcmp(pInputs->cComponentRole, (OMX_STRING)"audio_decoder.amrwb"))
-            {
-                aInputs.iMimeType = PVMF_MIME_AMRWB;
-
-            }
             else if (0 == oscl_strcmp(pInputs->cComponentRole, (OMX_STRING)"audio_decoder.mp3"))
             {
                 aInputs.iMimeType = PVMF_MIME_MP3;
+
+            }
+            else if (0 == oscl_strcmp(pInputs->cComponentRole, (OMX_STRING)"audio_decoder.ac3"))
+            {
+                aInputs.iMimeType = PVMF_MIME_AC3;
+
+            }
+			else if (0 == oscl_strcmp(pInputs->cComponentRole, (OMX_STRING)"audio_decoder.g711"))
+            {
+                aInputs.iMimeType = PVMF_MIME_G711;
+
+            }
+            else if (0 == oscl_strcmp(pInputs->cComponentRole, (OMX_STRING)"audio_decoder.evrc"))
+			{
+				aInputs.iMimeType = PVMF_MIME_EVRC;
+
+            }
+            else if (0 == oscl_strcmp(pInputs->cComponentRole, (OMX_STRING)"audio_decoder.g729"))
+		    {
+		        aInputs.iMimeType = PVMF_MIME_G729;
 
             }
             else
@@ -1016,7 +992,7 @@ OMX_BOOL PV_OMXConfigParser(
     return OMX_TRUE;
 }
 
-OSCL_EXPORT_REF OMX_BOOL OMX_MasterConfigParser(
+OSCL_EXPORT_REF OMX_BOOL OMXConfigParser(
     OMX_PTR aInputParameters,
     OMX_PTR aOutputParameters)
 

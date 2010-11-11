@@ -18,12 +18,20 @@
 #ifndef PVMF_JITTER_BUFFER_COMMON_TYPES_H_INCLUDED
 #define PVMF_JITTER_BUFFER_COMMON_TYPES_H_INCLUDED
 
+#ifndef OSCL_BASE_H_INCLUDED
 #include "oscl_base.h"
+#endif
+
+#ifndef OSCL_STRING_CONTAINERS_H_INCLUDED
 #include "oscl_string_containers.h"
+#endif
+
+#ifndef PVMF_SM_TUNABLES_H_INCLUDED
 #include "pvmf_sm_tunables.h"
+#endif
 
 //Jitter buffer node specific leave codes
-#define JBPacketRegistrationConfigurationCorrupted  1000
+#define JBPacketRegistrationConfigurationCorrupted	1000
 
 
 enum PVMFJitterBufferDataState
@@ -132,7 +140,7 @@ class PVMFJitterBufferConstructParams
                                         , OSCL_HeapString<OsclMemAllocator>& aMimeType
                                         , PVMFJBEventNotifier& aJBEventNotifier
                                         , bool& aDelayEstablished
-                                        , int& aJitterDelayPercent
+                                        , uint32& aJitterDelayPercent
                                         , PVMFJitterBufferDataState& aJitterBufferDataState
                                         , PVMFJitterBufferObserver* const aObserver
                                         , OsclAny* const aContext)
@@ -147,17 +155,17 @@ class PVMFJitterBufferConstructParams
                 , ipContextData(aContext)
         {}
 
-        PVMFMediaClock& GetEstimatedServerClock() const
+        PVMFMediaClock&	GetEstimatedServerClock() const
         {
             return irEstimatedServerClock;
         }
 
-        PVMFMediaClock& GetClientPlaybackClock() const
+        PVMFMediaClock&	GetClientPlaybackClock() const
         {
             return irClientPlaybackClock;
         }
 
-        OSCL_HeapString<OsclMemAllocator>&  GetMimeType() const
+        OSCL_HeapString<OsclMemAllocator>&	GetMimeType() const
         {
             return irMimeType;
         }
@@ -167,7 +175,7 @@ class PVMFJitterBufferConstructParams
             return irDelayEstablished;
         }
 
-        int& GetJBDelayPercent() const
+        uint32& GetJBDelayPercent() const
         {
             return irJitterDelayPercent;
         }
@@ -182,7 +190,7 @@ class PVMFJitterBufferConstructParams
             return ipObserver;
         }
 
-        OsclAny* const  GetContextData() const
+        OsclAny* const	GetContextData() const
         {
             return ipContextData;
         }
@@ -193,15 +201,15 @@ class PVMFJitterBufferConstructParams
         }
 
     private:
-        PVMFMediaClock& irEstimatedServerClock;
-        PVMFMediaClock& irClientPlaybackClock;
+        PVMFMediaClock&	irEstimatedServerClock;
+        PVMFMediaClock&	irClientPlaybackClock;
         OSCL_HeapString<OsclMemAllocator>& irMimeType;
-        PVMFJBEventNotifier&    irJBEventNotifier;
+        PVMFJBEventNotifier&	irJBEventNotifier;
         bool& irDelayEstablished;
-        int& irJitterDelayPercent;
-        PVMFJitterBufferDataState&  irJitterBufferState;
-        PVMFJitterBufferObserver *const ipObserver;
-        OsclAny* const  ipContextData;
+        uint32& irJitterDelayPercent;
+        PVMFJitterBufferDataState&	irJitterBufferState;
+        PVMFJitterBufferObserver *const	ipObserver;
+        OsclAny* const	ipContextData;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

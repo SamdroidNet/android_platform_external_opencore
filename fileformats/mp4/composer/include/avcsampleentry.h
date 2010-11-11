@@ -23,8 +23,7 @@
 #include "oscl_file_io.h"
 #include "avcconfigurationatom.h"
 #include "decoderspecificinfo.h"
-#include "sampleentry.h"
-#include "mpeg4bitrateatom.h"
+#include"sampleentry.h"
 
 class PVA_FF_AVCSampleEntry : public PVA_FF_SampleEntry
 {
@@ -33,7 +32,6 @@ class PVA_FF_AVCSampleEntry : public PVA_FF_SampleEntry
         PVA_FF_AVCSampleEntry(uint8 profile = 1, uint8 profileComp = 0xFF, uint8 level = 0xFF);
         virtual ~PVA_FF_AVCSampleEntry();
         void setVideoParam(int16 width, int16 height);
-        void setBitrate(uint32 BufferSizeDB, uint32 MaxBitRate, uint32 AvgBitRate);
         void setSample(void* sample, uint32 size)
         {
 
@@ -76,7 +74,6 @@ class PVA_FF_AVCSampleEntry : public PVA_FF_SampleEntry
         int16  _predefined4;
 
         PVA_FF_AVCConfigurationAtom          *_pAVCConfigurationAtom;
-        PVA_FF_Mpeg4Bitrate                  *_pMpeg4BitrateAtom;
 };
 
 

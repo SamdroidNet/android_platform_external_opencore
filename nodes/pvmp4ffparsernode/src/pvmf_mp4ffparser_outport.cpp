@@ -74,6 +74,10 @@ bool PVMFMP4FFParserOutPort::IsFormatSupported(PVMFFormatType aFmt)
             aFmt == PVMF_MIME_H2632000 ||
             aFmt == PVMF_MIME_H264_VIDEO_MP4 ||
             aFmt == PVMF_MIME_MPEG4_AUDIO ||
+			/* Mobile Media Lab. Start */
+			/* to support MP3 file format */
+            aFmt == PVMF_MIME_MP3 || 
+			/* Mobile Media Lab. Start */
             aFmt == PVMF_MIME_AMR_IETF ||
             aFmt == PVMF_MIME_3GPP_TIMEDTEXT)
     {

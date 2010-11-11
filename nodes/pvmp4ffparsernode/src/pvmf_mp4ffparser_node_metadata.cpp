@@ -105,9 +105,9 @@ static const char PVMP4METADATA_MAXSIZE[] = "maxsize=";
 static const char PVMP4METADATA_REQ_SIZE[] = "reqsize=";
 static const char PVMP4METADATA_ORIG_CHAR_ENC[] = "orig-char-enc=";
 
-#define PVMF_MP4_MIME_FORMAT_AUDIO_UNKNOWN  "x-pvmf/audio/unknown"
-#define PVMF_MP4_MIME_FORMAT_VIDEO_UNKNOWN  "x-pvmf/video/unknown"
-#define PVMF_MP4_MIME_FORMAT_UNKNOWN        "x-pvmf/unknown-media/unknown"
+#define PVMF_MP4_MIME_FORMAT_AUDIO_UNKNOWN	"x-pvmf/audio/unknown"
+#define PVMF_MP4_MIME_FORMAT_VIDEO_UNKNOWN	"x-pvmf/video/unknown"
+#define PVMF_MP4_MIME_FORMAT_UNKNOWN		"x-pvmf/unknown-media/unknown"
 
 #define MILLISECOND_TIMESCALE (1000)
 #define PVMF_MP4_MAX_UINT32   (0xffffffffU)
@@ -785,6 +785,16 @@ uint32 PVMFMP4FFParserNode::GetNumMetadataValues(PVMFMetadataList& aKeyList)
                         ++numvalentries;
                     }
                 }
+				/* Mobile Media Lab. Start */
+				/* For supporting MP3 file format */
+                else if (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_MP3, oscl_strlen(PVMF_MIME_MP3)) == 0)
+                {
+                    if (tracktype == 2)
+                    {
+                        ++numvalentries;
+                    }
+                }
+				/* Mobile Media Lab. End */
                 else if ((oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMR_IETF, oscl_strlen(PVMF_MIME_AMR_IETF)) == 0) ||
                          (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMRWB_IETF, oscl_strlen(PVMF_MIME_AMRWB_IETF)) == 0))
                 {
@@ -1093,20 +1103,20 @@ PVMFStatus PVMFMP4FFParserNode::ReleaseNodeMetadataValues(Oscl_Vector<PvmiKvp, O
                 case PVMI_KVPVALTYPE_KSV:
 
 
-                    /*              if (aValueList[i].value.key_specific_value != NULL)
-                                     {
+                    /*				if (aValueList[i].value.key_specific_value != NULL)
+                    				 {
 
-                                            if( ((PvmfApicStruct *)aValueList[i].value.key_specific_value)->iGraphicData != NULL)
-                                            {
-                                                oscl_free(((PvmfApicStruct *)aValueList[i].value.key_specific_value)->iGraphicData);                                            //OSCL_DEFAULT_FREE(((PvmfApicStruct *)aValueKVP.value.key_specific_value)->iGraphicMimeType);
-                                                ((PvmfApicStruct *)aValueList[i].value.key_specific_value)->iGraphicData=NULL;
-                                            }
+                    				     	if( ((PvmfApicStruct *)aValueList[i].value.key_specific_value)->iGraphicData != NULL)
+                    						{
+                    							oscl_free(((PvmfApicStruct *)aValueList[i].value.key_specific_value)->iGraphicData);											//OSCL_DEFAULT_FREE(((PvmfApicStruct *)aValueKVP.value.key_specific_value)->iGraphicMimeType);
+                     							((PvmfApicStruct *)aValueList[i].value.key_specific_value)->iGraphicData=NULL;
+                    						}
 
-                                            OSCL_DELETE(((PvmfApicStruct *)aValueList[i].value.key_specific_value));
+                    						OSCL_DELETE(((PvmfApicStruct *)aValueList[i].value.key_specific_value));
 
-                                            aValueList[i].value.key_specific_value=NULL;
+                    						aValueList[i].value.key_specific_value=NULL;
 
-                                    }
+                    				}
                     */
                     break;
 
@@ -1190,6 +1200,10 @@ int32 PVMFMP4FFParserNode::CountMetaDataKeys()
             NumMetaDataKeysAvailable += 4;
         }
         if ((oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_MPEG4_AUDIO, oscl_strlen(PVMF_MIME_MPEG4_AUDIO)) == 0) ||
+				/* Mobile Media Lab. Start */
+				/* to support MP3 file format */
+                (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_MP3, oscl_strlen(PVMF_MIME_MP3)) == 0) ||
+				/* Mobile Media Lab. End */
                 (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMR, oscl_strlen(PVMF_MIME_AMR)) == 0) ||
                 (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMR_IETF, oscl_strlen(PVMF_MIME_AMR_IETF)) == 0) ||
                 (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMRWB_IETF, oscl_strlen(PVMF_MIME_AMRWB_IETF)) == 0))
@@ -1419,15 +1433,26 @@ PVMFStatus PVMFMP4FFParserNode::InitMetaData()
             {
                 PushToAvailableMetadataKeysList(PVMP4METADATA_TRACKINFO_FRAME_RATE_KEY, indexparam);
             }
-            if (PVMFSuccess == PopulateVideoDimensions(trackID))
+			/* Mobile Media Lab. Start */
+			PVMFStatus st = PopulateVideoDimensions(trackID);
+            if (st != PVMFSuccess)
+            {
+				return PVMFFailure;
+            }
+			else
             {
                 PushToAvailableMetadataKeysList(PVMP4METADATA_TRACKINFO_VIDEO_WIDTH_KEY, indexparam);
                 PushToAvailableMetadataKeysList(PVMP4METADATA_TRACKINFO_VIDEO_HEIGHT_KEY, indexparam);
             }
+			/* Mobile Media Lab. End */
             PushToAvailableMetadataKeysList(PVMP4METADATA_TRACKINFO_VIDEO_FORMAT_KEY, indexparam);
         }
 
         if ((oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_MPEG4_AUDIO, oscl_strlen(PVMF_MIME_MPEG4_AUDIO)) == 0) ||
+				/* Mobile Media Lab. Start */	
+				/* to support MP3 file format */
+                (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_MP3, oscl_strlen(PVMF_MIME_MP3)) == 0) ||
+				/* Mobile Media Lab. End */
                 (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMR, oscl_strlen(PVMF_MIME_AMR)) == 0) ||
                 (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMR_IETF, oscl_strlen(PVMF_MIME_AMR_IETF)) == 0) ||
                 (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMRWB_IETF, oscl_strlen(PVMF_MIME_AMRWB_IETF)) == 0))
@@ -3916,6 +3941,20 @@ PVMFStatus PVMFMP4FFParserNode::DoGetMetadataValues(PVMFMP4FFParserNodeCommand& 
                                 PVMFCreateKVPUtils::CreateKVPForCharStringValue(trackkvp, PVMP4METADATA_TRACKINFO_TYPE_KEY, _STRLIT_CHAR(PVMF_MIME_MPEG4_AUDIO), indexparam);
                         }
                     }
+                    /* Mobile Media Lab. Start */
+                    /* For supporting MP3 file format */
+                    else if (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_MP3, oscl_strlen(PVMF_MIME_MP3)) == 0)
+                    {
+                        // Increment the counter for the number of values found so far
+                        ++numvalentries;
+                        // Add the value entry if past the starting index
+                        if (numvalentries > starting_index)
+                        {
+                            retval =
+                            PVMFCreateKVPUtils::CreateKVPForCharStringValue(trackkvp, PVMP4METADATA_TRACKINFO_TYPE_KEY, _STRLIT_CHAR(PVMF_MIME_MP3), indexparam);
+                        }
+                    }
+					/* Mobile Media Lab. End */
                     else if ((oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMR_IETF, oscl_strlen(PVMF_MIME_AMR_IETF)) == 0) ||
                              (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMRWB_IETF, oscl_strlen(PVMF_MIME_AMRWB_IETF)) == 0))
                     {
@@ -4427,6 +4466,21 @@ PVMFStatus PVMFMP4FFParserNode::DoGetMetadataValues(PVMFMP4FFParserNodeCommand& 
                             }
                         }
                     }
+                    /* Mobile Media Lab. Start */
+                    /* For supporting MP3 file format */
+                    else if (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_MP3, oscl_strlen(PVMF_MIME_MP3)) == 0)
+                    {
+                        if (tracktype == 2)
+                        {
+                            ++numvalentries;
+                            if (numvalentries > starting_index)
+                            {
+                                retval =
+        							PVMFCreateKVPUtils::CreateKVPForCharStringValue(trackkvp, PVMP4METADATA_TRACKINFO_AUDIO_FORMAT_KEY, _STRLIT_CHAR(PVMF_MIME_MP3), indexparam);
+                            }
+                        }
+                    }
+					/* Mobile Media Lab. End */
                     else if ((oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMR_IETF, oscl_strlen(PVMF_MIME_AMR_IETF)) == 0) ||
                              (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMRWB_IETF, oscl_strlen(PVMF_MIME_AMRWB_IETF)) == 0))
                     {
@@ -5273,6 +5327,6 @@ PVMFStatus PVMFMP4FFParserNode::PushValueToList(Oscl_Vector<OSCL_HeapString<Oscl
 {
     int32 leavecode = 0;
     OSCL_TRY(leavecode, aKeyListPtr->push_back(aRefMetaDataKeys[aLcv]));
-    OSCL_FIRST_CATCH_ANY(leavecode, PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR, (0, "PVMFMP4FFParserNode::PushValueToList() Memory allocation failure when copying metadata key")); return PVMFErrNoMemory);
+    OSCL_FIRST_CATCH_ANY(leavecode, PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR, (0, "PVMFMP4FFParserNode::PushValueToList() Memory allocation failure when copying metadata key"));return PVMFErrNoMemory);
     return PVMFSuccess;
 }

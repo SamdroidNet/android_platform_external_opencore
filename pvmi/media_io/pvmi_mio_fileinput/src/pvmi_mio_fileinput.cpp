@@ -725,8 +725,7 @@ PvmiMIOFileInput::PvmiMIOFileInput(const PvmiMIOFileInputSettings& aSettings)
         iAuthoringDuration(0),
         iStreamDuration(0),
         iFormatSpecificInfoSize(0),
-        iFSIKvp(NULL),
-        iPeerCapConfig(NULL)
+        iFSIKvp(NULL)
 {
 
 }
@@ -1034,7 +1033,7 @@ PVMFStatus PvmiMIOFileInput::DoInit()
         offset = offset + 4;
 
         //iLogFile.Seek( offset, Oscl_File::SEEKSET );  //the information
-        iLogFile.Read(&bitrate, sizeof(char), 4);       //present in the log file
+        iLogFile.Read(&bitrate, sizeof(char), 4);		//present in the log file
         offset = offset + 4;
 
         //iLogFile.Seek( offset, Oscl_File::SEEKSET );
@@ -1219,7 +1218,11 @@ PVMFStatus PvmiMIOFileInput::DoInit()
     else if (iSettings.iMediaFormat == PVMF_MIME_ADTS ||
              iSettings.iMediaFormat == PVMF_MIME_ADIF ||
              iSettings.iMediaFormat == PVMF_MIME_MPEG4_AUDIO ||
-             iSettings.iMediaFormat == PVMF_MIME_MP3)
+             iSettings.iMediaFormat == PVMF_MIME_MP3 ||
+             iSettings.iMediaFormat == PVMF_MIME_AC3 ||
+             iSettings.iMediaFormat == PVMF_MIME_G711 ||
+             iSettings.iMediaFormat == PVMF_MIME_EVRC ||
+             iSettings.iMediaFormat == PVMF_MIME_G729)
     {
         int32 frameSize;
         uint32 bytesProcessed;
@@ -1418,7 +1421,11 @@ PVMFStatus PvmiMIOFileInput::DoRead()
              iSettings.iMediaFormat == PVMF_MIME_ADTS ||
              iSettings.iMediaFormat == PVMF_MIME_MPEG4_AUDIO ||
              iSettings.iMediaFormat == PVMF_MIME_ADIF ||
-             iSettings.iMediaFormat == PVMF_MIME_MP3)
+             iSettings.iMediaFormat == PVMF_MIME_MP3 || 
+             iSettings.iMediaFormat == PVMF_MIME_AC3 ||
+             iSettings.iMediaFormat == PVMF_MIME_G711 ||
+             iSettings.iMediaFormat == PVMF_MIME_EVRC ||
+             iSettings.iMediaFormat == PVMF_MIME_G729)
     {
         bytesToRead = iFrameSizeVector[iDataEventCounter % iTotalNumFrames];
         timeStamp = iTimeStamp;
@@ -1506,7 +1513,7 @@ PVMFStatus PvmiMIOFileInput::DoRead()
                     return PVMFFailure;
                 }
             }
-            else    //EOS Reached
+            else	//EOS Reached
             {
                 //free the allocated data buffer
                 iMediaBufferMemPool->deallocate(data);
@@ -1761,7 +1768,7 @@ int32 PvmiMIOFileInput::LocateM4VFrameHeader(uint8* video_buffer, int32 vop_size
     }
     while (start_code != 0xb6 /* VOP */ && start_code != 0xb3 /* GOV */);
 
-    return idx - 3;
+    return idx -3;
 }
 
 
@@ -1801,7 +1808,7 @@ int32 PvmiMIOFileInput::LocateH263FrameHeader(uint8 *video_buffer, int32 vop_siz
     }
     while ((video_buffer[idx] & 0xfc) != 0x80);
 
-    return idx - 2;
+    return idx -2;
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -1866,12 +1873,6 @@ PVMFStatus PvmiMIOFileInput::VerifyAndSetParameter(PvmiKvp* aKvp, bool aSetParam
                      aKvp->value.pChar_value));
             return PVMFFailure;
         }
-    }
-    else if (pv_mime_strcmp(aKvp->key, PVMF_MEDIA_INPUT_NODE_CAP_CONFIG_INTERFACE_KEY) == 0)
-    {
-        iPeerCapConfig = OSCL_STATIC_CAST(PvmiCapabilityAndConfig*, aKvp->value.key_specific_value);
-        LOG_DEBUG((0, "PvmiMIOFileInput::VerifyAndSetParameter: PVMF_MEDIA_INPUT_NODE_CAP_CONFIG_INTERFACE_KEY - Ptr=0x%x", iPeerCapConfig));
-        return PVMFSuccess;
     }
 
     LOG_ERR((0, "PvmiMIOFileInput::VerifyAndSetParameter: Error - Unsupported parameter"));
@@ -1970,6 +1971,7 @@ PVMFStatus PvmiMIOFileInput::Get_Timed_Config_Info()
 
 
     char* buff = iptextfiledata;
+    char* tempbuff = iptextfiledata;
     uint32 valsize = 10;
     char* val = (char*)OSCL_MALLOC(valsize * sizeof(char));
     uint32 temp = 0;
@@ -2225,78 +2227,46 @@ PVMFStatus PvmiMIOFileInput::Get_Timed_Config_Info()
             break;
         }
         PV_atoi(val, 'd', (uint32&)ipDecoderinfo->end_sample_num);
+
         uint32 length = sizeof(ipDecoderinfo) + 2 * DEFAULT_RGB_ARRAY_SIZE + ipDecoderinfo->font_length;
+
+        PvmiMediaXferHeader data_hdr;
+
+
         //allocate KVP
         PvmiKvp* aKvp = NULL;
         PVMFStatus status = PVMFSuccess;
         status = AllocateKvp(aKvp, (PvmiKeyType)TIMED_TEXT_OUTPUT_CONFIG_INFO_CUR_VALUE, 1);
+
         if (status != PVMFSuccess)
         {
             OSCL_DELETE(ipDecoderinfo);
             ipDecoderinfo = NULL;
-            OSCL_FREE(val);
-            val = NULL;
-            //closing text file
-            if (iFileOpened_text)
-            {
-                iTextFile.Close();
-                iFileOpened_text = false;
-            }
-
-            if (iFsOpened_text)
-            {
-                iFs_text.Close();
-                iFsOpened_text = false;
-            }
-            return PVMFFailure;
+            return 0;
         }
+
         aKvp->value.key_specific_value = ipDecoderinfo;
         aKvp->capacity = length;
-        if (iPeerCapConfig != NULL)
-        {
-            PvmiKvp* retKvp = NULL; // for return value
-            int32 err;
-            OSCL_TRY(err, iPeerCapConfig->setParametersSync(NULL, aKvp, 1, retKvp););
-            PVA_FF_TextSampleDescInfo* textInfo =
-                OSCL_STATIC_CAST(PVA_FF_TextSampleDescInfo*, aKvp->value.key_specific_value);
-            OSCL_DELETE(textInfo);
-            iAlloc.deallocate(aKvp);
-            if (err != 0)
-            {
-                OSCL_FREE(val);
-                val = NULL;
-                //closing text file
-                if (iFileOpened_text)
-                {
-                    iTextFile.Close();
-                    iFileOpened_text = false;
-                }
 
-                if (iFsOpened_text)
-                {
-                    iFs_text.Close();
-                    iFsOpened_text = false;
-                }
-                return PVMFFailure;
-            }
+        PvmiMIOFileInputMediaData textConfInfo;
+        textConfInfo.iData = aKvp;
+        textConfInfo.iId = ++iNotificationID;
+        textConfInfo.iNotification = true;
+
+        iSentMediaData.push_back(textConfInfo);
+
+        int32 err = 0;
+        //typecast to pass in writeAsync
+        uint8* notifData = OSCL_STATIC_CAST(uint8*, aKvp);
+        OSCL_TRY(err, iPeer->writeAsync(PVMI_MEDIAXFER_FMT_TYPE_NOTIFICATION,
+                                        PVMI_MEDIAXFER_FMT_INDEX_FMT_SPECIFIC_INFO,
+                                        notifData, length, data_hdr, &iNotificationID););
+        if (!err)
+        {
+            tempbuff = iptextfiledata; //to calculate the one decoderinfo size
         }
         else
         {
-            iAlloc.deallocate(aKvp);
-            OSCL_FREE(val);
-            val = NULL;
-            //closing text file
-            if (iFileOpened_text)
-            {
-                iTextFile.Close();
-                iFileOpened_text = false;
-            }
-
-            if (iFsOpened_text)
-            {
-                iFs_text.Close();
-                iFsOpened_text = false;
-            }
             return PVMFFailure;
         }
     }

@@ -116,6 +116,7 @@ typedef enum OMX_INDEXTYPE {
     OMX_IndexParamAudioAdpcm,               /**< reference: OMX_AUDIO_PARAM_ADPCMTYPE */
     OMX_IndexParamAudioG723,                /**< reference: OMX_AUDIO_PARAM_G723TYPE */
     OMX_IndexParamAudioG729,                /**< reference: OMX_AUDIO_PARAM_G729TYPE */
+    OMX_IndexParamAudioG711,                /**< reference: OMX_AUDIO_PARAM_G711TYPE */
     OMX_IndexParamAudioAmr,                 /**< reference: OMX_AUDIO_PARAM_AMRTYPE */
     OMX_IndexParamAudioWma,                 /**< reference: OMX_AUDIO_PARAM_WMATYPE */
     OMX_IndexParamAudioSbc,                 /**< reference: OMX_AUDIO_PARAM_SBCTYPE */
@@ -135,6 +136,7 @@ typedef enum OMX_INDEXTYPE {
     OMX_IndexParamAudioEvrc,                /**< reference: OMX_AUDIO_PARAM_EVRCTYPE */
     OMX_IndexParamAudioSmv,                 /**< reference: OMX_AUDIO_PARAM_SMVTYPE */
     OMX_IndexParamAudioVorbis,              /**< reference: OMX_AUDIO_PARAM_VORBISTYPE */
+    OMX_IndexParamAudioAc3,                 /**< reference: OMX_AUDIO_PARAM_AC3TYPE */
 
     OMX_IndexConfigAudioMidiImmediateEvent, /**< reference: OMX_AUDIO_CONFIG_MIDIIMMEDIATEEVENTTYPE */
     OMX_IndexConfigAudioMidiControl,        /**< reference: OMX_AUDIO_CONFIG_MIDICONTROLTYPE */

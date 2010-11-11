@@ -442,6 +442,8 @@ class IMpeg3File
         bool iEnableCrcCalc;
         PVFile iScanFP;
         Oscl_Vector<OSCL_HeapString<OsclMemAllocator>, OsclMemAllocator> iAvailableMetadataKeys;
+        bool iUseExternalFileHandle;
+        uint32 iLastScanPos;
 };
 
 

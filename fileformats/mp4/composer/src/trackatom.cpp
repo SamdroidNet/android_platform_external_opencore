@@ -503,10 +503,3 @@ PVA_FF_TrackAtom::setVideoParams(uint32 frame_width, uint32 frame_height)
     if (_pmediaAtom != NULL)
         _pmediaAtom->setVideoParams(frame_width, frame_height);
 }
-
-void
-PVA_FF_TrackAtom::setAudioEncodeParams(PVMP4FFComposerAudioEncodeParams &audioParams)
-{
-    if (_pmediaAtom != NULL)
-        _pmediaAtom->setAudioEncodeParams(audioParams);
-}

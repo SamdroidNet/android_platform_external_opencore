@@ -459,17 +459,14 @@ PVMFStatus PVMFRecognizerRegistryImpl::CheckForDataAvailability()
 
                 if (capacity < maxSize)
                 {
-                    // Get total content size to deal with cases where file being recognized is less than maxSize
-                    uint32 totalSize = iDataStream->GetContentLength();
-                    if ((status == PVDS_END_OF_STREAM) || (capacity == totalSize))
+                    if (status == PVDS_END_OF_STREAM)
                     {
                         uuid = PVMIDataStreamSyncInterfaceUuid;
                         iDataStreamFactory->DestroyPVMFCPMPluginAccessInterface(uuid,
                                 OSCL_STATIC_CAST(PVInterface*, iDataStream));
                         iDataStream = NULL;
-                        return PVMFSuccess;
+                        return PVMFFailure;
                     }
-
                     int32 errcode = 0;
                     OSCL_TRY(errcode,
                              iRequestReadCapacityNotificationID =

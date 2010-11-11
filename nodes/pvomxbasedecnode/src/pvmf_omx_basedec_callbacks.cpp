@@ -55,10 +55,7 @@ OsclReturnCode EventHandlerThreadSafeCallbackAO::ProcessEvent(OsclAny* EventData
     {
         PVMFOMXBaseDecNode* ptr = (PVMFOMXBaseDecNode*) iObserver;
 
-        if (ptr->IsAdded())
-        {
-            ptr->ProcessCallbackEventHandler_MultiThreaded(EventData);
-        }
+        ptr->ProcessCallbackEventHandler_MultiThreaded(EventData);
 
     }
     return OsclSuccess;

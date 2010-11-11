@@ -59,8 +59,8 @@ OSCL_IMPORT_REF PVMFStatus AllocateKvp(OsclMemAllocator& aAlloc, PvmiKvp*& aKvp,
 ** and must implement the IsFormatSupported and FormatUpdated
 ** routines.
 */
-class OSCL_IMPORT_REF PvmiCapabilityAndConfigPortFormatImpl
-        : public PvmiCapabilityAndConfig
+class PvmiCapabilityAndConfigPortFormatImpl
+            : public PvmiCapabilityAndConfig
 {
     public:
         PvmiCapabilityAndConfigPortFormatImpl()
@@ -89,7 +89,7 @@ class OSCL_IMPORT_REF PvmiCapabilityAndConfigPortFormatImpl
 
         // Implement pure virtuals from PvmiCapabilityAndConfig interface
         OSCL_IMPORT_REF virtual PVMFStatus getParametersSync(PvmiMIOSession aSession, PvmiKeyType aIdentifier,
-                PvmiKvp*& aParameters, int& num_parameter_elements, PvmiCapabilityContext aContext);
+                PvmiKvp*& aParameters, int& num_parameter_elements,	PvmiCapabilityContext aContext);
         OSCL_IMPORT_REF virtual PVMFStatus releaseParameters(PvmiMIOSession aSession, PvmiKvp* aParameters, int num_elements);
         OSCL_IMPORT_REF virtual void setParametersSync(PvmiMIOSession aSession, PvmiKvp* aParameters,
                 int num_elements, PvmiKvp * & aRet_kvp);
@@ -120,3 +120,5 @@ class OSCL_IMPORT_REF PvmiCapabilityAndConfigPortFormatImpl
 };
 
 #endif //PVMI_CONFIG_AND_CAPABILITY_UTILS_H_INCLUDED
+
+

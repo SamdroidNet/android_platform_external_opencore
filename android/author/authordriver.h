@@ -23,12 +23,9 @@
 #ifndef _AUTHORDRIVER_PRIV_H
 #define _AUTHORDRIVER_PRIV_H
 
-#include <utils/Log.h>
-#include <utils/threads.h>
-#include <utils/List.h>
-#include <utils/Errors.h>
+#include <utils.h>
 
-#include <camera/ICamera.h>
+#include <ui/ICamera.h>
 
 
 #include <media/mediarecorder.h>
@@ -55,7 +52,13 @@
 #include "pvmf_fileoutput_factory.h"
 #include "pvmf_node_interface.h"
 #include "pvmp4h263encextension.h"
+/* Mobile Media Lab. Start */
+#if USE_DMC_MP4_MUX
+#include "smp4fm_oc_clipcfg.h"
+#else
 #include "pvmp4ffcn_clipconfig.h"
+#endif /* USE_DMC_MP4_MUX */
+/* Mobile Media Lab. End */
 #include "pvmf_fileoutput_config.h"
 #ifndef PVMF_FILEOUTPUT_CONFIG_H_INCLUDED
 #include "pvmf_fileoutput_config.h"
@@ -67,45 +70,18 @@
 // FIXME:
 // Platform-specic and temporal workaround to prevent video size
 // from being set too large
-
+/* Mobile Media Lab. Start */
+#if 1
+#define ANDROID_MAX_ENCODED_FRAME_WIDTH            640
+#define ANDROID_MAX_ENCODED_FRAME_HEIGHT           480
+#else
 #define ANDROID_MAX_ENCODED_FRAME_WIDTH            352
 #define ANDROID_MAX_ENCODED_FRAME_HEIGHT           288
-#define ANDROID_MIN_ENCODED_FRAME_WIDTH            176
-#define ANDROID_MIN_ENCODED_FRAME_HEIGHT           144
+#endif
+/* Mobile Media Lab. End */
 
 #define ANDROID_MIN_FRAME_RATE_FPS                 5
 #define ANDROID_MAX_FRAME_RATE_FPS                 20
-
-static const int32 DEFAULT_VIDEO_FRAME_RATE  = 20;
-static const int32 DEFAULT_VIDEO_WIDTH       = 176;
-static const int32 DEFAULT_VIDEO_HEIGHT      = 144;
-
-static const int32 MIN_VIDEO_BITRATE_SETTING = 192000;
-static const int32 MAX_VIDEO_BITRATE_SETTING = 420000;
-static const int32 MAX_AUDIO_BITRATE_SETTING = 320000; // Max bitrate??
-static const int32 MIN_AUDIO_BITRATE_SETTING = 1;      // Min bitrate??
-static const int32 DEFAULT_AUDIO_BITRATE_SETTING = 64000; // Default for all the other audio
-static const PVMF_GSMAMR_Rate DEFAULT_AMR_NARROW_BAND_BITRATE_SETTING = GSM_AMR_12_2;
-static const PVMF_GSMAMR_Rate DEFAULT_AMR_WIDE_BAND_BITRATE_SETTING = GSM_AMR_23_85;
-
-typedef struct AMR_BITRATE_MAPPING
-{
-   int32 bitrate;
-   PVMF_GSMAMR_Rate actual;
-} AMR_BITRATE_MAPPING;
-
-static const uint32 AMR_BITRATE_MAX_NUMBER_OF_ROWS = 10;
-static const AMR_BITRATE_MAPPING AMR_BITRATE_MAPPING_ARRAY[AMR_BITRATE_MAX_NUMBER_OF_ROWS][2] = {
-    {{1,DEFAULT_AMR_NARROW_BAND_BITRATE_SETTING}, {1,    DEFAULT_AMR_WIDE_BAND_BITRATE_SETTING}},  // default values
-    {{4950,                        GSM_AMR_4_75}, {7725,                          GSM_AMR_6_60}},
-    {{5525,                        GSM_AMR_5_15}, {10750,                         GSM_AMR_8_85}},
-    {{6300,                        GSM_AMR_5_90}, {13450,                        GSM_AMR_12_65}},
-    {{7050,                        GSM_AMR_6_70}, {15050,                        GSM_AMR_14_25}},
-    {{7625,                        GSM_AMR_7_40}, {17050,                        GSM_AMR_15_85}},
-    {{9075,                        GSM_AMR_7_95}, {19050,                        GSM_AMR_18_25}},
-    {{11200,                       GSM_AMR_10_2}, {21450,                        GSM_AMR_19_85}},
-   {{(MAX_AUDIO_BITRATE_SETTING+1),GSM_AMR_12_2}, {23450,                        GSM_AMR_23_05}},
-   {{(MAX_AUDIO_BITRATE_SETTING+1),GSM_AMR_12_2},{(MAX_AUDIO_BITRATE_SETTING+1), GSM_AMR_23_85}}};
 
 namespace android {
 
@@ -129,6 +105,10 @@ enum author_command_type {
     AUTHOR_SET_OUTPUT_FORMAT,
     AUTHOR_SET_VIDEO_ENCODER,
     AUTHOR_SET_AUDIO_ENCODER,
+
+    // elecjinny 2009.05.11 add flash
+    AUTHOR_SET_FLASH_SETTING,    
+    
     AUTHOR_SET_VIDEO_SIZE,
     AUTHOR_SET_VIDEO_FRAME_RATE,
     AUTHOR_SET_PREVIEW_SURFACE,
@@ -136,11 +116,14 @@ enum author_command_type {
     AUTHOR_SET_PARAMETERS,
     AUTHOR_PREPARE,
     AUTHOR_START,
+    AUTHOR_PAUSE,
+    AUTHOR_RESUME,
     AUTHOR_STOP,
     AUTHOR_RESET,
     AUTHOR_CLOSE,
     AUTHOR_REMOVE_VIDEO_SOURCE,
     AUTHOR_REMOVE_AUDIO_SOURCE,
+    AUTHOR_SET_SENDMESSAGE,
     AUTHOR_QUIT = 100
 };
 
@@ -187,6 +170,13 @@ struct set_video_encoder_command : author_command
     video_encoder                 ve;
 };
 
+// elecjinny 2009.05.11 add flash
+struct set_flash_setting_command : author_command
+{
+    set_flash_setting_command() : author_command(AUTHOR_SET_FLASH_SETTING) {};
+    flash_setting                 flashSetting;
+};
+
 struct set_output_file_command : author_command
 {
     set_output_file_command() : author_command(AUTHOR_SET_OUTPUT_FILE) {};
@@ -194,6 +184,7 @@ struct set_output_file_command : author_command
     int64_t                     offset;
     int64_t                     length;
 };
+
 struct set_video_size_command : author_command
 {
     set_video_size_command() : author_command(AUTHOR_SET_VIDEO_SIZE) {};
@@ -219,6 +210,14 @@ struct set_camera_command : author_command
     sp<ICamera>                      camera;
 };
 
+struct set_sendmessage_command : author_command
+{
+    set_sendmessage_command() : author_command(AUTHOR_SET_SENDMESSAGE) {};
+    int codeA;
+    int codeB;
+    int codeC;
+
+};
 struct set_parameters_command : author_command
 {
     set_parameters_command(const String8& params)
@@ -235,8 +234,6 @@ private:
     set_parameters_command(const set_parameters_command&);
     set_parameters_command& operator=(const set_parameters_command&);
 };
-
-class MediaProfiles;
 
 class AuthorDriver :
 public OsclActiveObject,
@@ -262,6 +259,10 @@ public:
     void handleSetVideoSource(set_video_source_command *ac);
     void handleSetOutputFormat(set_output_format_command *ac);
     void handleSetAudioEncoder(set_audio_encoder_command *ac);
+
+    // elecjinny 2009.05.11 add flash
+    void handleSetFlashSetting(set_flash_setting_command *ac);
+    
     void handleSetVideoEncoder(set_video_encoder_command *ac);
     void handleSetVideoSize(set_video_size_command *ac);
     void handleSetVideoFrameRate(set_video_frame_rate_command *ac);
@@ -270,10 +271,13 @@ public:
     void handleSetParameters(set_parameters_command *ac);
     void handlePrepare(author_command *ac);
     void handleStart(author_command *ac);
+    void handlePause(author_command *ac);
+    void handleResume(author_command *ac);
     void handleStop(author_command *ac);
     void handleReset(author_command *ac);
     void handleClose(author_command *ac);
     void handleQuit(author_command *ac);
+    void handlesendmessage(set_sendmessage_command *ac);
 
     void endOfData();
 
@@ -283,13 +287,14 @@ public:
 
     status_t getMaxAmplitude(int *max);
     PVAEState getAuthorEngineState();
+
     status_t setListener(const sp<IMediaPlayerClient>& listener);
 
 private:
     // Finish up a non-async command in such a way that
     // the event loop will keep running.
     void FinishNonAsyncCommand(author_command *ec);
-
+ 
     // remove references to configurations
     void removeConfigRefs(author_command *ac);
 
@@ -315,33 +320,7 @@ private:
     // milliseconds, otherwise "limit" holds the maximum filesize in bytes.
     PVMFStatus setMaxDurationOrFileSize(int64_t limit, bool limit_is_duration);
 
-    // Used to set the sampling rate of the audio source
-    PVMFStatus setParamAudioSamplingRate(int64_t aSamplingRate);
-
-    // Used to set the number of channels of the audio source
-    PVMFStatus setParamAudioNumberOfChannels(int64_t aNumberOfChannels);
-
-    // Used for setting the audio encoding bitrate
-    PVMFStatus setParamAudioEncodingBitrate(int64_t aAudioBitrate);
-
     PVMFStatus setParameter(const String8 &key, const String8 &value);
-
-    // Has no effect if called after video encoder is set
-    PVMFStatus setParamVideoEncodingBitrate(int64_t aVideoBitrate);
-
-    // Clips the intended video encoding bit rate, frame rate, frame size
-    // (width and height) so that it is within the supported range.
-    void clipVideoBitrate();
-    void clipVideoFrameRate();
-    void clipVideoFrameSize();
-    void clipVideoFrameWidth();
-    void clipVideoFrameHeight();
-
-    // Clips the intended AAC audio bitrate so that it is in the supported range
-    void clipAACAudioBitrate();
-
-    // Used to map the incoming bitrate to the closest AMR bitrate
-    bool MapAMRBitrate(int32 aAudioBitrate, PVMF_GSMAMR_Rate &anAMRBitrate);
 
     PVAuthorEngineInterface    *mAuthor;
 
@@ -360,7 +339,7 @@ private:
     int                     mVideoFrameRate;
     //int                     mVideoBitRate;
     video_encoder           mVideoEncoder;
-    output_format           mOutputFormat;
+    output_format           mOutputFormat; 
 
     //int                     mAudioBitRate;
     audio_encoder           mAudioEncoder;
@@ -377,13 +356,7 @@ private:
     sp<ICamera>             mCamera;
     sp<IMediaPlayerClient>  mListener;
 
-    int32            mSamplingRate;
-    int32            mNumberOfChannels;
-    int32            mAudio_bitrate_setting;
-    int32            mVideo_bitrate_setting;
-
-    FILE*       ifpOutput;
-    MediaProfiles *mMediaProfiles;
+    FILE* 		ifpOutput;
 };
 
 class AuthorDriverWrapper

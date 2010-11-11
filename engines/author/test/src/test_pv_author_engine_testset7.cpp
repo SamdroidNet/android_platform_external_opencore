@@ -27,9 +27,15 @@
 #include "pvmf_fileoutput_config.h"
 #endif
 
+/* Mobile Media Lab. Start */
+#if USE_DMC_MP4_MUX
+#include "smp4fm_oc_clipcfg.h"
+#else
 #ifndef PVMP4FFCN_CLIPCONFIG_H_INCLUDED
 #include "pvmp4ffcn_clipconfig.h"
 #endif
+#endif
+/* Mobile Media Lab. End */
 
 #ifndef PV_MP4_H263_ENC_EXTENSION_H_INCLUDED
 #include "pvmp4h263encextension.h"
@@ -283,9 +289,15 @@ bool pv_mediainput_async_test_reset::ConfigOutputFile()
 ////////////////////////////////////////////////////////////////////////////
 bool pv_mediainput_async_test_reset::ConfigMp43gpComposer()
 {
-
+	/* Mobile Media Lab. Start */
+#if USE_DMC_MP4_MUX
+	SMp4fmOcClipCfgIf * clipConfig;
+	clipConfig = OSCL_STATIC_CAST(SMp4fmOcClipCfgIf *, iComposerConfig);	
+#else	
     PVMp4FFCNClipConfigInterface* clipConfig;
     clipConfig = OSCL_STATIC_CAST(PVMp4FFCNClipConfigInterface*, iComposerConfig);
+#endif
+	/* Mobile Media Lab. End */
     if (!clipConfig)
     {
         PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_ERR,

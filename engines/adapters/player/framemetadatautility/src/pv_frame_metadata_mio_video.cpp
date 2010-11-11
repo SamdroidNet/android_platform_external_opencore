@@ -31,7 +31,7 @@ PVFMVideoMIO::PVFMVideoMIO() :
 void PVFMVideoMIO::InitData()
 {
     iVideoFormat = PVMF_MIME_FORMAT_UNKNOWN;
-    iVideoSubFormat = PVMF_MIME_FORMAT_UNKNOWN;
+	iVideoSubFormat = PVMF_MIME_FORMAT_UNKNOWN;
     iVideoHeightValid = false;
     iVideoWidthValid = false;
     iVideoDisplayHeightValid = false;
@@ -67,18 +67,6 @@ void PVFMVideoMIO::InitData()
     iFrameRetrievalInfo.iTimeOffset = 0;
     iFrameRetrievalInfo.iFrameBuffer = NULL;
     iFrameRetrievalInfo.iBufferSize = NULL;
-
-    // Init the input format capabilities vector
-    iInputFormatCapability.clear();
-    iInputFormatCapability.push_back(PVMF_MIME_YUV420);
-    iInputFormatCapability.push_back(PVMF_MIME_YUV422);
-    iInputFormatCapability.push_back(PVMF_MIME_YUV422_INTERLEAVED_UYVY);
-    iInputFormatCapability.push_back(PVMF_MIME_RGB8);
-    iInputFormatCapability.push_back(PVMF_MIME_RGB12);
-    iInputFormatCapability.push_back(PVMF_MIME_RGB16);
-    iInputFormatCapability.push_back(PVMF_MIME_RGB24);
-
-    iYUV422toYUV420ColorConvert = NULL;
 }
 
 
@@ -131,11 +119,6 @@ PVFMVideoMIO::~PVFMVideoMIO()
     if (iColorConverter)
     {
         DestroyYUVToRGBColorConverter(iColorConverter, iCCRGBFormatType);
-    }
-
-    if (iYUV422toYUV420ColorConvert)
-    {
-        DestroyYUV422toYUV420ColorConvert();
     }
 }
 
@@ -568,7 +551,7 @@ PVMFCommandId PVFMVideoMIO::CancelCommand(PVMFCommandId aCmdId, const OsclAny* a
 
     // See if the response is still queued.
     PVMFStatus status = PVMFFailure;
-    for (uint32 i = 0; i < iCommandResponseQueue.size(); i++)
+    for (uint32 i = 0;i < iCommandResponseQueue.size();i++)
     {
         if (iCommandResponseQueue[i].iCmdId == aCmdId)
         {
@@ -738,22 +721,19 @@ PVMFCommandId PVFMVideoMIO::writeAsync(uint8 aFormatType, int32 aFormatIndex, ui
                             {
 
                                 // scale down output proportionally if smaller thumbnail requested
+
+// RainAde : 1. removed for thumbnail
+// RainAde : 2. added for thumbnail again by icarus (dependent on metadatadriver.cpp)								
+#if 1
                                 if (iVideoDisplayWidth > iThumbnailWidth || iVideoDisplayHeight > iThumbnailHeight)
                                 {
-
                                     float fScaleWidth = (float)iThumbnailWidth / iVideoDisplayWidth;
                                     float fScaleHeight = (float)iThumbnailHeight / iVideoDisplayHeight;
                                     float fScale = (fScaleWidth > fScaleHeight) ? fScaleHeight : fScaleWidth;
                                     iVideoDisplayWidth = (uint32)(iVideoDisplayWidth * fScale);
                                     iVideoDisplayHeight = (uint32)(iVideoDisplayHeight * fScale);
-
-                                    // It is possible that width and height becomes odd numbers after
-                                    // scaling them down. These values might be used by ColorConverter
-                                    // for ColorConversion which expects even parameters. Make these
-                                    // parameters multiple of 2.
-                                    iVideoDisplayWidth = ((iVideoDisplayWidth + 1) & (~1));
-                                    iVideoDisplayHeight = ((iVideoDisplayHeight + 1) & (~1));
                                 }
+#endif
 
                                 if (iFrameRetrievalInfo.iUseFrameIndex == true &&
                                         iFrameRetrievalInfo.iReceivedFrameCount > iFrameRetrievalInfo.iFrameIndex)
@@ -833,72 +813,27 @@ PVMFStatus PVFMVideoMIO::CopyVideoFrameData(uint8* aSrcBuffer, uint32 aSrcSize, 
     if (aSrcBuffer == NULL || aSrcSize == 0 || aSrcFormat == PVMF_MIME_FORMAT_UNKNOWN ||
             aDestBuffer == NULL || aDestSize == 0 || aDestFormat == PVMF_MIME_FORMAT_UNKNOWN)
     {
-        PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR, (0, "PVFMVideoMIO::CopyVideoFrameData() bad input arguments."));
+        PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR, (0, "PVFMVideoMIO::CopyVideoFrameData() Color converter instantiation did a leave"));
         return PVMFErrArgument;
     }
 
-    if ((iVideoSubFormat == PVMF_MIME_YUV422_INTERLEAVED_UYVY) &&
-            (aDestFormat == PVMF_MIME_YUV420))
-    {
-        // Source is YUV 4:2:2 and dest is YUV 4:2:0
-
-        PVMFStatus status;
-        uint32 yuvbufsize;
-        if (!iYUV422toYUV420ColorConvert)
-        {
-            status = CreateYUV422toYUV420ColorConvert();
-            if (status != PVMFSuccess)
-            {
-                // Failed to create the CC!
-                PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR, (0, "PVFMVideoMIO::CopyVideoFrameData() Failed to create iYUV422toYUV420ColorConvert."));
-                return status;
-            }
-        }
-
-        // Init CC
-        status = InitYUV422toYUV420ColorConvert(aSrcWidth, aSrcHeight, aSrcWidth, aSrcHeight);
-        if (status != PVMFSuccess)
-        {
-            PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR, (0, "PVFMVideoMIO::CopyVideoFrameData() iYUV422toYUV420ColorConvert Init failed"));
-            return status;
-        }
-
-        yuvbufsize = (uint32)(iYUV422toYUV420ColorConvert->GetOutputBufferSize());
-
-        // Is the CC destination buffer smaller that the expected destination buffer size?
-        if (yuvbufsize > aDestSize)
-        {
-            PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR, (0, "PVFMVideoMIO::CopyVideoFrameData() Specified output YUV buffer does not have enough space. Needed %d Available %d.", yuvbufsize, aDestSize));
-            return PVMFErrResource;
-        }
-
-        // Convert
-        if (iYUV422toYUV420ColorConvert->Convert(aSrcBuffer, aDestBuffer) == 0)
-        {
-            PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR, (0, "PVFMVideoMIO::CopyVideoFrameData() YUV Color conversion failed"));
-            return PVMFErrResource;
-        }
-
-        // Save the YUV frame size
-        aDestSize = yuvbufsize;
-    }
-    else if (aSrcFormat == aDestFormat)
+    if (aSrcFormat == aDestFormat)
     {
         // Same format so direct copy
         if (aDestSize < aSrcSize)
         {
-            PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR, (0, "PVFMVideoMIO::CopyVideoFrameData() destination and source size differ"));
+            PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR, (0, "PVFMVideoMIO::CopyVideoFrameData() Color converter instantiation did a leave"));
             return PVMFErrArgument;
         }
 
         if (iVideoSubFormat == PVMF_MIME_YUV420_SEMIPLANAR_YVU)
-        {
-            PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,
-                            (0, "PVFMVideoMIO::CopyVideoFrameData() SubFormat is YUV SemiPlanar, Convert to YUV planar first"));
+		{
+			PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE, 
+				(0, "PVFMVideoMIO::CopyVideoFrameData() SubFormat is YUV SemiPlanar, Convert to YUV planar first"));
             convertYUV420SPtoYUV420(aSrcBuffer, aDestBuffer, aSrcSize);
-        }
-        else
-        {
+        } 
+		else 
+		{
             oscl_memcpy(aDestBuffer, aSrcBuffer, aSrcSize);
         }
         aDestSize = aSrcSize;
@@ -920,7 +855,6 @@ PVMFStatus PVFMVideoMIO::CopyVideoFrameData(uint8* aSrcBuffer, uint32 aSrcSize, 
         if (iColorConverter && iCCRGBFormatType != aDestFormat)
         {
             DestroyYUVToRGBColorConverter(iColorConverter, iCCRGBFormatType);
-            iCCRGBFormatType = PVMF_MIME_FORMAT_UNKNOWN;
         }
 
         // Instantiate a new color converter if needed
@@ -938,8 +872,7 @@ PVMFStatus PVFMVideoMIO::CopyVideoFrameData(uint8* aSrcBuffer, uint32 aSrcSize, 
 
         if (!(iColorConverter->Init((aSrcWidth + 1)&(~1), (aSrcHeight + 1)&(~1), (aSrcWidth + 1)&(~1), aDestWidth, (aDestHeight + 1)&(~1), (aDestWidth + 1)&(~1), CCROTATE_NONE)))
         {
-            // Color converter failed Init
-            PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR, (0, "PVFMVideoMIO::CopyVideoFrameData() iColorConverter failed init."));
+            iColorConverter = NULL;
             return PVMFFailure;
         }
 
@@ -952,7 +885,7 @@ PVMFStatus PVFMVideoMIO::CopyVideoFrameData(uint8* aSrcBuffer, uint32 aSrcSize, 
         {
             // Specified buffer does not have enough space
             PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR, (0, "PVFMVideoMIO::CopyVideoFrameData() Specified output RGB buffer does not have enough space. Needed %d Available %d", rgbbufsize, aDestSize));
-            return PVMFErrResource;
+            return PVMFErrArgument;
         }
 
         // Do the color conversion
@@ -1042,7 +975,7 @@ void PVFMVideoMIO::cancelCommand(PVMFCommandId  command_id)
     // In this implementation, the write commands are executed immediately when received so it isn't
     // really possible to cancel. Just report completion immediately.
 
-    for (uint32 i = 0; i < iWriteResponseQueue.size(); i++)
+    for (uint32 i = 0;i < iWriteResponseQueue.size();i++)
     {
         if (iWriteResponseQueue[i].iCmdId == command_id)
         {
@@ -1067,7 +1000,7 @@ void PVFMVideoMIO::cancelAllCommands()
     // In this implementaiton, the write commands are executed immediately when received so it isn't
     // really possible to cancel. Just report completion immediately.
 
-    for (uint32 i = 0; i < iWriteResponseQueue.size(); i++)
+    for (uint32 i = 0;i < iWriteResponseQueue.size();i++)
     {
         //report completion
         if (iPeer)
@@ -1115,18 +1048,18 @@ PVMFStatus PVFMVideoMIO::getParametersSync(PvmiMIOSession aSession, PvmiKeyType 
         // This is a query for the list of supported formats.
         // This component supports all uncompressed video format
         // Generate a list of all the PVMF video formats...
-        int32 count = iInputFormatCapability.size();
+        int32 count = PVMF_SUPPORTED_UNCOMPRESSED_VIDEO_FORMATS_COUNT;
 
         aParameters = (PvmiKvp*)oscl_malloc(count * sizeof(PvmiKvp));
 
         if (aParameters)
         {
-            num_parameter_elements = 0;
-            Oscl_Vector<PVMFFormatType, OsclMemAllocator>::iterator it;
-            for (it = iInputFormatCapability.begin(); it != iInputFormatCapability.end(); it++)
-            {
-                aParameters[num_parameter_elements++].value.pChar_value = OSCL_STATIC_CAST(char*, it->getMIMEStrPtr());
-            }
+            aParameters[num_parameter_elements++].value.pChar_value = (char*)PVMF_MIME_YUV420;
+            aParameters[num_parameter_elements++].value.pChar_value = (char*)PVMF_MIME_YUV422;
+            aParameters[num_parameter_elements++].value.pChar_value = (char*)PVMF_MIME_RGB8;
+            aParameters[num_parameter_elements++].value.pChar_value = (char*)PVMF_MIME_RGB12;
+            aParameters[num_parameter_elements++].value.pChar_value = (char*)PVMF_MIME_RGB16;
+            aParameters[num_parameter_elements++].value.pChar_value = (char*)PVMF_MIME_RGB24;
             return PVMFSuccess;
         }
         return PVMFErrNoMemory;
@@ -1201,7 +1134,7 @@ void PVFMVideoMIO::setParametersSync(PvmiMIOSession aSession, PvmiKvp* aParamete
 
     aRet_kvp = NULL;
 
-    for (int32 i = 0; i < num_elements; i++)
+    for (int32 i = 0;i < num_elements;i++)
     {
         //Check against known video parameter keys...
         if (pv_mime_strcmp(aParameters[i].key, MOUT_VIDEO_FORMAT_KEY) == 0)
@@ -1235,13 +1168,13 @@ void PVFMVideoMIO::setParametersSync(PvmiMIOSession aSession, PvmiKvp* aParamete
         }
         else if (pv_mime_strcmp(aParameters[i].key, PVMF_FORMAT_SPECIFIC_INFO_KEY) == 0)
         {
-            //  iOutputFile.Write(aParameters[i].value.pChar_value, sizeof(uint8), (int32)aParameters[i].capacity);
+            //	iOutputFile.Write(aParameters[i].value.pChar_value, sizeof(uint8), (int32)aParameters[i].capacity);
         }
         else if (pv_mime_strcmp(aParameters[i].key, MOUT_VIDEO_SUBFORMAT_KEY) == 0)
         {
             iVideoSubFormat = aParameters[i].value.pChar_value;
             PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,
-                            (0, "PVFMVideoMIO::setParametersSync() Video SubFormat Key, Value %s", iVideoSubFormat.getMIMEStrPtr()));
+                    (0,"PVFMVideoMIO::setParametersSync() Video SubFormat Key, Value %s", iVideoSubFormat.getMIMEStrPtr()));
         }
         else
         {
@@ -1325,16 +1258,19 @@ PVMFStatus PVFMVideoMIO::verifyParametersSync(PvmiMIOSession aSession, PvmiKvp* 
         if (pv_mime_strcmp(compstr, _STRLIT_CHAR("x-pvmf/media/format-type")) == 0)
         {
             //This component supports only uncompressed formats
-            Oscl_Vector<PVMFFormatType, OsclMemAllocator>::iterator it;
-            for (it = iInputFormatCapability.begin(); it != iInputFormatCapability.end(); it++)
+            if ((pv_mime_strcmp(aParameters[paramind].value.pChar_value, PVMF_MIME_YUV420) == 0) ||
+                    (pv_mime_strcmp(aParameters[paramind].value.pChar_value, PVMF_MIME_YUV422) == 0) ||
+                    (pv_mime_strcmp(aParameters[paramind].value.pChar_value, PVMF_MIME_RGB8) == 0) ||
+                    (pv_mime_strcmp(aParameters[paramind].value.pChar_value, PVMF_MIME_RGB12) == 0) ||
+                    (pv_mime_strcmp(aParameters[paramind].value.pChar_value, PVMF_MIME_RGB16) == 0) ||
+                    (pv_mime_strcmp(aParameters[paramind].value.pChar_value, PVMF_MIME_RGB24) == 0))
             {
-                if (pv_mime_strcmp(aParameters[paramind].value.pChar_value, it->getMIMEStrPtr()) == 0)
-                {
-                    return PVMFSuccess;
-                }
+                return PVMFSuccess;
             }
-            // Not found on the list of supported input formats
-            return PVMFErrNotSupported;
+            else
+            {
+                return PVMFErrNotSupported;
+            }
         }
     }
     // For all other parameters return success.
@@ -1410,10 +1346,7 @@ void PVFMVideoMIO::Run()
     }
 }
 
-static inline void* byteOffset(void* p, uint32 offset)
-{
-    return (void*)((uint8*)p + offset);
-}
+static inline void* byteOffset(void* p, uint32 offset) { return (void*)((uint8*)p + offset); }
 
 // convert a frame in YUV420 semiplanar format with VU ordering to YUV420 planar format
 void PVFMVideoMIO::convertYUV420SPtoYUV420(void* src, void* dst, uint32 len)
@@ -1428,42 +1361,12 @@ void PVFMVideoMIO::convertYUV420SPtoYUV420(void* src, void* dst, uint32 len)
     uint16* pv = (uint16*)byteOffset(pu, y_plane_size / 4);
 
     int count = y_plane_size / 8;
-    do
-    {
+    do 
+	{
         uint32 uvuv = *p++;
-        *pu++ = (uint16)(((uvuv >> 8) & 0xff) | ((uvuv >> 16) & 0xff00));
-        *pv++ = (uint16)((uvuv & 0xff) | ((uvuv >> 8) & 0xff00));
-    }
-    while (--count);
+        *pu++ = (uint16) (((uvuv >> 8) & 0xff) | ((uvuv >> 16) & 0xff00));
+        *pv++ = (uint16) ((uvuv & 0xff) | ((uvuv >> 8) & 0xff00));
+    } while (--count);
 }
 
-PVMFStatus PVFMVideoMIO::CreateYUV422toYUV420ColorConvert()
-{
-    int32 leavecode = 0;
-    OSCL_TRY(leavecode, iYUV422toYUV420ColorConvert = (CCYUV422toYUV420*) CCYUV422toYUV420::New());
-
-    OSCL_FIRST_CATCH_ANY(leavecode,
-                     PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR, (0, "PVFMVideoMIO::CreateYUV422toYUV420ColorConvert() YUV Color converter instantiation did a leave"));
-                     return PVMFErrNoResources;
-                     );
-    return PVMFSuccess;
-}
-
-PVMFStatus PVFMVideoMIO::InitYUV422toYUV420ColorConvert(uint32 aSrcWidth, uint32 aSrcHeight, uint32 aDestWidth, uint32 aDestHeight)
-{
-    if (!(iYUV422toYUV420ColorConvert->Init((aSrcWidth + 1)&(~1), (aSrcHeight + 1)&(~1),
-                   (aSrcWidth + 1)&(~1),(aDestWidth + 1)&(~1), (aDestHeight + 1)&(~1),
-                   (aDestWidth + 1)&(~1), CCROTATE_NONE)))
-    {
-        PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR, (0, "PVFMVideoMIO::InitYUV422toYUV420ColorConvert: YUV Color converter Init failed"));
-        return PVMFFailure;
-    }
-    return PVMFSuccess;
-}
-
-void PVFMVideoMIO::DestroyYUV422toYUV420ColorConvert()
-{
-    OSCL_DELETE(iYUV422toYUV420ColorConvert);
-    iYUV422toYUV420ColorConvert = NULL;
-}
 

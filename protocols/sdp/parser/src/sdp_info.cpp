@@ -40,6 +40,10 @@ SDPInfo::SDPInfo()
     numMediaObjects = 0;
     iMediaObjectIndex = 0;
     segmentCount = 0;
+	/* Mobile Media Lab. Streaming - Start */ 
+	iDisplaySize[0] = 0;
+	iDisplaySize[1] = 0;
+	/* Mobile Media Lab. Streaming - End */ 
     for (int ii = 0; ii < MAX_SEGMENTS; ii++)
     {
         segmentInfo[ii].segmentActive = true;
@@ -56,6 +60,10 @@ SDPInfo::SDPInfo(const SDPInfo &sourceSdpInfo)
     segmentCount = sourceSdpInfo.segmentCount;
     iMediaObjectIndex = sourceSdpInfo.iMediaObjectIndex;
     numMediaObjects = sourceSdpInfo.numMediaObjects;
+	/* Mobile Media Lab. Streaming - Start */ 
+ 	iDisplaySize[0] = sourceSdpInfo.iDisplaySize[0];
+	iDisplaySize[1] = sourceSdpInfo.iDisplaySize[1]; 
+	/* Mobile Media Lab. Streaming - End */ 
 
     for (int jj = 0; jj < MAX_SEGMENTS; jj++)
     {
@@ -153,7 +161,7 @@ SDPInfo::~SDPInfo()
     int ss = 0;
     for (ii = 0; ii < numMediaObjects; ii++)
     {
-        for (ss = 0; ss < (int)pMediaInfo[ii].size(); ss++)
+        for (ss = 0; ss < (int)pMediaInfo[ii].size();ss++)
         {
             pMediaInfo[ii][ss]->~mediaInfo();
             dealloc(pMediaInfo[ii][ss]);
@@ -171,7 +179,7 @@ void SDPInfo::freeLastMediaInfoObject(void)
         return;
     }
 
-    for (int ss = 0; ss < (int)pMediaInfo[numMediaObjects].size(); ss++)
+    for (int ss = 0; ss < (int)pMediaInfo[numMediaObjects].size();ss++)
     {
         pMediaInfo[numMediaObjects][ss]->~mediaInfo();
         dealloc(pMediaInfo[numMediaObjects][ss]);
@@ -183,6 +191,23 @@ sessionDescription* SDPInfo::getSessionInfo()
 {
     return &session_info;
 }
+
+
+/* Mobile Media Lab. Streaming - Start */ 
+OSCL_EXPORT_REF
+uint32* SDPInfo::getDisplaySize()
+{
+    return iDisplaySize;
+}
+
+OSCL_EXPORT_REF
+void SDPInfo::setDisplaySize(uint32 aWidth, uint32 aHeight)
+{
+    iDisplaySize[0] = aWidth;
+    iDisplaySize[1] = aHeight;
+}
+/* Mobile Media Lab. Streaming - End */ 
+
 
 OSCL_EXPORT_REF
 Oscl_Vector<mediaInfo *, SDPParserAlloc> SDPInfo::getMediaInfo(int Object)

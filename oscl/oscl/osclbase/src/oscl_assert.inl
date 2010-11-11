@@ -21,6 +21,5 @@
 
 OSCL_COND_EXPORT_REF OSCL_INLINE void _OSCL_Abort()
 {
-    *((char*) 0) = 0;
     abort();
 }

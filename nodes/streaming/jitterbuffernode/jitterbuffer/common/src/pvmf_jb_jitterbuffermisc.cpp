@@ -277,9 +277,9 @@ OSCL_EXPORT_REF bool PVMFJitterBufferMisc::PrepareForRepositioning(bool oUseExpe
     bool overflowFlag = false;
 
     //A session will have three things
-    //Media channel     :   Valid for any type of streaming
-    //Feedback Channel  :   Valid for RTSP based streaming
-    //Session Info  :   Valid for any type of streaming
+    //Media channel		:	Valid for any type of streaming
+    //Feedback Channel	:	Valid for RTSP based streaming
+    //Session Info	:	Valid for any type of streaming
 
     Oscl_Vector<PVMFJitterBufferPortParams*, OsclMemAllocator>::iterator it;
     for (it = irPortParamsQueue.begin();
@@ -501,7 +501,7 @@ OSCL_EXPORT_REF PVMFStatus PVMFJitterBufferMisc::PrepareMediaReceivingChannel()
             ipObserver->MediaReceivingChannelPrepared(true);
             return PVMFSuccess;
         }
-        return PVMFPending; //Wait for the SetServerInfo call
+        return PVMFPending;	//Wait for the SetServerInfo call
     }
 }
 
@@ -750,40 +750,27 @@ OSCL_EXPORT_REF bool PVMFJitterBufferMisc::SetPlayRange(int32 aStartTimeInMS, in
     return true;
 }
 
-OSCL_EXPORT_REF void PVMFJitterBufferMisc::SetPortSSRC(PVMFPortInterface* aPort, uint32 aSSRC)
+OSCL_EXPORT_REF bool PVMFJitterBufferMisc::SetPortSSRC(PVMFPortInterface* aPort, uint32 aSSRC)
 {
-    bool isUpdateRequest = false;
-
-    for (uint32 ii = 0; ii < iRTPExchangeInfosForFirewallExchange.size(); ii++)
+    //Update with the JB
+    Oscl_Vector<PVMFJitterBufferPortParams*, OsclMemAllocator>::iterator iter;
+    for (iter = irPortParamsQueue.begin(); iter != irPortParamsQueue.end() ; iter++)
     {
-        if (aPort == iRTPExchangeInfosForFirewallExchange[ii].ipRTPDataJitterBufferPort)
+        PVMFJitterBufferPortParams* pPortParam = *iter;
+        if (pPortParam && ((&pPortParam->irPort) == aPort))
         {
-            isUpdateRequest = true;
-            iRTPExchangeInfosForFirewallExchange[ii].iSSRC = aSSRC;
-            ipFireWallPacketExchangerImpl->SetRTPSessionInfoForFirewallExchange(iRTPExchangeInfosForFirewallExchange[ii]);
+            PVMFJitterBuffer* jitterBuffer = pPortParam->ipJitterBuffer;
+            if (jitterBuffer)
+            {
+                jitterBuffer->setSSRC(aSSRC);
+            }
             break;
         }
     }
-
-    if (!isUpdateRequest)
-    {
-        //Update with the JB
-        Oscl_Vector<PVMFJitterBufferPortParams*, OsclMemAllocator>::const_iterator iter;
-        for (iter = irPortParamsQueue.begin(); iter != irPortParamsQueue.end() ; ++iter)
-        {
-            if ( iter && (*iter) && (&((*iter)->irPort) == aPort))
-            {
-                if ((*iter)->ipJitterBuffer)
-                {
-                    (*iter)->ipJitterBuffer->setSSRC(aSSRC);
-                }
-                break;
-            }
-        }
-        //update port's ssrc with the Firewall controller
-        RTPSessionInfoForFirewallExchange rtpSessioninfo(aPort, aSSRC);
-        iRTPExchangeInfosForFirewallExchange.push_back(rtpSessioninfo);
-    }
+    //update port's ssrc with the Firewall controller
+    RTPSessionInfoForFirewallExchange rtpSessioninfo(aPort, aSSRC);
+    iRTPExchangeInfosForFirewallExchange.push_back(rtpSessioninfo);
+    return true;
 }
 
 OSCL_EXPORT_REF uint32 PVMFJitterBufferMisc::GetEstimatedServerClockValue()
@@ -805,29 +792,13 @@ OSCL_EXPORT_REF void PVMFJitterBufferMisc::SetServerInfo(PVMFJitterBufferFireWal
     {
         if (!ipFireWallPacketExchangerImpl)
         {
-            if (iRTPExchangeInfosForFirewallExchange.size() == 0)//We haven't got the exchange info for the firewall pkts yet, lets assume ssrc to be zero for all the feedback ports
-            {
-                Oscl_Vector<PVMFJitterBufferPortParams*, OsclMemAllocator>::iterator iter;
-                for (iter = irPortParamsQueue.begin(); iter != irPortParamsQueue.end(); ++iter)
-                {
-                    PVMFJitterBufferPortParams* portParams = *iter;
-                    if (portParams->iTag == PVMF_JITTER_BUFFER_PORT_TYPE_INPUT)
-                    {
-                        RTPSessionInfoForFirewallExchange rtpSessioninfo(&portParams->irPort, 0);
-                        iRTPExchangeInfosForFirewallExchange.push_back(rtpSessioninfo);
-                    }
-                }
-            }
-
             //create it and start firewall packet exchange
             ipFireWallPacketExchangerImpl = PVFirewallPacketExchangeImpl::New(aServerInfo, *ipEventNotifier, ipObserver);
             Oscl_Vector<RTPSessionInfoForFirewallExchange, OsclMemAllocator>::iterator iter;
-
             for (iter = iRTPExchangeInfosForFirewallExchange.begin(); iter != iRTPExchangeInfosForFirewallExchange.end(); iter++)
             {
                 ipFireWallPacketExchangerImpl->SetRTPSessionInfoForFirewallExchange(*iter);
             }
-
             ipFireWallPacketExchangerImpl->InitiateFirewallPacketExchange();
         }
         else
@@ -869,7 +840,7 @@ OSCL_EXPORT_REF PVMFTimestamp PVMFJitterBufferMisc::GetMaxMediaDataTS()
         }
     }
 
-    if (numOfJitterBuffers > 1) //Need to normalize ts across jb's with the session (E.g. RTSP based streaming).
+    if (numOfJitterBuffers > 1)	//Need to normalize ts across jb's with the session (E.g. RTSP based streaming).
     {
         for (i = 0; i < irPortParamsQueue.size(); i++)
         {
@@ -921,7 +892,7 @@ OSCL_EXPORT_REF PVMFTimestamp PVMFJitterBufferMisc::GetActualMediaDataTSAfterSee
         }
     }
 
-    if (numOfJitterBuffers > 1) //Need to normalize ts across jb's with the session (E.g. RTSP based streaming).
+    if (numOfJitterBuffers > 1)	//Need to normalize ts across jb's with the session (E.g. RTSP based streaming).
     {
         for (i = 0; i < irPortParamsQueue.size(); i++)
         {
@@ -1187,7 +1158,7 @@ bool PVMFJitterBufferMisc::LookupRTCPChannelParams(PVMFPortInterface* rtpPort, P
 
     if (LocateFeedBackPort(inputPortParams, feedbackPortParams))
     {
-        rtcpPort =  &feedbackPortParams->irPort;
+        rtcpPort = 	&feedbackPortParams->irPort;
         rtpPktJitterBuffer = inputPortParams->ipJitterBuffer;
         retval = true;
     }

@@ -27,12 +27,12 @@
 OmxComponentBase::OmxComponentBase() :
         OsclActiveObject(OsclActiveObject::EPriorityNominal, "OMXComponent")
 {
+    iLogger = PVLogger::GetLoggerObject("OmxComponentBase");
+    PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_NOTICE, (0, "OmxComponentBase : constructed"));
+
     //Flag to call BufferMgmtFunction in the Run() when the component state is executing
     iBufferExecuteFlag = OMX_FALSE;
     ipAppPriv = NULL;
-
-    iLogger = PVLogger::GetLoggerObject("OmxComponentBase");
-    PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_NOTICE, (0, "OmxComponentBase : constructed"));
 
     ipCallbacks = NULL;
     iCallbackData = NULL;
@@ -50,9 +50,6 @@ OmxComponentBase::OmxComponentBase() :
 
     ipTargetComponent = NULL;
     iTargetMarkData = NULL;
-    ipTempTargetComponent = NULL;
-    iTempTargetMarkData = NULL;
-
     iNewInBufferRequired = OMX_TRUE;
     iNewOutBufRequired = OMX_TRUE;
 
@@ -60,19 +57,23 @@ OmxComponentBase::OmxComponentBase() :
     iOutBufferCount = 0;
     iCodecReady = OMX_FALSE;
     ipInputCurrBuffer = NULL;
-    iInputCurrBufferSize = 0;
     iInputCurrLength = 0;
     iFrameCount = 0;
     iStateTransitionFlag = OMX_FALSE;
     iEndOfFrameFlag = OMX_FALSE;
     ipInputBuffer = NULL;
     ipOutputBuffer = NULL;
+    iInputCurrBufferSize = 0;
 
-    iOutputFrameLength = 0;
+    iEosProcessing = OMX_FALSE;
+    iFirstFragment = OMX_FALSE;
+    iResizePending = OMX_FALSE;
+    iFrameTimestamp = 0;
+    iIsFirstOutputFrame = OMX_TRUE;
+    iSilenceInsertionInProgress = OMX_FALSE;
+
     iNumPorts = 0;
     iCompressedFormatPortNum = OMX_PORT_INPUTPORT_INDEX;
-    ipComponentProxy = NULL;
-
     ipPorts = NULL;
 
     //Indicate whether component has been already initialized */
@@ -81,28 +82,18 @@ OmxComponentBase::OmxComponentBase() :
     iGroupPriority = 0;
     iGroupID = 0;
 
+    ipTempOutBufferForPortReconfig = NULL;
+    iSendOutBufferAfterPortReconfigFlag = OMX_FALSE;
+    iSizeOutBufferForPortReconfig = 0;
+
     iComponentRoleFlag = OMX_FALSE;
+
     ipMark = NULL;
 
-    iEosProcessing = OMX_FALSE;
-    iFirstFragment = OMX_FALSE;
-    iFrameTimestamp = 0;
-    iSamplesPerFrame = 0;
-    iSilenceInsertionInProgress = OMX_FALSE;
-    iSilenceFramesNeeded = 0;
-    iIsFirstOutputFrame = OMX_TRUE;
-    iInputBufferRemainingBytes = 0;
-    iResizePending = OMX_FALSE;
-
-    ipTempOutBufferForPortReconfig = NULL;
-    iSizeOutBufferForPortReconfig = 0;
-    iSendOutBufferAfterPortReconfigFlag = OMX_FALSE;
-    iTimestampOutBufferForPortReconfig = (OMX_TICKS)0;
-    iOutputMicroSecPerFrame = (OMX_TICKS)0;
 }
 
 
-OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentBase::ConstructBaseComponent(OMX_PTR pAppData)
+OMX_ERRORTYPE OmxComponentBase::ConstructBaseComponent(OMX_PTR pAppData)
 {
     OSCL_UNUSED_ARG(pAppData);
     OMX_U32 ii, jj;
@@ -225,7 +216,7 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentBase::ConstructBaseComponent(OMX_PTR p
 }
 
 
-OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentBase::DestroyBaseComponent()
+OMX_ERRORTYPE OmxComponentBase::DestroyBaseComponent()
 {
     OMX_U32 ii;
 
@@ -300,7 +291,7 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentBase::DestroyBaseComponent()
  *
  **********************/
 
-OSCL_EXPORT_REF void OmxComponentBase::SetHeader(OMX_PTR aHeader, OMX_U32 aSize)
+void OmxComponentBase::SetHeader(OMX_PTR aHeader, OMX_U32 aSize)
 {
     OMX_VERSIONTYPE* pVersion = (OMX_VERSIONTYPE*)((OMX_STRING) aHeader + sizeof(OMX_U32));
     *((OMX_U32*) aHeader) = aSize;
@@ -312,7 +303,7 @@ OSCL_EXPORT_REF void OmxComponentBase::SetHeader(OMX_PTR aHeader, OMX_U32 aSize)
 }
 
 
-OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentBase::CheckHeader(OMX_PTR aHeader, OMX_U32 aSize)
+OMX_ERRORTYPE OmxComponentBase::CheckHeader(OMX_PTR aHeader, OMX_U32 aSize)
 {
     OMX_VERSIONTYPE* pVersion = (OMX_VERSIONTYPE*)((OMX_STRING) aHeader + sizeof(OMX_U32));
 
@@ -405,7 +396,7 @@ void OmxComponentBase::SetNumBufferFlush(OMX_S32 NumPorts, OMX_S32 index, OMX_S3
 }
 
 
-OSCL_EXPORT_REF OMX_BOOL OmxComponentBase::ParseFullAVCFramesIntoNALs(OMX_BUFFERHEADERTYPE* aInputBuffer)
+OMX_BOOL OmxComponentBase::ParseFullAVCFramesIntoNALs(OMX_BUFFERHEADERTYPE* aInputBuffer)
 {
     OSCL_UNUSED_ARG(aInputBuffer);
 
@@ -418,8 +409,9 @@ OSCL_EXPORT_REF OMX_BOOL OmxComponentBase::ParseFullAVCFramesIntoNALs(OMX_BUFFER
 }
 
 /** This function assembles multiple input buffers into
-    * one frame with the marker flag OMX_BUFFERFLAG_ENDOFFRAME set
-    */
+	* one frame with the marker flag OMX_BUFFERFLAG_ENDOFFRAME set
+	*/
+
 OMX_BOOL OmxComponentBase::AssemblePartialFrames(OMX_BUFFERHEADERTYPE* aInputBuffer)
 {
     PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_NOTICE, (0, "OmxComponentBase : AssemblePartialFrames IN"));
@@ -630,7 +622,7 @@ OMX_BOOL OmxComponentBase::AssemblePartialFrames(OMX_BUFFERHEADERTYPE* aInputBuf
 }
 
 
-OSCL_EXPORT_REF void OmxComponentBase::ReturnInputBuffer(OMX_BUFFERHEADERTYPE* pInputBuffer, ComponentPortType* pPort)
+void OmxComponentBase::ReturnInputBuffer(OMX_BUFFERHEADERTYPE* pInputBuffer, ComponentPortType* pPort)
 {
     OSCL_UNUSED_ARG(pPort);
     OMX_COMPONENTTYPE* pHandle = &iOmxComponent;
@@ -649,7 +641,7 @@ OSCL_EXPORT_REF void OmxComponentBase::ReturnInputBuffer(OMX_BUFFERHEADERTYPE* p
 /**
  * Returns Output Buffer back to the IL client
  */
-OSCL_EXPORT_REF void OmxComponentBase::ReturnOutputBuffer(OMX_BUFFERHEADERTYPE* pOutputBuffer,
+void OmxComponentBase::ReturnOutputBuffer(OMX_BUFFERHEADERTYPE* pOutputBuffer,
         ComponentPortType *pPort)
 {
     OMX_COMPONENTTYPE* pHandle = &iOmxComponent;
@@ -669,9 +661,9 @@ OSCL_EXPORT_REF void OmxComponentBase::ReturnOutputBuffer(OMX_BUFFERHEADERTYPE* 
 
 
 /** Flushes all the buffers under processing by the given port.
-    * This function is called due to a state change of the component, typically
-    * @param PortIndex the ID of the port to be flushed
-    */
+	* This function is called due to a state change of the component, typically
+	* @param PortIndex the ID of the port to be flushed
+	*/
 
 OMX_ERRORTYPE OmxComponentBase::FlushPort(OMX_S32 PortIndex)
 {
@@ -770,8 +762,8 @@ void OmxComponentBase::DisableSinglePort(OMX_U32 PortIndex)
 
 
 /** Disables the specified port. This function is called due to a request by the IL client
-    * @param PortIndex the ID of the port to be disabled
-    */
+	* @param PortIndex the ID of the port to be disabled
+	*/
 OMX_ERRORTYPE OmxComponentBase::DisablePort(OMX_S32 PortIndex)
 {
 
@@ -834,8 +826,8 @@ void OmxComponentBase::EnableSinglePort(OMX_U32 PortIndex)
 }
 
 /** Enables the specified port. This function is called due to a request by the IL client
-    * @param PortIndex the ID of the port to be enabled
-    */
+	* @param PortIndex the ID of the port to be enabled
+	*/
 OMX_ERRORTYPE OmxComponentBase::EnablePort(OMX_S32 PortIndex)
 {
     PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_NOTICE, (0, "OmxComponentBase : EnablePort IN"));
@@ -878,7 +870,7 @@ OMX_ERRORTYPE OmxComponentBase::TunnelRequest(
 }
 
 
-OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentBase::BaseComponentGetConfig(
+OMX_ERRORTYPE OmxComponentBase::BaseComponentGetConfig(
     OMX_IN  OMX_HANDLETYPE hComponent,
     OMX_IN  OMX_INDEXTYPE nIndex,
     OMX_INOUT OMX_PTR pComponentConfigStructure)
@@ -898,7 +890,7 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentBase::BaseComponentGetConfig(
 
 
 
-OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentBase::GetConfig(
+OMX_ERRORTYPE OmxComponentBase::GetConfig(
     OMX_IN  OMX_HANDLETYPE hComponent,
     OMX_IN  OMX_INDEXTYPE nIndex,
     OMX_INOUT OMX_PTR pComponentConfigStructure)
@@ -974,7 +966,7 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentBase::GetConfig(
 }
 
 
-OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentBase::BaseComponentSetConfig(
+OMX_ERRORTYPE OmxComponentBase::BaseComponentSetConfig(
     OMX_IN  OMX_HANDLETYPE hComponent,
     OMX_IN  OMX_INDEXTYPE nIndex,
     OMX_IN  OMX_PTR pComponentConfigStructure)
@@ -992,7 +984,7 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentBase::BaseComponentSetConfig(
 }
 
 
-OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentBase::SetConfig(
+OMX_ERRORTYPE OmxComponentBase::SetConfig(
     OMX_IN  OMX_HANDLETYPE hComponent,
     OMX_IN  OMX_INDEXTYPE nIndex,
     OMX_IN  OMX_PTR pComponentConfigStructure)
@@ -1005,7 +997,7 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentBase::SetConfig(
 }
 
 
-OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentBase::BaseComponentGetExtensionIndex(
+OMX_ERRORTYPE OmxComponentBase::BaseComponentGetExtensionIndex(
     OMX_IN  OMX_HANDLETYPE hComponent,
     OMX_IN  OMX_STRING cParameterName,
     OMX_OUT OMX_INDEXTYPE* pIndexType)
@@ -1018,7 +1010,7 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentBase::BaseComponentGetExtensionIndex(
 }
 
 
-OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentBase::BaseComponentGetState(
+OMX_ERRORTYPE OmxComponentBase::BaseComponentGetState(
     OMX_IN  OMX_HANDLETYPE hComponent,
     OMX_OUT OMX_STATETYPE* pState)
 {
@@ -1036,7 +1028,7 @@ void OmxComponentBase::GetState(OMX_OUT OMX_STATETYPE* pState)
 }
 
 
-OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentBase::BaseComponentGetParameter(
+OMX_ERRORTYPE OmxComponentBase::BaseComponentGetParameter(
     OMX_IN  OMX_HANDLETYPE hComponent,
     OMX_IN  OMX_INDEXTYPE nParamIndex,
     OMX_INOUT OMX_PTR ComponentParameterStructure)
@@ -1055,7 +1047,7 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentBase::BaseComponentGetParameter(
 
 }
 
-OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentBase::BaseComponentSetParameter(
+OMX_ERRORTYPE OmxComponentBase::BaseComponentSetParameter(
     OMX_IN  OMX_HANDLETYPE hComponent,
     OMX_IN  OMX_INDEXTYPE nParamIndex,
     OMX_IN  OMX_PTR ComponentParameterStructure)
@@ -1075,7 +1067,7 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentBase::BaseComponentSetParameter(
 }
 
 
-OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentBase::BaseComponentUseBuffer(
+OMX_ERRORTYPE OmxComponentBase::BaseComponentUseBuffer(
     OMX_IN OMX_HANDLETYPE hComponent,
     OMX_INOUT OMX_BUFFERHEADERTYPE** ppBufferHdr,
     OMX_IN OMX_U32 nPortIndex,
@@ -1163,7 +1155,6 @@ OMX_ERRORTYPE OmxComponentBase::UseBuffer(
             pBaseComponentPort->pBuffer[ii]->pAppPrivate = pAppPrivate;
             pBaseComponentPort->pBuffer[ii]->nTickCount = 0;
             pBaseComponentPort->pBuffer[ii]->nTimeStamp = 0;
-            pBaseComponentPort->pBuffer[ii]->hMarkTargetComponent = NULL;
             *ppBufferHdr = pBaseComponentPort->pBuffer[ii];
             if (OMX_DirInput == pBaseComponentPort->PortParam.eDir)
             {
@@ -1199,7 +1190,7 @@ OMX_ERRORTYPE OmxComponentBase::UseBuffer(
 }
 
 
-OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentBase::BaseComponentAllocateBuffer(
+OMX_ERRORTYPE OmxComponentBase::BaseComponentAllocateBuffer(
     OMX_IN OMX_HANDLETYPE hComponent,
     OMX_INOUT OMX_BUFFERHEADERTYPE** pBuffer,
     OMX_IN OMX_U32 nPortIndex,
@@ -1328,7 +1319,7 @@ OMX_ERRORTYPE OmxComponentBase::AllocateBuffer(
     return OMX_ErrorInsufficientResources;
 }
 
-OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentBase::BaseComponentFreeBuffer(
+OMX_ERRORTYPE OmxComponentBase::BaseComponentFreeBuffer(
     OMX_IN  OMX_HANDLETYPE hComponent,
     OMX_IN  OMX_U32 nPortIndex,
     OMX_IN  OMX_BUFFERHEADERTYPE* pBuffer)
@@ -1464,12 +1455,12 @@ OMX_ERRORTYPE OmxComponentBase::FreeBuffer(
 
 
 /** Set Callbacks. It stores in the component private structure the pointers to the user application callbacs
-    * @param hComponent the handle of the component
-    * @param ipCallbacks the OpenMAX standard structure that holds the callback pointers
-    * @param pAppData a pointer to a private structure, not covered by OpenMAX standard, in needed
+	* @param hComponent the handle of the component
+	* @param ipCallbacks the OpenMAX standard structure that holds the callback pointers
+	* @param pAppData a pointer to a private structure, not covered by OpenMAX standard, in needed
     */
 
-OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentBase::BaseComponentSetCallbacks(
+OMX_ERRORTYPE OmxComponentBase::BaseComponentSetCallbacks(
     OMX_IN  OMX_HANDLETYPE hComponent,
     OMX_IN  OMX_CALLBACKTYPE* pCallbacks,
     OMX_IN  OMX_PTR pAppData)
@@ -1503,7 +1494,7 @@ OMX_ERRORTYPE OmxComponentBase::SetCallbacks(
 }
 
 
-OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentBase::BaseComponentSendCommand(
+OMX_ERRORTYPE OmxComponentBase::BaseComponentSendCommand(
     OMX_IN  OMX_HANDLETYPE hComponent,
     OMX_IN  OMX_COMMANDTYPE Cmd,
     OMX_IN  OMX_U32 nParam,
@@ -1622,19 +1613,6 @@ OMX_ERRORTYPE OmxComponentBase::SendCommand(
             Message->MessageParam2 = nParam;
             Message->pCmdData = pCmdData;
 
-            if ((nParam != -1) && ((OMX_U32) nParam >= iNumPorts))
-            {
-                PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_NOTICE, (0, "OmxComponentBase : SendCommand error bad port index"));
-                return OMX_ErrorBadPortIndex;
-            }
-
-            //If component is in Idle state, just queue the command and don't do anything else
-            if (iState == OMX_StateIdle)
-            {
-                PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_NOTICE, (0, "OmxComponentBase : SendCommand Flush command in Idle state"));
-                break;
-            }
-
             if ((iState != OMX_StateExecuting) && (iState != OMX_StatePause))
             {
                 PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_NOTICE, (0, "OmxComponentBase : SendCommand error incorrect state"));
@@ -1642,7 +1620,11 @@ OMX_ERRORTYPE OmxComponentBase::SendCommand(
                 break;
 
             }
-
+            if ((nParam != -1) && ((OMX_U32) nParam >= iNumPorts))
+            {
+                PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_NOTICE, (0, "OmxComponentBase : SendCommand error bad port index"));
+                return OMX_ErrorBadPortIndex;
+            }
             SetPortFlushFlag(iNumPorts, nParam, OMX_TRUE);
             SetNumBufferFlush(iNumPorts, -1, 0);
         }
@@ -1924,42 +1906,6 @@ OMX_ERRORTYPE OmxComponentBase::MessageHandler(CoreMessage* Message)
 
             case OMX_CommandFlush:
             {
-                //If the component is in Idle state, send the command complete callback
-                //without any processing as the ports are empty of buffers anyway
-                if (OMX_StateIdle == iState)
-                {
-                    if (-1 == Message->MessageParam2)
-                    {
-                        /*Flush all port*/
-                        for (ii = 0; ii < iNumPorts; ii++)
-                        {
-                            (*(ipCallbacks->EventHandler))
-                            (pHandle,
-                             iCallbackData,
-                             OMX_EventCmdComplete, /* The command was completed */
-                             OMX_CommandFlush, /* The commands was a OMX_CommandStateSet */
-                             ii, /* The iState has been changed in Message->MessageParam2 */
-                             NULL);
-                        }
-                    }
-                    else
-                    {
-                        /*Flush input/output port*/
-                        (*(ipCallbacks->EventHandler))
-                        (pHandle,
-                         iCallbackData,
-                         OMX_EventCmdComplete, /* The command was completed */
-                         OMX_CommandFlush, /* The commands was a OMX_CommandStateSet */
-                         Message->MessageParam2, /* The iState has been changed in Message->MessageParam2 */
-                         NULL);
-                    }
-
-                    // Break from here as we don't want to do any further processing
-                    // for this command
-                    break;
-                }
-
-
                 /*Flush ports*/
                 ErrorType = FlushPort(Message->MessageParam2);
 
@@ -2492,7 +2438,7 @@ OMX_ERRORTYPE OmxComponentBase::DoStateSet(OMX_U32 aDestinationState)
 
 
 
-OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentBase::BaseComponentEmptyThisBuffer(
+OMX_ERRORTYPE OmxComponentBase::BaseComponentEmptyThisBuffer(
     OMX_IN  OMX_HANDLETYPE hComponent,
     OMX_IN  OMX_BUFFERHEADERTYPE* pBuffer)
 {
@@ -2591,7 +2537,7 @@ OMX_ERRORTYPE OmxComponentBase::EmptyThisBuffer(
 }
 
 
-OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentBase::BaseComponentFillThisBuffer(
+OMX_ERRORTYPE OmxComponentBase::BaseComponentFillThisBuffer(
     OMX_IN  OMX_HANDLETYPE hComponent,
     OMX_IN  OMX_BUFFERHEADERTYPE* pBuffer)
 {
@@ -2672,12 +2618,12 @@ OMX_ERRORTYPE OmxComponentBase::FillThisBuffer(
 
 
 /** This is the central function for buffers processing and decoding.
-    * It is called through the Run() of active object when the component is in executing state
-    * and is signalled each time a new buffer is available on the given ports
-    * This function will process the input buffers & return output buffers
-    */
+	* It is called through the Run() of active object when the component is in executing state
+	* and is signalled each time a new buffer is available on the given ports
+	* This function will process the input buffers & return output buffers
+	*/
 
-OSCL_EXPORT_REF void OmxComponentBase::BufferMgmtFunction()
+void OmxComponentBase::BufferMgmtFunction()
 {
     PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_NOTICE, (0, "OmxComponentBase : BufferMgmtFunction IN"));
 
@@ -2801,7 +2747,7 @@ OSCL_EXPORT_REF void OmxComponentBase::BufferMgmtFunction()
                 }
 
 
-            }   //end braces for if (ipInputBuffer->nFilledLen != 0)
+            }	//end braces for if (ipInputBuffer->nFilledLen != 0)
             else
             {
                 //Reschedule the AO if there are more buffers in queue
@@ -2815,8 +2761,8 @@ OSCL_EXPORT_REF void OmxComponentBase::BufferMgmtFunction()
                 ipInputBuffer = NULL;
             }
 
-        }   //end braces for if ((OMX_TRUE == iIsInputBufferEnded) && (GetQueueNumElem(pInputQueue) > 0))
-    }   //if (OMX_FALSE == iEndofStream)
+        }	//end braces for if ((OMX_TRUE == iIsInputBufferEnded) && (GetQueueNumElem(pInputQueue) > 0))
+    }	//if (OMX_FALSE == iEndofStream)
 
 
     //Component specific Encode/Decode routine
@@ -2827,11 +2773,11 @@ OSCL_EXPORT_REF void OmxComponentBase::BufferMgmtFunction()
 }
 
 
-OSCL_EXPORT_REF OMX_BOOL OmxComponentBase::BufferMgmtWithoutMarker()
+OMX_BOOL OmxComponentBase::BufferMgmtWithoutMarker()
 {
     PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_NOTICE, (0, "OmxComponentBase : BufferMgmtWithoutMarker IN"));
 
-    ComponentPortType*  pInPort = (ComponentPortType*) ipPorts[OMX_PORT_INPUTPORT_INDEX];
+    ComponentPortType*	pInPort = (ComponentPortType*) ipPorts[OMX_PORT_INPUTPORT_INDEX];
     QueueType* pInputQueue = ipPorts[OMX_PORT_INPUTPORT_INDEX]->pBufferQueue;
     OmxComponentBase* pOpenmaxAOType = (OmxComponentBase*) iOmxComponent.pComponentPrivate;
 
@@ -3007,7 +2953,7 @@ OSCL_EXPORT_REF OMX_BOOL OmxComponentBase::BufferMgmtWithoutMarker()
 
 
 //Propagate here the buffer mark through output port in case of BufferMgmtWithoutMarker
-OSCL_EXPORT_REF void OmxComponentBase::ComponentBufferMgmtWithoutMarker()
+void OmxComponentBase::ComponentBufferMgmtWithoutMarker()
 {
     OMX_COMPONENTTYPE* pHandle = &iOmxComponent;
 
@@ -3031,10 +2977,10 @@ OSCL_EXPORT_REF void OmxComponentBase::ComponentBufferMgmtWithoutMarker()
  * copy the current input buffer into a big temporary buffer, so that
  * an incomplete/partial frame is never passed to the decoder library for decode
 */
-OSCL_EXPORT_REF void OmxComponentBase::TempInputBufferMgmtWithoutMarker()
+void OmxComponentBase::TempInputBufferMgmtWithoutMarker()
 {
     OMX_COMPONENTTYPE* pHandle = &iOmxComponent;
-    ComponentPortType*  pInPort = (ComponentPortType*) ipPorts[OMX_PORT_INPUTPORT_INDEX];
+    ComponentPortType*	pInPort = (ComponentPortType*) ipPorts[OMX_PORT_INPUTPORT_INDEX];
     OMX_U32 TempInputBufferSize = iInputCurrBufferSize;
 
     if (iTempInputBufferLength < (TempInputBufferSize >> 1))
@@ -3086,7 +3032,7 @@ OSCL_EXPORT_REF void OmxComponentBase::TempInputBufferMgmtWithoutMarker()
 
 
 
-OSCL_EXPORT_REF void OmxComponentBase::Run()
+void OmxComponentBase::Run()
 {
     PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_NOTICE, (0, "OmxComponentBase : Run IN"));
 
@@ -3160,14 +3106,14 @@ OSCL_EXPORT_REF void OmxComponentBase::Run()
 /**************************
  AUDIO BASE CLASS ROUTINES
  **************************/
-OSCL_EXPORT_REF OmxComponentAudio::OmxComponentAudio()
+OmxComponentAudio::OmxComponentAudio()
 {
     iIsAudioComponent = OMX_TRUE;
 
 }
 
 
-OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentAudio::GetParameter(
+OMX_ERRORTYPE OmxComponentAudio::GetParameter(
     OMX_IN  OMX_HANDLETYPE hComponent,
     OMX_IN  OMX_INDEXTYPE nParamIndex,
     OMX_INOUT OMX_PTR ComponentParameterStructure)
@@ -3181,15 +3127,18 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentAudio::GetParameter(
     OMX_PARAM_PORTDEFINITIONTYPE* pPortDef;
     OMX_PORT_PARAM_TYPE* pPortDomains;
     OMX_U32 PortIndex;
-    OMX_PARAM_COMPONENTROLETYPE* pCompRole;
 
     OMX_AUDIO_PARAM_PORTFORMATTYPE* pAudioPortFormat;
     OMX_AUDIO_PARAM_PCMMODETYPE* pAudioPcmMode;
     OMX_AUDIO_PARAM_WMATYPE* pAudioWma;
     OMX_AUDIO_PARAM_MP3TYPE* pAudioMp3;
+    OMX_AUDIO_PARAM_AC3TYPE* pAudioAc3;
+	OMX_AUDIO_PARAM_EVRCTYPE* pAudioEvrc;
     OMX_AUDIO_CONFIG_EQUALIZERTYPE* pAudioEqualizer;
     OMX_AUDIO_PARAM_AACPROFILETYPE* pAudioAac;
     OMX_AUDIO_PARAM_AMRTYPE* pAudioAmr;
+    OMX_AUDIO_PARAM_G711TYPE* pAudioG711;
+    OMX_AUDIO_PARAM_G729TYPE* pAudioG729;
 
     ComponentPortType* pComponentPort;
 
@@ -3277,6 +3226,61 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentAudio::GetParameter(
             PortIndex = pAudioMp3->nPortIndex;
             oscl_memcpy(pAudioMp3, &ipPorts[PortIndex]->AudioMp3Param, sizeof(OMX_AUDIO_PARAM_MP3TYPE));
             SetHeader(pAudioMp3, sizeof(OMX_AUDIO_PARAM_MP3TYPE));
+        }
+        break;
+
+	case OMX_IndexParamAudioAc3:
+        {
+            pAudioAc3 = (OMX_AUDIO_PARAM_AC3TYPE*) ComponentParameterStructure;
+            if (pAudioAc3->nPortIndex != iCompressedFormatPortNum)
+            {
+                PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_NOTICE, (0, "OmxComponentAudio : GetParameter error bad port index"));
+                return OMX_ErrorBadPortIndex;
+            }
+            PortIndex = pAudioAc3->nPortIndex;
+            oscl_memcpy(pAudioAc3, &ipPorts[PortIndex]->AudioAc3Param, sizeof(OMX_AUDIO_PARAM_AC3TYPE));
+            SetHeader(pAudioAc3, sizeof(OMX_AUDIO_PARAM_AC3TYPE));
+        }
+        break;
+        
+        case OMX_IndexParamAudioG711:
+        {
+            pAudioG711 = (OMX_AUDIO_PARAM_G711TYPE*) ComponentParameterStructure;
+            if (pAudioG711->nPortIndex != iCompressedFormatPortNum)
+            {
+                PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_NOTICE, (0, "OmxComponentAudio : GetParameter error bad port index"));
+                return OMX_ErrorBadPortIndex;
+            }
+            PortIndex = pAudioG711->nPortIndex;
+            oscl_memcpy(pAudioG711, &ipPorts[PortIndex]->AudioG711Param, sizeof(OMX_AUDIO_PARAM_G711TYPE));
+            SetHeader(pAudioG711, sizeof(OMX_AUDIO_PARAM_G711TYPE));
+        }
+        break;
+        
+        case OMX_IndexParamAudioEvrc:
+        {
+            pAudioEvrc = (OMX_AUDIO_PARAM_EVRCTYPE*) ComponentParameterStructure;
+            if (pAudioEvrc->nPortIndex != iCompressedFormatPortNum)
+            {
+                PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_NOTICE, (0, "OmxComponentAudio : GetParameter error bad port index"));
+                return OMX_ErrorBadPortIndex;
+            }
+            PortIndex = pAudioEvrc->nPortIndex;
+            oscl_memcpy(pAudioEvrc, &ipPorts[PortIndex]->AudioEvrcParam, sizeof(OMX_AUDIO_PARAM_EVRCTYPE));
+            SetHeader(pAudioEvrc, sizeof(OMX_AUDIO_PARAM_EVRCTYPE));
+        }
+        break;
+        case OMX_IndexParamAudioG729:
+        {
+            pAudioG729 = (OMX_AUDIO_PARAM_G729TYPE*) ComponentParameterStructure;
+            if (pAudioG729->nPortIndex != iCompressedFormatPortNum)
+            {
+                PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_NOTICE, (0, "OmxComponentAudio : GetParameter error bad port index"));
+                return OMX_ErrorBadPortIndex;
+            }
+            PortIndex = pAudioG729->nPortIndex;
+            oscl_memcpy(pAudioG729, &ipPorts[PortIndex]->AudioG729Param, sizeof(OMX_AUDIO_PARAM_G729TYPE));
+            SetHeader(pAudioG729, sizeof(OMX_AUDIO_PARAM_G729TYPE));
         }
         break;
 
@@ -3384,13 +3388,6 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentAudio::GetParameter(
 
         }
         break;
-        case OMX_IndexParamStandardComponentRole:
-        {
-            pCompRole = (OMX_PARAM_COMPONENTROLETYPE*) ComponentParameterStructure;
-            SetHeader(pCompRole, sizeof(OMX_PARAM_COMPONENTROLETYPE));
-            oscl_strncpy((OMX_STRING)pCompRole->cRole, (OMX_STRING)iComponentRole, OMX_MAX_STRINGNAME_SIZE);
-        }
-        break;
 
         default:
         {
@@ -3406,7 +3403,7 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentAudio::GetParameter(
 }
 
 
-OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentAudio::SetParameter(
+OMX_ERRORTYPE OmxComponentAudio::SetParameter(
     OMX_IN  OMX_HANDLETYPE hComponent,
     OMX_IN  OMX_INDEXTYPE nParamIndex,
     OMX_IN  OMX_PTR ComponentParameterStructure)
@@ -3423,9 +3420,13 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentAudio::SetParameter(
 
     OMX_AUDIO_PARAM_WMATYPE* pAudioWma;
     OMX_AUDIO_PARAM_MP3TYPE* pAudioMp3;
+    OMX_AUDIO_PARAM_AC3TYPE* pAudioAc3;
+	OMX_AUDIO_PARAM_EVRCTYPE* pAudioEvrc;
     OMX_AUDIO_CONFIG_EQUALIZERTYPE* pAudioEqualizer;
     OMX_AUDIO_PARAM_AACPROFILETYPE* pAudioAac;
     OMX_AUDIO_PARAM_AMRTYPE* pAudioAmr;
+    OMX_AUDIO_PARAM_G711TYPE* pAudioG711;
+    OMX_AUDIO_PARAM_G729TYPE* pAudioG729;
 
     OMX_U32 PortIndex;
     OMX_ERRORTYPE ErrorType = OMX_ErrorNone;
@@ -3501,6 +3502,35 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentAudio::SetParameter(
             oscl_memcpy(&ipPorts[PortIndex]->AudioMp3Param, pAudioMp3, sizeof(OMX_AUDIO_PARAM_MP3TYPE));
         }
         break;
+	
+	case OMX_IndexParamAudioAc3:
+        {
+            pAudioAc3 = (OMX_AUDIO_PARAM_AC3TYPE*) ComponentParameterStructure;
+            PortIndex = pAudioAc3->nPortIndex;
+            /*Check Structure Header and verify component state*/
+            ErrorType = ParameterSanityCheck(hComponent, PortIndex, pAudioAc3, sizeof(OMX_AUDIO_PARAM_AC3TYPE));
+            if (ErrorType != OMX_ErrorNone)
+            {
+                PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_NOTICE, (0, "OmxComponentAudio : SetParameter error parameter sanity check error"));
+                return ErrorType;
+            }
+            oscl_memcpy(&ipPorts[PortIndex]->AudioAc3Param, pAudioAc3, sizeof(OMX_AUDIO_PARAM_AC3TYPE));
+        }
+        break;
+	case OMX_IndexParamAudioEvrc:
+        {
+            pAudioEvrc = (OMX_AUDIO_PARAM_EVRCTYPE*) ComponentParameterStructure;
+            PortIndex = pAudioEvrc->nPortIndex;
+            /*Check Structure Header and verify component state*/
+            ErrorType = ParameterSanityCheck(hComponent, PortIndex, pAudioEvrc, sizeof(OMX_AUDIO_PARAM_EVRCTYPE));
+            if (ErrorType != OMX_ErrorNone)
+            {
+                PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_NOTICE, (0, "OmxComponentAudio : SetParameter error parameter sanity check error"));
+                return ErrorType;
+            }
+            oscl_memcpy(&ipPorts[PortIndex]->AudioEvrcParam, pAudioEvrc, sizeof(OMX_AUDIO_PARAM_EVRCTYPE));
+        }
+        break;
 
         case OMX_IndexParamAudioWma:
         {
@@ -3560,6 +3590,11 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentAudio::SetParameter(
             }
 
             pOpenmaxAOType->UpdateAACPlusFlag(AacPlusFlag);
+	     if(PortIndex == OMX_PORT_INPUTPORT_INDEX)
+            {
+            	pOpenmaxAOType->UpdateAACStreamFormat(ipPorts[PortIndex]->AudioAacParam.eAACStreamFormat);
+            }
+
         }
         break;
 
@@ -3582,6 +3617,35 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentAudio::SetParameter(
             {
                 ipPorts[OMX_PORT_OUTPUTPORT_INDEX]->AudioPcmMode.nSamplingRate = 16000;
             }
+        }
+        break;
+
+        case OMX_IndexParamAudioG711:
+        {
+            pAudioG711 = (OMX_AUDIO_PARAM_G711TYPE*) ComponentParameterStructure;
+            PortIndex = pAudioG711->nPortIndex;
+            /*Check Structure Header and verify component state*/
+            ErrorType = ParameterSanityCheck(hComponent, PortIndex, pAudioG711, sizeof(OMX_AUDIO_PARAM_G711TYPE));
+            if (ErrorType != OMX_ErrorNone)
+            {
+                PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_NOTICE, (0, "OmxComponentAudio : SetParameter error parameter sanity check error"));
+                return ErrorType;
+            }
+            oscl_memcpy(&ipPorts[PortIndex]->AudioG711Param, pAudioG711, sizeof(OMX_AUDIO_PARAM_G711TYPE));
+        }
+        break;
+        case OMX_IndexParamAudioG729:
+        {
+            pAudioG729 = (OMX_AUDIO_PARAM_G729TYPE*) ComponentParameterStructure;
+            PortIndex = pAudioG729->nPortIndex;
+            /*Check Structure Header and verify component state*/
+            ErrorType = ParameterSanityCheck(hComponent, PortIndex, pAudioG729, sizeof(OMX_AUDIO_PARAM_G729TYPE));
+            if (ErrorType != OMX_ErrorNone)
+            {
+                PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_NOTICE, (0, "OmxComponentAudio : SetParameter error parameter sanity check error"));
+                return ErrorType;
+            }
+            oscl_memcpy(&ipPorts[PortIndex]->AudioG729Param, pAudioG729, sizeof(OMX_AUDIO_PARAM_G729TYPE));
         }
         break;
 
@@ -3680,14 +3744,14 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentAudio::SetParameter(
 /*************************
  VIDEO BASE CLASS ROUTINES
  *************************/
-OSCL_EXPORT_REF OmxComponentVideo::OmxComponentVideo()
+OmxComponentVideo::OmxComponentVideo()
 {
     iIsAudioComponent = OMX_FALSE;
 
 }
 
 
-OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentVideo::GetParameter(
+OMX_ERRORTYPE OmxComponentVideo::GetParameter(
     OMX_IN  OMX_HANDLETYPE hComponent,
     OMX_IN  OMX_INDEXTYPE nParamIndex,
     OMX_INOUT OMX_PTR ComponentParameterStructure)
@@ -3701,8 +3765,6 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentVideo::GetParameter(
     OMX_PARAM_PORTDEFINITIONTYPE* pPortDef;
     OMX_PORT_PARAM_TYPE* pPortDomains;
     OMX_U32 PortIndex;
-    OMX_PARAM_COMPONENTROLETYPE* pCompRole;
-
 
     OMX_VIDEO_PARAM_PORTFORMATTYPE* pVideoPortFormat;
     OMX_VIDEO_PARAM_PROFILELEVELTYPE* pProfileLevel;
@@ -3713,13 +3775,13 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentVideo::GetParameter(
     OMX_VIDEO_PARAM_WMVTYPE* pVideoWmv;
 
     //Video encoder configuration parameters
-    OMX_CONFIG_ROTATIONTYPE*             pVideoRotation;
+    OMX_CONFIG_ROTATIONTYPE*			 pVideoRotation;
     OMX_VIDEO_PARAM_ERRORCORRECTIONTYPE* pVideoErrCorr;
-    OMX_VIDEO_PARAM_BITRATETYPE*         pVideoRateControl;
-    OMX_VIDEO_PARAM_QUANTIZATIONTYPE*    pVideoQuant;
-    OMX_VIDEO_PARAM_VBSMCTYPE*           pVideoBlock;
-    OMX_VIDEO_PARAM_MOTIONVECTORTYPE*    pVideoMotionVector;
-    OMX_VIDEO_PARAM_INTRAREFRESHTYPE*    pVideoIntraRefresh;
+    OMX_VIDEO_PARAM_BITRATETYPE*		 pVideoRateControl;
+    OMX_VIDEO_PARAM_QUANTIZATIONTYPE*	 pVideoQuant;
+    OMX_VIDEO_PARAM_VBSMCTYPE*			 pVideoBlock;
+    OMX_VIDEO_PARAM_MOTIONVECTORTYPE*	 pVideoMotionVector;
+    OMX_VIDEO_PARAM_INTRAREFRESHTYPE*	 pVideoIntraRefresh;
 
     if (NULL == ComponentParameterStructure)
     {
@@ -4014,19 +4076,13 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentVideo::GetParameter(
             SetHeader(pVideoIntraRefresh, sizeof(OMX_VIDEO_PARAM_INTRAREFRESHTYPE));
         }
         break;
-        case OMX_IndexParamStandardComponentRole:
-        {
-            pCompRole = (OMX_PARAM_COMPONENTROLETYPE*) ComponentParameterStructure;
-            SetHeader(pCompRole, sizeof(OMX_PARAM_COMPONENTROLETYPE));
-            oscl_strncpy((OMX_STRING)pCompRole->cRole, (OMX_STRING)iComponentRole, OMX_MAX_STRINGNAME_SIZE);
-        }
-        break;
+
         default:
         {
             PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_NOTICE, (0, "OmxComponentVideo : GetParameter error Unsupported Index"));
             return OMX_ErrorUnsupportedIndex;
         }
-        // break;   This break statement was removed to avoid compiler warning for Unreachable Code
+        // break;	This break statement was removed to avoid compiler warning for Unreachable Code
     }
 
     PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_NOTICE, (0, "OmxComponentVideo : GetParameter OUT"));
@@ -4036,7 +4092,7 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentVideo::GetParameter(
 }
 
 
-OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentVideo::SetParameter(
+OMX_ERRORTYPE OmxComponentVideo::SetParameter(
     OMX_IN  OMX_HANDLETYPE hComponent,
     OMX_IN  OMX_INDEXTYPE nParamIndex,
     OMX_IN  OMX_PTR ComponentParameterStructure)
@@ -4058,13 +4114,13 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentVideo::SetParameter(
     OMX_VIDEO_PARAM_AVCTYPE*     pVideoAvc;
 
     //Video encoder configuration parameters
-    OMX_CONFIG_ROTATIONTYPE*             pVideoRotation;
+    OMX_CONFIG_ROTATIONTYPE*			 pVideoRotation;
     OMX_VIDEO_PARAM_ERRORCORRECTIONTYPE* pVideoErrCorr;
-    OMX_VIDEO_PARAM_BITRATETYPE*         pVideoRateControl;
-    OMX_VIDEO_PARAM_QUANTIZATIONTYPE*    pVideoQuant;
-    OMX_VIDEO_PARAM_VBSMCTYPE*           pVideoBlock;
-    OMX_VIDEO_PARAM_MOTIONVECTORTYPE*    pVideoMotionVector;
-    OMX_VIDEO_PARAM_INTRAREFRESHTYPE*    pVideoIntraRefresh;
+    OMX_VIDEO_PARAM_BITRATETYPE*		 pVideoRateControl;
+    OMX_VIDEO_PARAM_QUANTIZATIONTYPE*	 pVideoQuant;
+    OMX_VIDEO_PARAM_VBSMCTYPE*			 pVideoBlock;
+    OMX_VIDEO_PARAM_MOTIONVECTORTYPE*	 pVideoMotionVector;
+    OMX_VIDEO_PARAM_INTRAREFRESHTYPE*	 pVideoIntraRefresh;
 
 
     ComponentPortType* pComponentPort;
@@ -4224,63 +4280,6 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentVideo::SetParameter(
 
             oscl_memcpy(&ipPorts[PortIndex]->PortParam.format.video, &pPortDef->format.video, sizeof(OMX_VIDEO_PORTDEFINITIONTYPE));
 
-            // adjust the minimum buffer size of the uncompressed format based on width and height that may have been set
-            // In case of decoder - output port contains uncompressed data  - so outpu buffer size needs to be adjusted
-            // In case of encoder - input port contains uncompressed data - so input buffer size needs to be adjusted
-            // In both cases (encoder&decoder) - eCompressionFormat parameter on the appropriate port is set to OMX_VIDEO_CodingUnused
-
-            OMX_VIDEO_PORTDEFINITIONTYPE *videoformat = &(ipPorts[PortIndex]->PortParam.format.video);
-            if (videoformat->eCompressionFormat == OMX_VIDEO_CodingUnused)
-            {
-                // check if stride needs to be adjusted - stride should be at least the 16 byte aligned width
-                // WMV is special case that requires 4 bytes alignment
-
-                OMX_U32 min_stride = ((videoformat->nFrameWidth + 15) & (~15));
-                OMX_U32 min_sliceheight = ((videoformat->nFrameHeight + 15) & (~15));
-
-                if (oscl_strcmp("video/wmv", videoformat->cMIMEType) == 0)
-                {
-                    min_stride = ((videoformat->nFrameWidth + 3) & (~3));
-                    min_sliceheight = ((videoformat->nFrameHeight + 1) & (~1));
-                }
-
-
-                videoformat->nStride = min_stride;
-                videoformat->nSliceHeight = min_sliceheight;
-
-
-                // finally, compute the new minimum buffer size.
-
-                // Encoder components can have different formats - (rely on the client to provide the correct size)
-                if (OMX_PORT_OUTPUTPORT_INDEX == PortIndex)
-                {
-                    // Decoder components always output YUV420 format
-                    ipPorts[PortIndex]->PortParam.nBufferSize = (videoformat->nSliceHeight * videoformat->nStride * 3) >> 1;
-
-                }
-
-                if (OMX_PORT_INPUTPORT_INDEX == PortIndex)
-                {
-                    // Encoder components may have different formats
-                    if (videoformat->eColorFormat == OMX_COLOR_Format24bitRGB888)
-                    {
-                        ipPorts[PortIndex]->PortParam.nBufferSize = videoformat->nSliceHeight * videoformat->nStride * 3;
-                    }
-                    else if (videoformat->eColorFormat == OMX_COLOR_Format12bitRGB444)
-                    {
-                        ipPorts[PortIndex]->PortParam.nBufferSize = videoformat->nSliceHeight * videoformat->nStride * 2;
-
-                    }
-                    else if (videoformat->eColorFormat == OMX_COLOR_FormatYUV420Planar)
-                    {
-                        ipPorts[PortIndex]->PortParam.nBufferSize = (videoformat->nSliceHeight * videoformat->nStride * 3) >> 1;
-
-                    }
-
-                }
-
-            }
-
         }
         break;
 
@@ -4438,7 +4437,7 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentVideo::SetParameter(
             PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_NOTICE, (0, "OmxComponentVideo : SetParameter error Unsupported index"));
             return OMX_ErrorUnsupportedIndex;
         }
-        // break;   This break statement was removed to avoid compiler warning for Unreachable Code
+        // break;	This break statement was removed to avoid compiler warning for Unreachable Code
     }
 
     PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_NOTICE, (0, "OmxComponentVideo : SetParameter OUT"));
@@ -4448,7 +4447,7 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentVideo::SetParameter(
 #if PROXY_INTERFACE
 
 /** Component entry points declarations with proxy interface*/
-OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentBase::BaseComponentProxyGetConfig(
+OMX_ERRORTYPE OmxComponentBase::BaseComponentProxyGetConfig(
     OMX_IN  OMX_HANDLETYPE hComponent,
     OMX_IN  OMX_INDEXTYPE nIndex,
     OMX_INOUT OMX_PTR pComponentConfigStructure)
@@ -4465,7 +4464,7 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentBase::BaseComponentProxyGetConfig(
     return ReturnValue;
 }
 
-OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentBase::BaseComponentProxySetConfig(
+OMX_ERRORTYPE OmxComponentBase::BaseComponentProxySetConfig(
     OMX_IN  OMX_HANDLETYPE hComponent,
     OMX_IN  OMX_INDEXTYPE nIndex,
     OMX_IN  OMX_PTR pComponentConfigStructure)
@@ -4482,7 +4481,7 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentBase::BaseComponentProxySetConfig(
     return ReturnValue;
 }
 
-OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentBase::BaseComponentProxyGetExtensionIndex(
+OMX_ERRORTYPE OmxComponentBase::BaseComponentProxyGetExtensionIndex(
     OMX_IN  OMX_HANDLETYPE hComponent,
     OMX_IN  OMX_STRING cParameterName,
     OMX_OUT OMX_INDEXTYPE* pIndexType)
@@ -4499,7 +4498,7 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentBase::BaseComponentProxyGetExtensionIn
     return ReturnValue;
 }
 
-OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentBase::BaseComponentProxyGetState(
+OMX_ERRORTYPE OmxComponentBase::BaseComponentProxyGetState(
     OMX_IN  OMX_HANDLETYPE hComponent,
     OMX_OUT OMX_STATETYPE* pState)
 {
@@ -4516,7 +4515,7 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentBase::BaseComponentProxyGetState(
 }
 
 
-OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentBase::BaseComponentProxyGetParameter(
+OMX_ERRORTYPE OmxComponentBase::BaseComponentProxyGetParameter(
     OMX_IN  OMX_HANDLETYPE hComponent,
     OMX_IN  OMX_INDEXTYPE nParamIndex,
     OMX_INOUT OMX_PTR ComponentParameterStructure)
@@ -4534,7 +4533,7 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentBase::BaseComponentProxyGetParameter(
 }
 
 
-OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentBase::BaseComponentProxySetParameter(
+OMX_ERRORTYPE OmxComponentBase::BaseComponentProxySetParameter(
     OMX_IN  OMX_HANDLETYPE hComponent,
     OMX_IN  OMX_INDEXTYPE nParamIndex,
     OMX_IN  OMX_PTR ComponentParameterStructure)
@@ -4552,7 +4551,7 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentBase::BaseComponentProxySetParameter(
 }
 
 
-OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentBase::BaseComponentProxyUseBuffer(
+OMX_ERRORTYPE OmxComponentBase::BaseComponentProxyUseBuffer(
     OMX_IN OMX_HANDLETYPE hComponent,
     OMX_INOUT OMX_BUFFERHEADERTYPE** ppBufferHdr,
     OMX_IN OMX_U32 nPortIndex,
@@ -4572,7 +4571,7 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentBase::BaseComponentProxyUseBuffer(
     return ReturnValue;
 }
 
-OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentBase::BaseComponentProxyAllocateBuffer(
+OMX_ERRORTYPE OmxComponentBase::BaseComponentProxyAllocateBuffer(
     OMX_IN OMX_HANDLETYPE hComponent,
     OMX_INOUT OMX_BUFFERHEADERTYPE** pBuffer,
     OMX_IN OMX_U32 nPortIndex,
@@ -4591,7 +4590,7 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentBase::BaseComponentProxyAllocateBuffer
     return ReturnValue;
 }
 
-OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentBase::BaseComponentProxyFreeBuffer(
+OMX_ERRORTYPE OmxComponentBase::BaseComponentProxyFreeBuffer(
     OMX_IN  OMX_HANDLETYPE hComponent,
     OMX_IN  OMX_U32 nPortIndex,
     OMX_IN  OMX_BUFFERHEADERTYPE* pBuffer)
@@ -4625,7 +4624,7 @@ OMX_ERRORTYPE OmxComponentBase::BaseComponentProxySetCallbacks(
     return ReturnValue;
 }
 
-OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentBase::BaseComponentProxySendCommand(
+OMX_ERRORTYPE OmxComponentBase::BaseComponentProxySendCommand(
     OMX_IN  OMX_HANDLETYPE hComponent,
     OMX_IN  OMX_COMMANDTYPE Cmd,
     OMX_IN  OMX_U32 nParam,
@@ -4643,7 +4642,7 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentBase::BaseComponentProxySendCommand(
     return ReturnValue;
 }
 
-OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentBase::BaseComponentProxyEmptyThisBuffer(
+OMX_ERRORTYPE OmxComponentBase::BaseComponentProxyEmptyThisBuffer(
     OMX_IN  OMX_HANDLETYPE hComponent,
     OMX_IN  OMX_BUFFERHEADERTYPE* pBuffer)
 {
@@ -4660,7 +4659,7 @@ OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentBase::BaseComponentProxyEmptyThisBuffe
 }
 
 
-OSCL_EXPORT_REF OMX_ERRORTYPE OmxComponentBase::BaseComponentProxyFillThisBuffer(
+OMX_ERRORTYPE OmxComponentBase::BaseComponentProxyFillThisBuffer(
     OMX_IN  OMX_HANDLETYPE hComponent,
     OMX_IN  OMX_BUFFERHEADERTYPE* pBuffer)
 {

@@ -21,7 +21,7 @@
  *  @brief This file defines the general return and event codes to be used by PVMF elements.
  *         Theses base-level codes are unique. Error codes are negative values and informational
  *         codes are positive values.
- *  NOTE: If you add any new event, update the PVMFStatusToString method as well.
+ *
  */
 
 #ifndef PVMF_RETURN_CODES_H_INCLUDED
@@ -180,10 +180,15 @@ const PVMFStatus PVMFErrRedirect = (-30);
  Error if a given method or API is not implemented. This is NOT the same as PVMFErrNotSupported.
 */
 const PVMFStatus PVMFErrNotImplemented = (-31);
+/* Mobile Media Lab. - Start */ 
 /*
- Error: the video container is not valid for progressive playback.
- */
-const PVMFStatus PVMFErrContentInvalidForProgressivePlayback = (-32);
+ DivX DRM Errors
+*/
+/* the device is not authorized. */
+const PVMFStatus PVMFErrDivXNotAuthorizedDevice = (-32);
+/* Rental count expired */
+const PVMFStatus PVMFErrDivXExpiredRentalCount = (-33);
+/* Mobile Media Lab. - End */ 
 /*
  Placeholder for last event in range.
  */
@@ -372,6 +377,18 @@ const PVMFStatus PVMFInfoShoutcastClipBitrate = 51;
  Notification for shoutcast session
  */
 const PVMFStatus PVMFInfoIsShoutcastSesssion = 52;
+/* Mobile Media Lab. Streaming - Start */ 
+/*
+ Notification for SDP diplay size info
+ */
+const PVMFStatus PVMFInfoSDPDisplaySize = 53;
+/* Mobile Media Lab. Streaming - End */ 
+/* Mobile Media Lab. - Start */ 
+/* Information about DivX */
+const PVMFStatus PVMFInfoDivXRemainingRentalCount = 54;
+const PVMFStatus PVMFInfoDivXUnsupportedAudio = 55;
+const PVMFStatus PVMFInfoLongLoadingTime = 56;
+/* Mobile Media Lab. - End */ 
 /*
  Placeholder for end of range
  */
@@ -380,10 +397,5 @@ const PVMFStatus PVMFInfoLast = 100;
  Macro to tell if a code is in PVMFInfo range
  */
 #define IsPVMFInfoCode(s) ((PVMFInfoFirst<=s)&&(s<=PVMFInfoLast))
-
-// Convert a PVMFStatus code to a string that can be used in logs.
-// @param status code.
-// @return a human readable string representing the status.
-OSCL_IMPORT_REF const char *PVMFStatusToString(const PVMFStatus status);
 
 #endif

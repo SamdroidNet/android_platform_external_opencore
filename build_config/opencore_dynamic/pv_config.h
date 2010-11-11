@@ -116,8 +116,12 @@
 #define omx_mp3_component_lib m
 #define omx_wma_component_lib 0
 #define omx_amrenc_component_lib m
+#define omx_g711enc_component_lib m
+#define omx_g729enc_component_lib m
+#define omx_mp3enc_component_lib m
 #define omx_m4venc_component_lib m
 #define omx_avcenc_component_lib m
+#define omx_evrcenc_component_lib m
 #define omx_baseclass_lib m
 
 
@@ -216,7 +220,11 @@
 #define pvvideodecnode_lib 0
 #define pvvideoencnode_lib 0
 #define pvamrencnode_lib 0
+#define pvg711encnode_lib 0
+#define pvg729encnode_lib 0
+#define pvmp3encnode_lib 0
 #define pvavcencnode_lib 0
+#define pvevrcencnode_lib 0
 
 
 //
@@ -392,8 +400,14 @@
 // Menu for player engine tunables
 //
 #define PVPLAYERENGINE_CONFIG_SKIPTOREQUESTEDPOS_DEF 1
-#define PVPLAYERENGINE_CONFIG_SYNCMARGIN_EARLY_DEF -10
-#define PVPLAYERENGINE_CONFIG_SYNCMARGIN_LATE_DEF 50
+/* Mobile Media Lab. Start */
+#if 0
+#define PVPLAYERENGINE_CONFIG_SYNCMARGIN_EARLY_DEF -200
+#define PVPLAYERENGINE_CONFIG_SYNCMARGIN_LATE_DEF 200
+#else
+#define PVPLAYERENGINE_CONFIG_SYNCMARGIN_EARLY_DEF 0
+#define PVPLAYERENGINE_CONFIG_SYNCMARGIN_LATE_DEF 400
+#endif
 #define VIDEO_DEC_NODE_LOW_PRIORITY 1
 
 
@@ -411,11 +425,20 @@
 #define BUILD_GSMAMR_DEC_NODE 0
 #define BUILD_AAC_DEC_NODE 0
 #define BUILD_MP3_DEC_NODE 0
+#define BUILD_WMA_SS_DEC_NODE 0
+#define BUILD_AC3_DEC_NODE 0
+#define BUILD_G711_DEC_NODE 0
+#define BUILD_EVRC_DEC_NODE 0
+#define BUILD_G729_DEC_NODE 0
 #define BUILD_RA8_DEC_NODE 0
 #define BUILD_MP4_FF_PARSER_NODE 0
 #define BUILD_AMR_FF_PARSER_NODE 1
 #define BUILD_AAC_FF_PARSER_NODE 1
 #define BUILD_MP3_FF_PARSER_NODE 1
+#define BUILD_AC3_FF_PARSER_NODE 1
+#define BUILD_G711_FF_PARSER_NODE 1
+#define BUILD_EVRC_FF_PARSER_NODE 1
+#define BUILD_G729_FF_PARSER_NODE 1
 #define BUILD_WAV_FF_PARSER_NODE 1
 #define BUILD_ASF_FF_PARSER_NODE 0
 #define BUILD_RM_FF_PARSER_NODE 0
@@ -428,6 +451,10 @@
 #define BUILD_AAC_FF_REC 1
 #define BUILD_RM_FF_REC 0
 #define BUILD_MP3_FF_REC 1
+#define BUILD_AC3_FF_REC 1
+#define BUILD_G711_FF_REC 1
+#define BUILD_EVRC_FF_REC 1
+#define BUILD_G729_FF_REC 1
 #define BUILD_WAV_FF_REC 1
 #define BUILD_AMR_FF_REC 1
 #define BUILD_DIVX_FF_PARSER_NODE 0
@@ -642,6 +669,10 @@
 #define pvoma1lockstream_m_mk ""
 #define pv_amr_nb_common_lib_y_mk ""
 #define REGISTER_OMX_AMRENC_COMPONENT 1
+#define REGISTER_OMX_G711ENC_COMPONENT 1
+#define REGISTER_OMX_EVRCENC_COMPONENT 1
+#define REGISTER_OMX_G729ENC_COMPONENT 1
+#define REGISTER_OMX_MP3ENC_COMPONENT 1
 #define pvmp4ffrecognizer_m_mk "/pvmi/recognizer/plugins/pvmp4ffrecognizer/build/make"
 #define pvrtsp_cli_eng_node_y_mk ""
 #define pvmioaviwavfileinput_y_mk ""
@@ -742,6 +773,10 @@
 #define pvrvdecnode_m_mk ""
 #define pvmp4ffopencore_m_mk "/fileformats/mp4/parser/build_opencore/make"
 #define DYNAMIC_LOAD_OMX_AMRENC_COMPONENT 1
+#define DYNAMIC_LOAD_OMX_G711ENC_COMPONENT 1
+#define DYNAMIC_LOAD_OMX_EVRCENC_COMPONENT 1
+#define DYNAMIC_LOAD_OMX_G729ENC_COMPONENT 1
+#define DYNAMIC_LOAD_OMX_MP3ENC_COMPONENT 1
 #define omx_wma_component_imp_m_mk "n"
 #define opencore_mp4local_so_name "opencore_mp4local"
 #define MODS_pvsqlite "-lopencore_player -lopencore_common"
@@ -903,6 +938,9 @@
 #define rvdecoder_m_mk ""
 #define pvmp4ffparsernodeopencore_m_mk "/nodes/pvmp4ffparsernode/build_opencore/make"
 #define REGISTER_OMX_MP3_COMPONENT 1
+#define REGISTER_OMX_WMA_SS_COMPONENT 1
+#define REGISTER_OMX_AC3_COMPONENT 1
+#define REGISTER_OMX_EVRC_COMPONENT 1
 #define scsp_y_lib ""
 #define pvstreamingmanagernode_segments_m_lib "-lpvstreamingmanagernode"
 #define LIBS_omxdec_shared "-lomx_avc_component_lib -lomx_m4v_component_lib  -lomx_aac_component_lib -lomx_amr_component_lib -lomx_mp3_component_lib "
@@ -1087,6 +1125,10 @@
 #define MODS_opencore_rtsp "-lopencore_net_support -lopencore_player -lopencore_common"
 #define pv324m_common_headers_m_mk "/protocols/systems/common/build/make/"
 #define REGISTER_OMX_AMR_COMPONENT 1
+#define REGISTER_OMX_G711_COMPONENT 1
+#define DYNAMIC_LOAD_OMX_G711_COMPONENT 1
+#define REGISTER_OMX_G729_COMPONENT 1
+#define DYNAMIC_LOAD_OMX_G729_COMPONENT 1
 #define pvrtsp_cli_eng_node_opencore_y_mk ""
 #define pv_avc_common_imp_lib_m_mk ""
 #define engines_common_headers_m_mk "/engines/common/build/make"
@@ -1370,6 +1412,9 @@
 #define pvclientserversocketnode_m_lib "-lpvclientserversocketnode"
 #define pvsqlite_m_mk ""
 #define DYNAMIC_LOAD_OMX_MP3_COMPONENT 1
+#define DYNAMIC_LOAD_OMX_WMA_SS_COMPONENT 1
+#define DYNAMIC_LOAD_OMX_AC3_COMPONENT 1
+#define DYNAMIC_LOAD_OMX_EVRC_COMPONENT 1
 #define pvavcdecoder_y_mk ""
 #define getactualaacconfig_y_lib ""
 #define pvasf_streamingreg_so_name ""
@@ -1590,5 +1635,15 @@
 #define pvcrypto_m_lib ""
 #define SOLIBS_pvsqlite "n"
 #define pvrmff_m_mk ""
+
+/* Mobile Media Lab. Start */
+#define USE_DMC_OMX 1
+#if USE_DMC_OMX 
+#define DYNAMIC_LOAD_DMC_OMX_COMPONENT 1
+#else
+#define DYNAMIC_LOAD_DMC_OMX_COMPONENT 0
+#endif
+#define USE_DMC_MP4_MUX 1  
+/* Mobile Media Lab. End */
 //
 // That's all, folks!

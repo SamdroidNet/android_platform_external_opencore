@@ -69,14 +69,26 @@
 #define DYNAMIC_LOAD_OMX_AAC_COMPONENT 0
 #define DYNAMIC_LOAD_OMX_AMR_COMPONENT 0
 #define DYNAMIC_LOAD_OMX_MP3_COMPONENT 0
+#define DYNAMIC_LOAD_OMX_WMA_SS_COMPONENT 0
+#define DYNAMIC_LOAD_OMX_AC3_COMPONENT 0
+#define DYNAMIC_LOAD_OMX_EVRC_COMPONENT 0
 #define DYNAMIC_LOAD_OMX_WMA_COMPONENT 0
+#define DYNAMIC_LOAD_OMX_G711_COMPONENT 0
+#define DYNAMIC_LOAD_OMX_G729_COMPONENT 0
 
 #define DYNAMIC_LOAD_OMX_AMRENC_COMPONENT 0
+#define DYNAMIC_LOAD_OMX_G711ENC_COMPONENT 0
+#define DYNAMIC_LOAD_OMX_G729ENC_COMPONENT 0
 #define DYNAMIC_LOAD_OMX_M4VENC_COMPONENT 0
 #define DYNAMIC_LOAD_OMX_H263ENC_COMPONENT 0
 #define DYNAMIC_LOAD_OMX_AVCENC_COMPONENT 0
 #define DYNAMIC_LOAD_OMX_AACENC_COMPONENT 0
+#define DYNAMIC_LOAD_OMX_EVRCENC_COMPONENT 0
 
+/* Mobile Media Lab. Start */
+#define USE_DMC_OMX 1
+#define DYNAMIC_LOAD_DMC_OMX_COMPONENT 1
+/* Mobile Media Lab. End */
 #else
 
 #define USE_DYNAMIC_LOAD_OMX_COMPONENTS 0
@@ -88,13 +100,26 @@
 #define DYNAMIC_LOAD_OMX_AAC_COMPONENT 0
 #define DYNAMIC_LOAD_OMX_AMR_COMPONENT 0
 #define DYNAMIC_LOAD_OMX_MP3_COMPONENT 0
+#define DYNAMIC_LOAD_OMX_WMA_SS_COMPONENT 0
+#define DYNAMIC_LOAD_OMX_AC3_COMPONENT 0
+#define DYNAMIC_LOAD_OMX_EVRC_COMPONENT 0
 #define DYNAMIC_LOAD_OMX_WMA_COMPONENT 0
+#define DYNAMIC_LOAD_OMX_G711_COMPONENT 0
+#define DYNAMIC_LOAD_OMX_G729_COMPONENT 0
 
 #define DYNAMIC_LOAD_OMX_AMRENC_COMPONENT 0
+#define DYNAMIC_LOAD_OMX_G711ENC_COMPONENT 0
+#define DYNAMIC_LOAD_OMX_G729ENC_COMPONENT 0
 #define DYNAMIC_LOAD_OMX_M4VENC_COMPONENT 0
 #define DYNAMIC_LOAD_OMX_H263ENC_COMPONENT 0
 #define DYNAMIC_LOAD_OMX_AVCENC_COMPONENT 0
 #define DYNAMIC_LOAD_OMX_AACENC_COMPONENT 0
+#define DYNAMIC_LOAD_OMX_EVRCENC_COMPONENT 0
+
+/* Mobile Media Lab. Start */
+#define USE_DMC_OMX 1
+#define DYNAMIC_LOAD_DMC_OMX_COMPONENT 1
+/* Mobile Media Lab. End */
 
 #endif
 #endif
@@ -105,7 +130,7 @@
 #endif
 #endif
 
-#define MAX_ROLES_SUPPORTED 3
+#define MAX_ROLES_SUPPORTED	3
 
 #ifdef __cplusplus
 extern "C"
@@ -113,9 +138,9 @@ extern "C"
 #endif
 
     OSCL_IMPORT_REF OMX_ERRORTYPE OMX_GetComponentsOfRole(
-        OMX_IN      OMX_STRING role,
-        OMX_INOUT   OMX_U32 *pNumComps,
-        OMX_INOUT   OMX_U8  **compNames);
+        OMX_IN		OMX_STRING role,
+        OMX_INOUT	OMX_U32	*pNumComps,
+        OMX_INOUT	OMX_U8	**compNames);
 
     OSCL_IMPORT_REF OMX_ERRORTYPE OMX_APIENTRY OMX_ComponentNameEnum(
         OMX_OUT OMX_STRING cComponentName,
@@ -173,6 +198,29 @@ extern "C"
 #define PV_OMX_H263ENC_UUID OsclUuid(0x1d4769f0,0xca0c,0x11dc,0x95,0xff,0x08,0x00,0x20,0x0c,0x9a,0x74)
 #define PV_OMX_AMRENC_UUID OsclUuid(0x1d4769f0,0xca0c,0x11dc,0x95,0xff,0x08,0x00,0x20,0x0c,0x9a,0x75)
 #define PV_OMX_AACENC_UUID OsclUuid(0x1d4769f0,0xca0c,0x11dc,0x95,0xff,0x08,0x00,0x20,0x0c,0x9a,0x76)
+#define PV_OMX_WMA_SSDEC_UUID OsclUuid(0xdeadbeef,0xdead,0xbeef,0x95,0xff,0x08,0x00,0x20,0x0c,0x9a,0x01)
+#define PV_OMX_AC3DEC_UUID OsclUuid(0xdeadbeef,0xdead,0xbeef,0x95,0xff,0x08,0x00,0x20,0x0c,0x9a,0x02)
+#define PV_OMX_EVRCDEC_UUID OsclUuid(0xdeadbeef,0xdead,0xbeef,0x95,0xff,0x08,0x00,0x20,0x0c,0x9a,0x03)
+#define PV_OMX_G711DEC_UUID OsclUuid(0xdeadbeef,0xdead,0xbeef,0x95,0xff,0x08,0x00,0x20,0x0c,0x9a,0x04)
+#define PV_OMX_QCELPDEC_UUID OsclUuid(0xdeadbeef,0xdead,0xbeef,0x95,0xff,0x08,0x00,0x20,0x0c,0x9a,0x05) 
+#define PV_OMX_G729DEC_UUID OsclUuid(0xdeadbeef,0xdead,0xbeef,0x95,0xff,0x08,0x00,0x20,0x0c,0x9a,0x06) 
+#define PV_OMX_MP3ENC_UUID OsclUuid(0xdeadbeef,0xdead,0xbeef,0x95,0xff,0x08,0x00,0x20,0x0c,0x9b,0x01)
+#define PV_OMX_EVRCENC_UUID OsclUuid(0xdeadbeef,0xdead,0xbeef,0x95,0xff,0x08,0x00,0x20,0x0c,0x9b,0x02)
+#define PV_OMX_G711ENC_UUID OsclUuid(0xdeadbeef,0xdead,0xbeef,0x95,0xff,0x08,0x00,0x20,0x0c,0x9b,0x03)
+#define PV_OMX_QCELPENC_UUID OsclUuid(0xdeadbeef,0xdead,0xbeef,0x95,0xff,0x08,0x00,0x20,0x0c,0x9b,0x04) 
+#define PV_OMX_G729ENC_UUID OsclUuid(0xdeadbeef,0xdead,0xbeef,0x95,0xff,0x08,0x00,0x20,0x0c,0x9b,0x05)
+/* Mobile Media Lab. Start */
+#define SEC_OMX_SMP4VD_UUID OsclUuid(0xAB8CCC0A,0xC30A,0x42CC,0x97,0x38,0xC2,0x53,0xC0,0xEC,0x25,0xA0)
+#define SEC_OMX_S264D_UUID OsclUuid(0xAB8CCC0A,0xC30A,0x42CC,0x97,0x38,0xC2,0x53,0xC0,0xEC,0x25,0xA1)
+#define SEC_OMX_S263D_UUID OsclUuid(0xAB8CCC0A,0xC30A,0x42CC,0x97,0x38,0xC2,0x53,0xC0,0xEC,0x25,0xA2)
+#define SEC_OMX_SVC1D_UUID OsclUuid(0xAB8CCC0A,0xC30A,0x42CC,0x97,0x38,0xC2,0x53,0xC0,0xEC,0x25,0xA3)
+/* SMp4veDsf CLSID */
+#define SEC_OMX_SMP4VE_UUID OsclUuid(0xB5B8540E,0x9569,0x498b,0xA5,0x3E,0x5D,0xC8,0x45,0x00,0xE0,0xCD)
+/* S263eDmo CLSID */
+#define SEC_OMX_S263E_UUID OsclUuid(0x1402FF5F,0x54EF,0x4e4d,0x8F,0x64,0xAF,0x3D,0xF5,0xBC,0xE8,0xA2)
+/* S264eDsf generated newly */
+#define SEC_OMX_S264E_UUID OsclUuid(0xAB8CCC0A,0xC30A,0x42CC,0x97,0x38,0xC2,0x53,0xC0,0xEC,0x25,0xAE)
+/* Mobile Media Lab. End */
 
 #define OMX_MAX_LIB_PATH 256
 
@@ -180,7 +228,6 @@ class OmxSharedLibraryInterface
 {
     public:
         virtual OsclAny *QueryOmxComponentInterface(const OsclUuid& aOmxTypeId, const OsclUuid& aInterfaceId) = 0;
-        virtual ~OmxSharedLibraryInterface() {}
 };
 #endif // USE_DYNAMIC_LOAD_OMX_COMPONENTS
 
@@ -191,9 +238,9 @@ class ComponentRegistrationType
 {
     public:
         // name of the component used as identifier
-        OMX_STRING      ComponentName;
-        OMX_STRING      RoleString[MAX_ROLES_SUPPORTED];
-        OMX_U32         NumberOfRolesSupported;
+        OMX_STRING		ComponentName;
+        OMX_STRING		RoleString[MAX_ROLES_SUPPORTED];
+        OMX_U32			NumberOfRolesSupported;
         // pointer to factory function to be called when component needs to be instantiated
         OMX_ERRORTYPE(*FunctionPtrCreateComponent)(OMX_OUT OMX_HANDLETYPE* pHandle, OMX_IN  OMX_PTR pAppData,
                 OMX_PTR pProxy, OMX_STRING aOmxLibName, OMX_PTR &aOmxLib, OMX_PTR aOsclUuid, OMX_U32 &aRefCount);
@@ -294,44 +341,5 @@ class OMXGlobalData
 
 };
 
-    OSCL_IMPORT_REF OMX_ERRORTYPE OMX_MasterInit();
-    OSCL_IMPORT_REF OMX_ERRORTYPE OMX_MasterDeinit();
-
-    OSCL_IMPORT_REF OMX_ERRORTYPE OMX_MasterGetComponentsOfRole(
-        OMX_IN          OMX_STRING role,
-        OMX_INOUT       OMX_U32 *pNumComps,
-        OMX_INOUT       OMX_U8 **compNames);
-
-    OSCL_IMPORT_REF OMX_ERRORTYPE OMX_APIENTRY OMX_MasterComponentNameEnum(
-        OMX_OUT OMX_STRING cComponentName,
-        OMX_IN  OMX_U32 nNameLength,
-        OMX_IN  OMX_U32 nIndex);
-
-    OSCL_IMPORT_REF OMX_ERRORTYPE OMX_APIENTRY OMX_MasterFreeHandle(OMX_IN OMX_HANDLETYPE hComponent);
-
-    OSCL_IMPORT_REF OMX_ERRORTYPE OMX_APIENTRY OMX_MasterGetHandle(OMX_OUT OMX_HANDLETYPE* pHandle,
-            OMX_IN  OMX_STRING cComponentName,
-            OMX_IN  OMX_PTR pAppData,
-            OMX_IN  OMX_CALLBACKTYPE* pCallBacks,
-            OMX_IN  OMX_BOOL bHWAccelerated = OMX_TRUE);
-
-    OSCL_IMPORT_REF OMX_ERRORTYPE OMX_MasterGetRolesOfComponent(
-        OMX_IN      OMX_STRING compName,
-        OMX_INOUT   OMX_U32* pNumRoles,
-        OMX_OUT     OMX_U8** roles);
-
-    OSCL_IMPORT_REF OMX_BOOL OMX_MasterConfigParser(
-        OMX_PTR aInputParameters,
-        OMX_PTR aOutputParameters);
-
-    OSCL_IMPORT_REF OMX_ERRORTYPE OMX_MasterSetupTunnel(
-         OMX_IN  OMX_HANDLETYPE hOutput,
-         OMX_IN  OMX_U32 nPortOutput,
-         OMX_IN  OMX_HANDLETYPE hInput,
-         OMX_IN  OMX_U32 nPortInput);
-
-    OSCL_IMPORT_REF OMX_ERRORTYPE OMX_MasterGetContentPipe(
-         OMX_OUT OMX_HANDLETYPE *hPipe,
-         OMX_IN OMX_STRING szURI);
 
 #endif

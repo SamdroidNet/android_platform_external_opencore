@@ -61,7 +61,7 @@ typedef enum
 } PVMFOMXEncPortType;
 
 class PVMFOMXEncPort : public PvmfPortBaseImpl
-        , public PvmiCapabilityAndConfigPortFormatImpl
+            , public PvmiCapabilityAndConfigPortFormatImpl
 {
     public:
         PVMFOMXEncPort(int32 aTag, PVMFNodeInterface* aNode, const char*);
@@ -81,8 +81,6 @@ class PVMFOMXEncPort : public PvmfPortBaseImpl
         }
 
         bool pvmiSetPortFormatSpecificInfoSync(OsclRefCounterMemFrag& aMemFrag);
-        bool pvmiGetBufferAllocatorSpecificInfoSync(PvmiKeyType aIdentifier, PvmiKvp*& aParameters, int& aNumParamElements);
-        bool releaseParametersSync(PvmiKvp*& aParameters, int& aNumParamElements);
 
         PVMFStatus Connect(PVMFPortInterface* aPort);
         void setParametersSync(PvmiMIOSession aSession,
@@ -206,17 +204,9 @@ class PVMFOMXEncInputFormatCompareLess
         {
             if (pv_mime_strcmp(aKvp->value.pChar_value, PVMF_MIME_YUV420) == 0)
             {
-                return 5;
-            }
-            else if (pv_mime_strcmp(aKvp->value.pChar_value, PVMF_MIME_YUV422) == 0)
-            {
-                return 4;
-            }
-            else if (pv_mime_strcmp(aKvp->value.pChar_value, PVMF_MIME_YUV422_INTERLEAVED_UYVY) == 0)
-            {
                 return 3;
             }
-            else if (pv_mime_strcmp(aKvp->value.pChar_value, PVMF_MIME_YUV422_INTERLEAVED_YUYV) == 0)
+            else if (pv_mime_strcmp(aKvp->value.pChar_value, PVMF_MIME_YUV422) == 0)
             {
                 return 2;
             }

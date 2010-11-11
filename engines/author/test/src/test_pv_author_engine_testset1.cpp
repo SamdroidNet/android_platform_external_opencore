@@ -26,11 +26,15 @@
 #ifndef PVMF_FILEOUTPUT_CONFIG_H_INCLUDED
 #include "pvmf_fileoutput_config.h"
 #endif
-
+/* Mobile Media Lab. Start */
+#if USE_DMC_MP4_MUX
+#include "smp4fm_oc_clipcfg.h"
+#else
 #ifndef PVMP4FFCN_CLIPCONFIG_H_INCLUDED
 #include "pvmp4ffcn_clipconfig.h"
 #endif
-
+#endif
+/* Mobile Media Lab. End */
 #ifndef PV_MP4_H263_ENC_EXTENSION_H_INCLUDED
 #include "pvmp4h263encextension.h"
 #endif
@@ -587,8 +591,15 @@ bool pvauthor_async_test_miscellaneous::ConfigMp43gpComposer()
             }
     }
 
+	/* Mobile Media Lab. Start */
+#if USE_DMC_MP4_MUX
+	SMp4fmOcClipCfgIf * clipConfig;
+	clipConfig = OSCL_STATIC_CAST(SMp4fmOcClipCfgIf *, iComposerConfig);
+#else	
     PVMp4FFCNClipConfigInterface* clipConfig;
     clipConfig = OSCL_STATIC_CAST(PVMp4FFCNClipConfigInterface*, iComposerConfig);
+#endif /* USE_DMC_MP4_MUX */
+	/* Mobile Media Lab. End */
     if (!clipConfig)
     {
         PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_ERR,
@@ -913,7 +924,7 @@ void pvauthor_async_test_miscellaneous::SetAuthoringDuration()
             if (bVideoTrack && (iTestInputs[ii].iType == iVideoInputType))
             {
                 PvmiMIOFileInput* mioFileIp = OSCL_STATIC_CAST(PvmiMIOFileInput*, iTestInputs[ii].iMediaInput);
-                videoDuration = mioFileIp->GetStreamDuration();
+                videoDuration =	mioFileIp->GetStreamDuration();
             }
             else if (bAudioTrack && (iTestInputs[ii].iType == iAudioInputType))
             {

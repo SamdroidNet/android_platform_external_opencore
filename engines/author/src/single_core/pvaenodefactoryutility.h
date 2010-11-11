@@ -23,6 +23,9 @@
 #ifndef PVAE_NODE_FACTORY_UTILITY_H_INCLUDED
 #define PVAE_NODE_FACTORY_UTILITY_H_INCLUDED
 
+/* Mobile Media Lab. Start */
+#include "pv_config.h"
+/* Mobile Media Lab. End */
 #ifndef OSCL_BASE_H_INCLUDED
 #include "oscl_base.h"
 #endif
@@ -32,11 +35,16 @@
 #ifndef PVAUTHORENGINE_H_INCLUDED
 #include "pvauthorengine.h"
 #endif
-#ifndef PVMP4FFCN_FACTORY_H_INCLUDED
-#include "pvmp4ffcn_factory.h"
-#endif
 #ifndef PVMF_FILEOUTPUT_FACTORY_H_INCLUDED
 #include "pvmf_fileoutput_factory.h"
+#endif
+/* Mobile Media Lab. Start */
+#if USE_DMC_MP4_MUX
+#include "smp4fm_oc_factory.h"
+#include "smp4fm_oc_clipcfg.h"
+#else
+#ifndef PVMP4FFCN_FACTORY_H_INCLUDED
+#include "pvmp4ffcn_factory.h"
 #endif
 #ifndef PVMP4FFCN_CLIPCONFIG_H_INCLUDED
 #include "pvmp4ffcn_clipconfig.h"
@@ -44,6 +52,8 @@
 #ifndef PVMP4FFCN_TRACKCONFIG_H_INCLUDED
 #include "pvmp4ffcn_trackconfig.h"
 #endif
+#endif /* USE_DMC_MP4_MUX */
+/* Mobile Media Lab. End */
 #ifndef PVMF_FILEOUTPUT_CONFIG_H_INCLUDED
 #include "pvmf_fileoutput_config.h"
 #endif
@@ -109,10 +119,19 @@ class PVAuthorEngineNodeFactoryUtility
         static PVMFNodeInterface* CreateComposer(const PVUuid& aUuid)
         {
             PVMFNodeInterface* node = NULL;
+			/* Mobile Media Lab. Start */
+#if USE_DMC_MP4_MUX 
+			if (aUuid == SMp4fmOcNodeUuid)
+			{
+				node = SMp4fmOcNodeFactory::CreateSMp4fmOcNode();
+			}
+#else			
             if (aUuid == KPVMp4FFComposerNodeUuid)
             {
                 node = PVMp4FFComposerNodeFactory::CreateMp4FFComposer();
             }
+#endif /* USE_DMC_MP4_MUX */		
+			/* Mobile Media Lab. End */	
             else if (aUuid == KPVFileOutputNodeUuid)
             {
                 node = PVFileOutputNodeFactory::CreateFileOutput();
@@ -149,10 +168,19 @@ class PVAuthorEngineNodeFactoryUtility
                 return PvmfAmrEncNodeFactory::Delete(aNode);
             }
 #endif
+			/* Mobile Media Lab. Start */
+#if USE_DMC_MP4_MUX
+			else if (aUuid == SMp4fmOcNodeUuid)
+			{
+				return SMp4fmOcNodeFactory::DeleteSMp4fmOcNode(aNode);
+			}
+#else			
             else if (aUuid == KPVMp4FFComposerNodeUuid)
             {
                 return PVMp4FFComposerNodeFactory::DeleteMp4FFComposer(aNode);
             }
+#endif /* USE_DMC_MP4_MUX */
+			/* Mobile Media Lab. End */
             else if (aUuid == KPVFileOutputNodeUuid)
             {
                 return PVFileOutputNodeFactory::DeleteFileOutput(aNode);
@@ -162,10 +190,15 @@ class PVAuthorEngineNodeFactoryUtility
 
         static bool QueryRegistry(const PvmfMimeString& aMimeType, PVUuid& aUuid)
         {
-            if (CompareMimeTypes(aMimeType, OSCL_HeapString<OsclMemAllocator>(K3gpComposerMimeType)) ||
-                    CompareMimeTypes(aMimeType, OSCL_HeapString<OsclMemAllocator>(KMP4ComposerMimeType)))
+            if (CompareMimeTypes(aMimeType, OSCL_HeapString<OsclMemAllocator>(K3gpComposerMimeType)))
             {
+				/* Mobile Media Lab. Start */
+#if USE_DMC_MP4_MUX
+				aUuid = SMp4fmOcNodeUuid;
+#else				
                 aUuid = KPVMp4FFComposerNodeUuid;
+#endif /* USE_DMC_MP4_MUX */			
+				/* Mobile Media Lab. End */	
             }
             else if (CompareMimeTypes(aMimeType, OSCL_HeapString<OsclMemAllocator>(KMp4EncMimeType)) ||
                      CompareMimeTypes(aMimeType, OSCL_HeapString<OsclMemAllocator>(KH263EncMimeType)))
@@ -201,7 +234,11 @@ class PVAuthorEngineNodeFactoryUtility
             else if (CompareMimeTypes(aMimeType, OSCL_HeapString<OsclMemAllocator>(KAACADIFEncMimeType)) ||
                      CompareMimeTypes(aMimeType, OSCL_HeapString<OsclMemAllocator>(KAACADTSEncMimeType)) ||
                      CompareMimeTypes(aMimeType, OSCL_HeapString<OsclMemAllocator>(KAACMP4EncMimeType))  ||
-                     CompareMimeTypes(aMimeType, OSCL_HeapString<OsclMemAllocator>(KAMRWbEncMimeType)))
+                     CompareMimeTypes(aMimeType, OSCL_HeapString<OsclMemAllocator>(KAMRWbEncMimeType))   ||
+                     CompareMimeTypes(aMimeType, OSCL_HeapString<OsclMemAllocator>(KG711EncMimeType))    ||
+                     CompareMimeTypes(aMimeType, OSCL_HeapString<OsclMemAllocator>(KEVRCEncMimeType))    ||
+                     CompareMimeTypes(aMimeType, OSCL_HeapString<OsclMemAllocator>(KG729EncMimeType)) ||
+                     CompareMimeTypes(aMimeType, OSCL_HeapString<OsclMemAllocator>(KMP3EncMimeType)))
             {
                 aUuid = KPVMFOMXAudioEncNodeUuid;
             }
@@ -209,7 +246,11 @@ class PVAuthorEngineNodeFactoryUtility
             else if (CompareMimeTypes(aMimeType, OSCL_HeapString<OsclMemAllocator>(KAMRNbComposerMimeType)) ||
                      CompareMimeTypes(aMimeType, OSCL_HeapString<OsclMemAllocator>(KAMRWbComposerMimeType)) ||
                      CompareMimeTypes(aMimeType, OSCL_HeapString<OsclMemAllocator>(KAACADIFComposerMimeType)) ||
-                     CompareMimeTypes(aMimeType, OSCL_HeapString<OsclMemAllocator>(KAACADTSComposerMimeType)))
+                     CompareMimeTypes(aMimeType, OSCL_HeapString<OsclMemAllocator>(KAACADTSComposerMimeType)) ||
+                     CompareMimeTypes(aMimeType, OSCL_HeapString<OsclMemAllocator>(KG711ComposerMimeType))    ||
+                     CompareMimeTypes(aMimeType, OSCL_HeapString<OsclMemAllocator>(KEVRCComposerMimeType)) ||
+                     CompareMimeTypes(aMimeType, OSCL_HeapString<OsclMemAllocator>(KG729ComposerMimeType)) ||
+                     CompareMimeTypes(aMimeType, OSCL_HeapString<OsclMemAllocator>(KMP3ComposerMimeType)))
             {
                 aUuid = KPVFileOutputNodeUuid;
             }
@@ -224,12 +265,21 @@ class PVAuthorEngineNodeFactoryUtility
         static bool QueryNodeConfigUuid(const PVUuid& aNodeUuid, PVUuid& aConfigUuid)
         {
             bool status = false;
-
+			/* Mobile Media Lab. Start */
+#if USE_DMC_MP4_MUX
+			if (aNodeUuid == SMp4fmOcNodeUuid)
+			{
+				aConfigUuid = SMp4fmOcClipCfgUuid;
+				status = true;
+			}
+#else			
             if (aNodeUuid == KPVMp4FFComposerNodeUuid)
             {
                 aConfigUuid = KPVMp4FFCNClipConfigUuid;
                 status = true;
             }
+#endif /* USE_DMC_MP4_MUX */	
+			/* Mobile Media Lab. End */		
             else if (aNodeUuid == KPVFileOutputNodeUuid)
             {
                 aConfigUuid = PvmfFileOutputNodeConfigUuid;

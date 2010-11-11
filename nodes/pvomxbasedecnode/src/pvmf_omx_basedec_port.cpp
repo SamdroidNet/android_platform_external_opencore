@@ -47,6 +47,10 @@ OSCL_EXPORT_REF void PVMFOMXDecPort::Construct()
             PVMF_OMX_AUDIO_DEC_PORT_INPUT_FORMATS
             , PVMF_OMX_AUDIO_DEC_PORT_INPUT_FORMATS_VALTYPE);
     }
+
+	/* Mobile Media Lab. Start */
+	oscl_memset(&vinfo, 0, sizeof(VID_INFO));
+	/* Mobile Media Lab. End */
 }
 
 
@@ -94,6 +98,10 @@ OSCL_EXPORT_REF bool PVMFOMXDecPort::IsFormatSupported(PVMFFormatType aFmt)
                        (aFmt == PVMF_MIME_AMRWB_IETF) ||
                        (aFmt == PVMF_MIME_AMRWB) ||
                        (aFmt == PVMF_MIME_MP3) ||
+                       (aFmt == PVMF_MIME_AC3) ||
+                       (aFmt == PVMF_MIME_G711) ||
+                       (aFmt == PVMF_MIME_EVRC) ||
+                       (aFmt == PVMF_MIME_G729) ||
                        (aFmt == PVMF_MIME_WMA)
                       );
     }
@@ -262,6 +270,33 @@ OSCL_EXPORT_REF void PVMFOMXDecPort::setParametersSync(PvmiMIOSession aSession,
         oscl_memcpy(iTrackConfig, aParameters->value.key_specific_value, iTrackConfigSize);
         return;
     }
+	/* Mobile Media Lab. Start */
+	else if (aParameters && pv_mime_strcmp(aParameters->key, MOUT_VIDEO_DISPLAY_WIDTH_KEY) == 0)
+	{
+		uint32 width = aParameters->value.uint32_value;
+		vinfo.display_width = width;
+		return;
+	}
+	else if (aParameters && pv_mime_strcmp(aParameters->key, MOUT_VIDEO_DISPLAY_HEIGHT_KEY) == 0)
+	{
+		uint32 height = aParameters->value.uint32_value;
+		vinfo.display_height = height;
+		return;		
+	}
+	else if (aParameters && pv_mime_strcmp(aParameters->key, MOUT_VIDEO_WIDTH_KEY) == 0)
+	{
+		uint32 width = aParameters->value.uint32_value;
+		vinfo.frame_width = width;
+		return;		
+	}
+	else if (aParameters && pv_mime_strcmp(aParameters->key, MOUT_VIDEO_HEIGHT_KEY) == 0)
+	{
+		uint32 height = aParameters->value.uint32_value;
+		vinfo.frame_height = height;
+		return;		
+	}
+	/* Mobile Media Lab. End */
+	
     // call the base class function
     PvmiCapabilityAndConfigPortFormatImpl::setParametersSync(aSession, aParameters, num_elements, aRet_kvp);
 

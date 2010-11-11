@@ -296,3 +296,10 @@ bool PVMFJitterBufferPort::IsOutgoingQueueBusy()
     return (PvmfPortBaseImpl::IsOutgoingQueueBusy());
 #endif
 }
+
+
+
+
+
+
+

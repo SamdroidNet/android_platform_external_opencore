@@ -15,11 +15,14 @@
  */
 
 //#define LOG_NDEBUG 0
+//#define LOG_NDDEBUG 0
+//#define LOG_NIDEBUG 0
+
 #define LOG_TAG "PVMediaRecorder"
 #include <utils/Log.h>
 
 #include <media/PVMediaRecorder.h>
-#include <camera/ICamera.h>
+#include <ui/ICamera.h>
 #include "authordriver.h"
 
 namespace android {
@@ -112,7 +115,7 @@ status_t PVMediaRecorder::setOutputFile(const char *path)
     }
 
     // use file descriptor interface
-    int fd = open(path, O_RDWR | O_CREAT, S_IWUSR);
+    int fd = open(path, O_RDWR | O_CREAT );
     if (-1 == fd) {
         LOGE("Ln %d open() error %d", __LINE__, fd);
         return -errno;
@@ -181,6 +184,25 @@ status_t PVMediaRecorder::setVideoEncoder(video_encoder ve)
     ac->ve = ve;
     return mAuthorDriverWrapper->enqueueCommand(ac, 0, 0);
 }
+
+// elecjinny 2009.05.11 add flash
+status_t PVMediaRecorder::setFlashSetting(flash_setting flashSetting)
+{
+    LOGV("setFlashSetting(%d)", flashSetting);
+    if (mAuthorDriverWrapper == NULL) {
+        LOGE("author driver wrapper is not initialized yet");
+        return UNKNOWN_ERROR;
+    }
+
+    set_flash_setting_command *ac = new set_flash_setting_command();
+    if (ac == NULL) {
+        LOGE("failed to construct an author command");
+        return UNKNOWN_ERROR;
+    }
+    ac->flashSetting = flashSetting;
+    return mAuthorDriverWrapper->enqueueCommand(ac, 0, 0);
+
+}   
 
 status_t PVMediaRecorder::setVideoFrameRate(int frames_per_second)
 {
@@ -291,9 +313,64 @@ status_t PVMediaRecorder::start()
         LOGE("failed to construct an author command");
         return UNKNOWN_ERROR;
     }
+
     return mAuthorDriverWrapper->enqueueCommand(ac, 0, 0);
 }
 
+//SangHeum 09.04.08
+status_t PVMediaRecorder::sendmessage(int32_t codeA, int32_t codeB, int32_t codeC)
+{
+    LOGV("start");
+    if (mAuthorDriverWrapper == NULL) {
+        LOGE("author driver wrapper is not initialized yet");
+        return UNKNOWN_ERROR;
+    }
+    LOGE("sangheum 555 sendmessage %d %d %d",codeA,codeB,codeC);
+    set_sendmessage_command *ac = new set_sendmessage_command();
+    if (ac == NULL) {
+        LOGE("failed to construct an author command");
+        return UNKNOWN_ERROR;
+    }
+    ac->codeA = codeA;
+    ac->codeB = codeB;
+    ac->codeC = codeC;
+    return mAuthorDriverWrapper->enqueueCommand(ac, 0, 0);
+}
+
+
+status_t PVMediaRecorder::pause()
+{
+    LOGE("pause, PVMediaRecorder.cpp");
+    if (mAuthorDriverWrapper == NULL) {
+        LOGE("author driver wrapper is not initialized yet");
+        return UNKNOWN_ERROR;
+    }
+
+    author_command *ac = new author_command(AUTHOR_PAUSE);
+    if (ac == NULL) {
+        LOGE("failed to construct an author command");
+        return UNKNOWN_ERROR;
+    }
+
+    return mAuthorDriverWrapper->enqueueCommand(ac, 0, 0);
+}
+
+status_t PVMediaRecorder::resume()
+{
+    LOGE("resume, PVMediaRecorder.cpp");
+    if (mAuthorDriverWrapper == NULL) {
+        LOGE("author driver wrapper is not initialized yet");
+        return UNKNOWN_ERROR;
+    }
+
+    author_command *ac = new author_command(AUTHOR_RESUME);
+    if (ac == NULL) {
+        LOGE("failed to construct an author command");
+        return UNKNOWN_ERROR;
+    }
+
+    return mAuthorDriverWrapper->enqueueCommand(ac, 0, 0);
+}
 // Make sure that stop also calls PV author engine's Reset()
 // and Close() so that its internal state is maintained correctly
 status_t PVMediaRecorder::stop()
@@ -301,13 +378,13 @@ status_t PVMediaRecorder::stop()
     LOGV("stop");
     status_t ret = doStop();
     if (OK != ret)
-    LOGE("stop failed");
+	LOGE("stop failed");
     ret = reset();
     if (OK != ret)
-    LOGE("reset failed");
+	LOGE("reset failed");
     ret = close();
     if (OK != ret)
-    LOGE("close failed");
+	LOGE("close failed");
 
     return ret;
 }

@@ -160,8 +160,8 @@ OsclAny CPV2WayProxyAdapter::ConstructL(TPVTerminalType aTerminalType,
 }
 
 
-// Called by the factory to delete 2way interface.
 CPV2WayProxyAdapter::~CPV2WayProxyAdapter()
+//called by the factory to delete 2way interface.
 {
     PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_STACK_TRACE, (0, "CPV2WayProxyAdapter::~CPV2WayProxyAdapter iterminalEngine(%x)", iterminalEngine));
     if (iPVProxy)
@@ -969,3 +969,4 @@ PVCmnAsyncErrorEvent* CPV2WayProxyAdapter::GetErrorMsgL()
 
     return NULL;
 }
+

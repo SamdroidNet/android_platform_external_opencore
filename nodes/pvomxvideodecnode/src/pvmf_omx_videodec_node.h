@@ -99,7 +99,7 @@ typedef enum
     PV_MPEG_VIDEO_ADVANCE_SIMPLE_PROFILE,
     PV_MPEG_VIDEO_FINE_GRANUALITY_SCALABLE_PROFILE,
     PV_MPEG_VIDEO_RESERVED_PROFILE
-} PVMF_MPEGVideoProfileType;
+}PVMF_MPEGVideoProfileType;
 
 typedef enum
 {
@@ -111,7 +111,7 @@ typedef enum
     PV_MPEG_VIDEO_LEVEL5,
     PV_MPEG_VIDEO_LEVEL_UNKNOWN
 
-} PVMF_MPEGVideoLevelType;
+}PVMF_MPEGVideoLevelType;
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
@@ -124,10 +124,10 @@ typedef enum
 #define PVMF_BASEMIMETYPE "pvxxx"
 
 class PVMFOMXVideoDecNode
-        : public PVMFOMXBaseDecNode
+            : public PVMFOMXBaseDecNode
 {
     public:
-        PVMFOMXVideoDecNode(int32 aPriority, bool aHwAccelerated);
+        PVMFOMXVideoDecNode(int32 aPriority);
         ~PVMFOMXVideoDecNode();
 
         // From PVMFNodeInterface
@@ -150,7 +150,7 @@ class PVMFOMXVideoDecNode
 
         // for WMV params
         bool VerifyParametersSync(PvmiMIOSession aSession, PvmiKvp* aParameters, int num_elements);
-    private:
+    protected:
 
         void DoQueryUuid(PVMFOMXBaseDecNodeCommand&);
         void DoRequestPort(PVMFOMXBaseDecNodeCommand&);
@@ -199,8 +199,6 @@ class PVMFOMXVideoDecNode
         uint32 iM4VMaxBitstreamFrameSize;
         uint32 iM4VMaxWidth;
         uint32 iM4VMaxHeight;
-        uint32 iStride;
-        uint32 iSliceHeight;
 
         uint32 iNewWidth , iNewHeight;
 

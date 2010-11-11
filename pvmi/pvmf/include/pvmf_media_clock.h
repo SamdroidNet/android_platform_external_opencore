@@ -18,7 +18,7 @@
 /**
  *  @file pvmf_media_clock.h
  *  @brief Provides a time clock that can be paused and resumed,
- *    set the start time, adjusted based on outside source feedback,
+ *	  set the start time, adjusted based on outside source feedback,
  *    and accepts user specified source for the free running clock.
  *
  */
@@ -85,7 +85,7 @@
 #define REALTIME_PLAYBACK_RATE 100000
 
 class PVMFMediaClock;
-class PVMFMediaClockNotificationsObs;
+
 
 /*
  * Enum for the time units used in OSCL Media Clock
@@ -111,45 +111,10 @@ enum PVMFMediaClockAdjustTimeStatus
     PVMF_MEDIA_CLOCK_ADJUST_ERR_CORRUPT_CLOCK_TIME       // If Clock time arg passed is later than current time
 };
 
-enum PVMFMediaClockCheckTimeWindowStatus
-{
-    PVMF_MEDIA_CLOCK_MEDIA_EARLY_OUTSIDE_WINDOW_CALLBACK_SET,
-    PVMF_MEDIA_CLOCK_MEDIA_EARLY_WITHIN_WINDOW,
-    PVMF_MEDIA_CLOCK_MEDIA_ONTIME_WITHIN_WINDOW,
-    PVMF_MEDIA_CLOCK_MEDIA_LATE_WITHIN_WINDOW,
-    PVMF_MEDIA_CLOCK_MEDIA_LATE_OUTSIDE_WINDOW,
-    PVMF_MEDIA_CLOCK_MEDIA_ERROR
-};
-
-typedef struct _PVMFMediaClockCheckTimeWindowArgs
-{
-    /*IN*/
-    PVMFTimestamp aTimeStampToBeChecked;
-    /*IN*/
-    PVMFMediaClock_TimeUnits aUnits;
-    /*IN*/
-    uint32 aWindowEarlyMargin;
-    /*IN*/
-    uint32 aWindowLateMargin;
-    /*OUT*/
-    uint32 aDelta;
-    /*IN*/
-    uint32 aCallbackToleranceWindow;
-    /*IN*/
-    PVMFMediaClockNotificationsObs* aCallbackObserver;
-    /*IN*/
-    bool aThreadLock;
-    /*IN*/
-    const OsclAny* aContextData;
-    /*OUT*/
-    uint32 aCallBackID;
-} PVMFMediaClockCheckTimeWindowArgs;
-
 
 class PVMFMediaClockNotificationsObsBase
 {
     public:
-        virtual ~PVMFMediaClockNotificationsObsBase() {}
         /**
          * This event happens when the clock has been Reset or destroyed and notification
          * interface object that observer is using has been destroyed. Observer should
@@ -168,7 +133,7 @@ class PVMFMediaClockNotificationsObs : public virtual PVMFMediaClockNotification
         /**
          * This callback function is called when a callback expires or has become invalid.
          * @param callBackID Callback ID of the timer that has expired
-         *                                 Units is msec.
+         *				   				   Units is msec.
          * @param aTimerAccuracy Accuracy of timer. Value is from enum PVTimeComparisonUtils::MediaTimeStatus
          * @param aDelta delta of scheduled callback time and actual time of callback
          * @param aContextData Context data passed while setting the timer
@@ -176,7 +141,7 @@ class PVMFMediaClockNotificationsObs : public virtual PVMFMediaClockNotification
          *                or PVMFErrCallbackHasBecomeInvalid. aStatus is PVMFErrCallbackHasBecomeInvalid
          *                if the direction of NPT Clock has changed. aStatus can be PVMFErrCallbackHasBecomeInvalid
          *                only for a NPT callback.
-         * @return  NONE
+         * @return	NONE
          *
          */
         virtual void ProcessCallBack(uint32 callBackID, PVTimeComparisonUtils::MediaTimeStatus aTimerAccuracy, uint32 aDelta,
@@ -450,24 +415,22 @@ class PVMFMediaClockNotificationsInterface
          **
          ** Function:    SetCallbackAbsoluteTime
          **
-         ** Synopsis:   Set a callback timer specifying an absolute time in clock for timer expiry.
+         ** Synopsis:	Set a callback timer specifying an absolute time in clock for timer expiry.
          **
          ** Arguments :
-         ** @param      [absoluteTime]  -- Absolute time in clock when callBack should be called.
-         **                                Units is msec. If there is a latency associated with the
-         **                                calling module, then callback will fire when latency adjusted time
-         **                                reaches absoluteTime. PVMFMediaClock time may be different at that time.
-         ** @param      [window]        -- Error tolerance available in callback time. If T is the desired
-         **                                callback time and w is the allowed tolerance window, then callback
-         **                                can come between T-w to T+w time.
-         ** @param      [aObserver]     -- observer object to be called on timeout.
-         ** @param      [threadLock]    -- If threadLock is true, callback will to be threadsafe otherwise
-         **                                not. Making callback threadsafe might add overheads.
+         ** @param		[absoluteTime]	-- absolute time in clock when callBack should be called.
+         **				   				   Units is msec.
+         ** @param		[window]		-- Error tolerance available in callback time. If T is the desired
+         **								   callback time and w is the allowed tolerance window, then callback
+         **								   can come between T-w to T+w time.
+         ** @param		[aObserver]     -- observer object to be called on timeout.
+         ** @param		[threadLock]	-- If threadLock is true, callback will to be threadsafe otherwise
+         **								   not. Making callback threadsafe might add overheads.
          ** @param      [aContextData]  -- context pointer that will be returned back with the callback.
-         ** @param      [callBackID]    -- ID used to identify the timer for cancellation
+         ** @param		[callBackID]	-- ID used to identify the timer for cancellation
          **
          ** Returns:
-         ** @return     PVMFStatus      -- success or error code
+         ** @return		PVMFStatus		-- success or error code
          **
          **
          ** Notes:
@@ -485,22 +448,22 @@ class PVMFMediaClockNotificationsInterface
          **
          ** Function:    SetCallbackDeltaTime
          **
-         ** Synopsis:   Set a callback timer specifying a delta time from current time for timer expiry.
+         ** Synopsis:	Set a callback timer specifying a delta time from current time for timer expiry.
          **
          ** Arguments :
-         ** @param      [deltaTime]     -- delta time in clock when callBack should be called.
-         **                                Units is msec.
-         ** @param      [window]        -- Error tolerance available in callback time. If T is the desired
-         **                                callback time and w is the allowed tolerance window, then callback
-         **                                can come between T-w to T+w time.
-         ** @param      [aObserver]     -- observer object to be called on timeout.
-         ** @param      [threadLock]    -- If threadLock is true, callback will to be threadsafe otherwise
-         **                                not. Making callback threadsafe might add overheads.
+         ** @param		[deltaTime]		-- delta time in clock when callBack should be called.
+         **				   				   Units is msec.
+         ** @param		[window]		-- Error tolerance available in callback time. If T is the desired
+         **								   callback time and w is the allowed tolerance window, then callback
+         **								   can come between T-w to T+w time.
+         ** @param		[aObserver]     -- observer object to be called on timeout.
+         ** @param		[threadLock]	-- If threadLock is true, callback will to be threadsafe otherwise
+         **								   not. Making callback threadsafe might add overheads.
          ** @param      [aContextData]  -- context pointer that will be returned back with the callback.
-         ** @param      [callBackID]    -- ID used to identify the timer for cancellation
+         ** @param		[callBackID]	-- ID used to identify the timer for cancellation
          **
          ** Returns:
-         ** @return     PVMFStatus      -- success or error code
+         ** @return		PVMFStatus		-- success or error code
          **
          **
          ** Notes:
@@ -518,14 +481,14 @@ class PVMFMediaClockNotificationsInterface
          **
          ** Function:    CancelCallback
          **
-         ** Synopsis:   Cancel callback timer set with SetCallBackDeltaTime() or SetCallbackAbsoluteTime()
+         ** Synopsis:	Cancel callback timer set with SetCallBackDeltaTime() or SetCallbackAbsoluteTime()
          **
          ** Arguments :
-         ** @param      [callbackID]    -- timer ID returned by SetCallBackDeltaTime()
-         **                                 or SetCallbackAbsoluteTime()
+         ** @param		[callbackID]	-- timer ID returned by SetCallBackDeltaTime()
+         **									or SetCallbackAbsoluteTime()
          ** @param  :   [aThreadLock]   -- whether this call needs to be threadsafe
          ** Returns:
-         ** @return     PVMFStatus
+         ** @return		PVMFStatus
          **
          ** Notes:
          **
@@ -537,24 +500,22 @@ class PVMFMediaClockNotificationsInterface
          **
          ** Function:    SetNPTCallbackAbsoluteTime
          **
-         ** Synopsis:   Set a callback timer specifying an absolute time in clock for timer expiry.
+         ** Synopsis:	Set a callback timer specifying an absolute time in clock for timer expiry.
          **
          ** Arguments :
-         ** @param      [absoluteTime]  -- absolute time in clock when callBack should be called.
-         **                                Units is msec. If there is a latency associated with the
-         **                                calling module, then callback will fire when latency adjusted NPT time
-         **                                reaches absoluteTime. PVMFMediaClock time may be different at that time.
-         ** @param      [window]        -- Error tolerance available in callback time. If T is the desired
-         **                                callback time and w is the allowed tolerance window, then callback
-         **                                can come between T-w to T+w time.
-         ** @param      [aObserver]     -- observer object to be called on timeout.
-         ** @param      [threadLock]    -- If threadLock is true, callback will to be threadsafe otherwise
-         **                                not. Making callback threadsafe might add overheads.
+         ** @param		[absoluteTime]	-- absolute time in clock when callBack should be called.
+         **				   				   Units is msec.
+         ** @param		[window]		-- Error tolerance available in callback time. If T is the desired
+         **								   callback time and w is the allowed tolerance window, then callback
+         **								   can come between T-w to T+w time.
+         ** @param		[aObserver]     -- observer object to be called on timeout.
+         ** @param		[threadLock]	-- If threadLock is true, callback will to be threadsafe otherwise
+         **								   not. Making callback threadsafe might add overheads.
          ** @param      [aContextData]  -- context pointer that will be returned back with the callback.
-         ** @param      [callBackID]    -- ID used to identify the timer for cancellation
+         ** @param		[callBackID]	-- ID used to identify the timer for cancellation
          **
          ** Returns:
-         ** @return     PVMFStatus      -- success or error code
+         ** @return		PVMFStatus		-- success or error code
          **
          **
          ** Notes:
@@ -573,22 +534,22 @@ class PVMFMediaClockNotificationsInterface
          **
          ** Function:    SetNPTCallbackDeltaTime
          **
-         ** Synopsis:   Set a callback timer specifying a delta time from current time for timer expiry.
+         ** Synopsis:	Set a callback timer specifying a delta time from current time for timer expiry.
          **
          ** Arguments :
-         ** @param      [deltaTime]     -- delta time in clock when callBack should be called.
-         **                                Units is msec.
-         ** @param      [window]        -- Error tolerance available in callback time. If T is the desired
-         **                                callback time and w is the allowed tolerance window, then callback
-         **                                can come between T-w to T+w time.
-         ** @param      [aObserver]     -- observer object to be called on timeout.
-         ** @param      [threadLock]    -- If threadLock is true, callback will to be threadsafe otherwise
-         **                                not. Making callback threadsafe might add overheads.
+         ** @param		[deltaTime]		-- delta time in clock when callBack should be called.
+         **				   				   Units is msec.
+         ** @param		[window]		-- Error tolerance available in callback time. If T is the desired
+         **								   callback time and w is the allowed tolerance window, then callback
+         **								   can come between T-w to T+w time.
+         ** @param		[aObserver]     -- observer object to be called on timeout.
+         ** @param		[threadLock]	-- If threadLock is true, callback will to be threadsafe otherwise
+         **								   not. Making callback threadsafe might add overheads.
          ** @param      [aContextData]  -- context pointer that will be returned back with the callback.
-         ** @param      [callBackID]    -- ID used to identify the timer for cancellation
+         ** @param		[callBackID]	-- ID used to identify the timer for cancellation
          **
          ** Returns:
-         ** @return     PVMFStatus      -- success or error code
+         ** @return		PVMFStatus		-- success or error code
          **
          **
          ** Notes:
@@ -606,14 +567,14 @@ class PVMFMediaClockNotificationsInterface
          **
          ** Function:    CancelCallback
          **
-         ** Synopsis:   Cancel callback timer set with SetCallBackDeltaTime() or SetCallbackAbsoluteTime()
+         ** Synopsis:	Cancel callback timer set with SetCallBackDeltaTime() or SetCallbackAbsoluteTime()
          **
          ** Arguments :
-         ** @param  :    [callbackID]    -- timer ID returned by SetCallBackDeltaTime()
-         **                                 or SetCallbackAbsoluteTime()
+         ** @param		[callbackID]	-- timer ID returned by SetCallBackDeltaTime()
+         **									or SetCallbackAbsoluteTime()
          ** @param  :   [aThreadLock]   -- whether this call needs to be threadsafe
          ** Returns:
-         ** @return     PVMFStatus
+         ** @return		PVMFStatus
          **
          ** Notes:
          **
@@ -650,72 +611,6 @@ class PVMFMediaClockNotificationsInterface
         */
         virtual OSCL_IMPORT_REF void RemoveClockStateObserver(PVMFMediaClockStateObserver& aObserver) = 0;
 
-        /*!*********************************************************************
-        **
-        ** Function: CheckTimeWindowAndSetCallback
-        **
-        ** Synopsis: Check if given timestamp falls within the given window of current time. Returns status of the
-        ** timestamp w.r.t current time. If the timestamp is early and is outside the given
-        ** window, a callback is automatically set. This API adjusts for
-        ** the latency associated with the calling module.
-        **
-        ** Arguments :
-        ** @param [aArgsStruct] -- Reference to a PVMFMediaClockCheckTimeWindowArgs structure. This structure
-        **  all the arguments for this API. For description of arguments, please see notes.
-        ** Returns:
-        ** @return PVMFMediaClockCheckTimeWindowStatus -- One of the following values from enum PVMFMediaClockCheckTimeWindowStatus
-        ** will be returned -
-        **  PVMF_MEDIA_CLOCK_MEDIA_EARLY_OUTSIDE_WINDOW_CALLBACK_SET,
-        **  PVMF_MEDIA_CLOCK_MEDIA_EARLY_WITHIN_WINDOW,
-        **  PVMF_MEDIA_CLOCK_MEDIA_ONTIME_WITHIN_WINDOW,
-        **  PVMF_MEDIA_CLOCK_MEDIA_LATE_WITHIN_WINDOW,
-        **  PVMF_MEDIA_CLOCK_MEDIA_LATE_OUTSIDE_WINDOW,
-        **  PVMF_MEDIA_CLOCK_MEDIA_ERROR
-        ** Notes: Following are the members of PVMFMediaClockCheckTimeWindowArgs structure.
-        ** [aTimeStampToBeChecked] -- Timestamp to be checked w.r.t. the current time.
-        ** [aWindowEarlyMargin] -- early margin of the window.
-        ** [aWindowLateMargin] -- late margin of the window.
-        ** [aDelta] -- This will return the difference between timestamp and current time
-        ** in positive form.
-        ** [aCallbackToleranceWindow] -- Error tolerance available in callback time. If T is the desired
-        ** callback time and w is the allowed tolerance window, then callback
-        ** can come between T-w to T+w time. This argument is used if callback
-        ** is set.
-        ** [aCallbackObserver] -- observer object to be called on timeout. This argument is used if
-        ** callback is set.
-        ** [aThreadLock] -- If threadLock is true, callback will be threadsafe otherwise
-        ** not. Making callback threadsafe might add overheads. This argument
-        ** is used if callback is set.
-        ** [aContextData] -- context pointer that will be returned back with the callback. This argument
-        ** is used if callback is set.
-        ** [callBackID] -- If callback is successfully set, this will contain a non-zero ID associated
-        ** with the callback. This ID can be used to identify the timer for cancellation.
-        **********************************************************************/
-
-        virtual PVMFMediaClockCheckTimeWindowStatus CheckTimeWindow(
-            PVMFMediaClockCheckTimeWindowArgs &aArgsStruct) = 0;
-
-
-        /*!*********************************************************************
-        **
-        ** Function: GetLatencyAdjustedCurrentTime32
-        **
-        ** Synopsis: Get the latency adjusted current clock time as an unsigned 32-bit integer in specified time units.
-        **
-        ** Arguments :
-        ** @param [aClockTime] -- A reference to an unsigned 32-bit integer to return current time in specified time units.
-        ** @param [aOverflow] -- A reference to a flag which is set if time value cannot fit in unsigned 32-bit integer.
-        ** @param [aUnits] -- The requested time units for aTime.
-        ** Returns:
-        ** @return NONE
-        ** Notes:
-        **
-        **********************************************************************/
-        virtual void GetLatencyAdjustedCurrentTime32(
-            /*OUT*/ uint32& aClockTime,
-            /*IN*/ bool& aOverflow,
-            /*IN*/ PVMFMediaClock_TimeUnits aUnits) = 0;
-
         virtual ~PVMFMediaClockNotificationsInterface() {}
 };
 
@@ -732,22 +627,22 @@ class PVMFMediaClockNotificationsImplInterface
          **
          ** Function:    SetCallbackAbsoluteTime
          **
-         ** Synopsis:   Set a callback timer specifying an absolute time in clock for timer expiry.
+         ** Synopsis:	Set a callback timer specifying an absolute time in clock for timer expiry.
          **
          ** Arguments :
-         ** @param      [absoluteTime]  -- absolute time in clock when callBack should be called.
-         **                                Units is msec.
-         ** @param      [window]        -- Error tolerance available in callback time. If T is the desired
-         **                                callback time and w is the allowed tolerance window, then callback
-         **                                can come between T-w to T+w time.
-         ** @param      [aObserver]     -- observer object to be called on timeout.
-         ** @param      [threadLock]    -- If threadLock is true, callback will to be threadsafe otherwise
-         **                                not. Making callback threadsafe might add overheads.
+         ** @param		[absoluteTime]	-- absolute time in clock when callBack should be called.
+         **				   				   Units is msec.
+         ** @param		[window]		-- Error tolerance available in callback time. If T is the desired
+         **								   callback time and w is the allowed tolerance window, then callback
+         **								   can come between T-w to T+w time.
+         ** @param		[aObserver]     -- observer object to be called on timeout.
+         ** @param		[threadLock]	-- If threadLock is true, callback will to be threadsafe otherwise
+         **								   not. Making callback threadsafe might add overheads.
          ** @param      [aContextData]  -- context pointer that will be returned back with the callback.
-         ** @param      [callBackID]    -- ID used to identify the timer for cancellation
-         ** @param      [aInterfaceObject]  -- self pointer of interface object which calls this function
+         ** @param		[callBackID]	-- ID used to identify the timer for cancellation
+         ** @param		[aInterfaceObject]	-- self pointer of interface object which calls this function
          ** Returns:
-         ** @return     PVMFStatus      -- success or error code
+         ** @return		PVMFStatus		-- success or error code
          **
          **
          ** Notes:
@@ -766,22 +661,22 @@ class PVMFMediaClockNotificationsImplInterface
          **
          ** Function:    SetCallbackDeltaTime
          **
-         ** Synopsis:   Set a callback timer specifying a delta time from current time for timer expiry.
+         ** Synopsis:	Set a callback timer specifying a delta time from current time for timer expiry.
          **
          ** Arguments :
-         ** @param      [deltaTime]     -- delta time in clock when callBack should be called.
-         **                                Units is msec.
-         ** @param      [window]        -- Error tolerance available in callback time. If T is the desired
-         **                                callback time and w is the allowed tolerance window, then callback
-         **                                can come between T-w to T+w time.
-         ** @param      [aObserver]     -- observer object to be called on timeout.
-         ** @param      [threadLock]    -- If threadLock is true, callback will to be threadsafe otherwise
-         **                                not. Making callback threadsafe might add overheads.
+         ** @param		[deltaTime]		-- delta time in clock when callBack should be called.
+         **				   				   Units is msec.
+         ** @param		[window]		-- Error tolerance available in callback time. If T is the desired
+         **								   callback time and w is the allowed tolerance window, then callback
+         **								   can come between T-w to T+w time.
+         ** @param		[aObserver]     -- observer object to be called on timeout.
+         ** @param		[threadLock]	-- If threadLock is true, callback will to be threadsafe otherwise
+         **								   not. Making callback threadsafe might add overheads.
          ** @param      [aContextData]  -- context pointer that will be returned back with the callback.
-         ** @param      [callBackID]    -- ID used to identify the timer for cancellation
-         ** @param      [aInterfaceObject]  -- self pointer of interface object which calls this function
+         ** @param		[callBackID]	-- ID used to identify the timer for cancellation
+         ** @param		[aInterfaceObject]	-- self pointer of interface object which calls this function
          ** Returns:
-         ** @return     PVMFStatus      -- success or error code
+         ** @return		PVMFStatus		-- success or error code
          **
          **
          ** Notes:
@@ -800,14 +695,14 @@ class PVMFMediaClockNotificationsImplInterface
          **
          ** Function:    CancelCallback
          **
-         ** Synopsis:   Cancel callback timer set with SetCallBackDeltaTime() or SetCallbackAbsoluteTime()
+         ** Synopsis:	Cancel callback timer set with SetCallBackDeltaTime() or SetCallbackAbsoluteTime()
          **
          ** Arguments :
-         ** @param      [callbackID]    -- timer ID returned by SetCallBackDeltaTime()
-         **                                 or SetCallbackAbsoluteTime()
+         ** @param		[callbackID]	-- timer ID returned by SetCallBackDeltaTime()
+         **									or SetCallbackAbsoluteTime()
          ** @param  :   [aThreadLock]   -- whether this call needs to be threadsafe
          ** Returns:
-         ** @return     PVMFStatus
+         ** @return		PVMFStatus
          **
          ** Notes:
          **
@@ -819,22 +714,22 @@ class PVMFMediaClockNotificationsImplInterface
          **
          ** Function:    SetNPTCallbackAbsoluteTime
          **
-         ** Synopsis:   Set a callback timer specifying an absolute time in clock for timer expiry.
+         ** Synopsis:	Set a callback timer specifying an absolute time in clock for timer expiry.
          **
          ** Arguments :
-         ** @param      [absoluteTime]  -- absolute time in clock when callBack should be called.
-         **                                Units is msec.
-         ** @param      [window]        -- Error tolerance available in callback time. If T is the desired
-         **                                callback time and w is the allowed tolerance window, then callback
-         **                                can come between T-w to T+w time.
-         ** @param      [aObserver]     -- observer object to be called on timeout.
-         ** @param      [threadLock]    -- If threadLock is true, callback will to be threadsafe otherwise
-         **                                not. Making callback threadsafe might add overheads.
+         ** @param		[absoluteTime]	-- absolute time in clock when callBack should be called.
+         **				   				   Units is msec.
+         ** @param		[window]		-- Error tolerance available in callback time. If T is the desired
+         **								   callback time and w is the allowed tolerance window, then callback
+         **								   can come between T-w to T+w time.
+         ** @param		[aObserver]     -- observer object to be called on timeout.
+         ** @param		[threadLock]	-- If threadLock is true, callback will to be threadsafe otherwise
+         **								   not. Making callback threadsafe might add overheads.
          ** @param      [aContextData]  -- context pointer that will be returned back with the callback.
-         ** @param      [callBackID]    -- ID used to identify the timer for cancellation
-         ** @param      [aInterfaceObject]  -- self pointer of interface object which calls this function
+         ** @param		[callBackID]	-- ID used to identify the timer for cancellation
+         ** @param		[aInterfaceObject]	-- self pointer of interface object which calls this function
          ** Returns:
-         ** @return     PVMFStatus      -- success or error code
+         ** @return		PVMFStatus		-- success or error code
          **
          **
          ** Notes:
@@ -854,22 +749,22 @@ class PVMFMediaClockNotificationsImplInterface
          **
          ** Function:    SetNPTCallbackDeltaTime
          **
-         ** Synopsis:   Set a callback timer specifying a delta time from current time for timer expiry.
+         ** Synopsis:	Set a callback timer specifying a delta time from current time for timer expiry.
          **
          ** Arguments :
-         ** @param      [deltaTime]     -- delta time in clock when callBack should be called.
-         **                                Units is msec.
-         ** @param      [window]        -- Error tolerance available in callback time. If T is the desired
-         **                                callback time and w is the allowed tolerance window, then callback
-         **                                can come between T-w to T+w time.
-         ** @param      [aObserver]     -- observer object to be called on timeout.
-         ** @param      [threadLock]    -- If threadLock is true, callback will to be threadsafe otherwise
-         **                                not. Making callback threadsafe might add overheads.
+         ** @param		[deltaTime]		-- delta time in clock when callBack should be called.
+         **				   				   Units is msec.
+         ** @param		[window]		-- Error tolerance available in callback time. If T is the desired
+         **								   callback time and w is the allowed tolerance window, then callback
+         **								   can come between T-w to T+w time.
+         ** @param		[aObserver]     -- observer object to be called on timeout.
+         ** @param		[threadLock]	-- If threadLock is true, callback will to be threadsafe otherwise
+         **								   not. Making callback threadsafe might add overheads.
          ** @param      [aContextData]  -- context pointer that will be returned back with the callback.
-         ** @param      [callBackID]    -- ID used to identify the timer for cancellation
-         ** @param      [aInterfaceObject]  -- self pointer of interface object which calls this function
+         ** @param		[callBackID]	-- ID used to identify the timer for cancellation
+         ** @param		[aInterfaceObject]	-- self pointer of interface object which calls this function
          ** Returns:
-         ** @return     PVMFStatus      -- success or error code
+         ** @return		PVMFStatus		-- success or error code
          **
          **
          ** Notes:
@@ -888,14 +783,14 @@ class PVMFMediaClockNotificationsImplInterface
          **
          ** Function:    CancelCallback
          **
-         ** Synopsis:   Cancel callback timer set with SetCallBackDeltaTime() or SetCallbackAbsoluteTime()
+         ** Synopsis:	Cancel callback timer set with SetCallBackDeltaTime() or SetCallbackAbsoluteTime()
          **
          ** Arguments :
-         ** @param      [callbackID]    -- timer ID returned by SetCallBackDeltaTime()
-         **                                 or SetCallbackAbsoluteTime()
+         ** @param		[callbackID]	-- timer ID returned by SetCallBackDeltaTime()
+         **									or SetCallbackAbsoluteTime()
          ** @param  :   [aThreadLock]   -- whether this call needs to be threadsafe
          ** Returns:
-         ** @return     PVMFStatus
+         ** @return		PVMFStatus
          **
          ** Notes:
          **
@@ -968,7 +863,7 @@ class PVMFMediaClockNPTClockPositionAccessInterface: public PVInterface
             /*OUT*/ uint32& aCurrentPosition) = 0;
 
         /**
-        *   This API clears the NPT clock mapping and resets internal variables to 0.
+        * 	This API clears the NPT clock mapping and resets internal variables to 0.
         */
         virtual void ClearNPTClockPosition() = 0;
 
@@ -1075,14 +970,6 @@ class PVMFMediaClockNotificationsInterfaceImpl: public PVMFMediaClockNotificatio
 
         OSCL_IMPORT_REF void RemoveClockStateObserver(PVMFMediaClockStateObserver& aObserver);
 
-        OSCL_IMPORT_REF PVMFMediaClockCheckTimeWindowStatus CheckTimeWindow(
-            PVMFMediaClockCheckTimeWindowArgs &aArgs);
-
-        OSCL_IMPORT_REF void GetLatencyAdjustedCurrentTime32(
-            /*OUT*/ uint32& aClockTime,
-            /*IN*/ bool& aOverflow,
-            /*IN*/ PVMFMediaClock_TimeUnits aUnits);
-
         //End PVMFMediaClockNotificationsInterface
 
     protected:
@@ -1092,6 +979,10 @@ class PVMFMediaClockNotificationsInterfaceImpl: public PVMFMediaClockNotificatio
         friend class PVMFMediaClock;
         PVMFMediaClockStateObserver *iClockStateObserver;
         uint32 iLatency;
+        //this value is iLatency - min latency among all objects present.
+        uint32 iAdjustedLatency;
+        //This value is the delay after which clock start notification will be sent.
+        uint32 iLatencyDelayForClockStartNotification;
         PVMFMediaClock *iContainer;
         PVMFMediaClockNotificationsObsBase* iNotificationInterfaceDestroyedCallback;
 };
@@ -1159,13 +1050,13 @@ class PVMFMediaClockTimerQueueCompareLessForNPTBackwards
 
 
 class PVMFMediaClock :  public OsclTimerObject,
-        public PVMFTimebase,
-        public PVMFMediaClockObserver,
-        public PVMFMediaClockControlInterface,
-        public PVMFMediaClockAccessInterface,
-        public PVMFMediaClockNPTClockPositionAccessInterface,
-        public PVMFMediaClockNotificationsImplInterface,
-        public PVMFMediaClockNotificationsObs /*Media clock uses itself to set callback*/
+            public PVMFTimebase,
+            public PVMFMediaClockObserver,
+            public PVMFMediaClockControlInterface,
+            public PVMFMediaClockAccessInterface,
+            public PVMFMediaClockNPTClockPositionAccessInterface,
+            public PVMFMediaClockNotificationsImplInterface,
+            public PVMFMediaClockNotificationsObs /*Media clock uses itself to set callback*/
 {
 
     public:
@@ -1214,7 +1105,7 @@ class PVMFMediaClock :  public OsclTimerObject,
 
 
 
-        //  From PVMFTimebase
+        //	From PVMFTimebase
 
         OSCL_IMPORT_REF void GetCurrentTick32(uint32& aTimebaseTickCount, bool& aOverflow);
 
@@ -1411,8 +1302,8 @@ class PVMFMediaClock :  public OsclTimerObject,
         /**
             Converts a time value in the specified time units to microseconds
             @param aSrcVal: unsigned 32-bit time value in units specified by aSrcUnits
-            @param aSrcUnits: time units of aSrcVal
-            @param aUSecVal: reference to unsigned 32-bit integer to store the microsecond time value
+        	@param aSrcUnits: time units of aSrcVal
+        	@param aUSecVal: reference to unsigned 32-bit integer to store the microsecond time value
         */
         void ToUSec(uint32& aSrcVal, PVMFMediaClock_TimeUnits aSrcUnits,
                     uint32& aUSecVal, bool& aOverflow);
@@ -1432,7 +1323,7 @@ class PVMFMediaClock :  public OsclTimerObject,
             @param aCurrentTime: unsigned 32-bit integer in microsecond for the current clock time
             @param aCurrentTimebase: unsigned 32-bit integer in microsecond for the current timebase time
         */
-        PVMFMediaClockAdjustTimeStatus AdjustClock(uint32& aObsTime, uint32& aObsTimebase, uint32& aAdjTime,
+        virtual PVMFMediaClockAdjustTimeStatus AdjustClock(uint32& aObsTime, uint32& aObsTimebase, uint32& aAdjTime,
                 uint32& aCurrentTime, uint32& aCurrentTimebase);
 
         /**
@@ -1441,7 +1332,7 @@ class PVMFMediaClock :  public OsclTimerObject,
             @param aDstTime: unsigned 32-bit integer in microseconds to output the adjusted current clock time
             @param aTimebaseVal: unsigned 32-bit integer in microseconds of the current timebase time
         */
-        void GetAdjustedRunningClockTime(uint32& aDstTime, uint32& aTimebaseVal);
+        virtual void GetAdjustedRunningClockTime(uint32& aDstTime, uint32& aTimebaseVal);
 
         //Possible units for time keeping
         enum PVMFMediaClock_ClockUnit
@@ -1467,6 +1358,7 @@ class PVMFMediaClock :  public OsclTimerObject,
         PVMFMediaClockState iState;               // Internal state of the clock
 
         PVMFTimebase* iClockTimebase;             // Pointer to this clock's timebase
+
         //vector of clock observers.
         Oscl_Vector<PVMFMediaClockObserver*, OsclMemAllocator> iClockObservers;
 
@@ -1488,10 +1380,6 @@ class PVMFMediaClock :  public OsclTimerObject,
 
         //vector of PVMFMediaClockNotificationsInterfaceImpl objects. Each object represents a session
         Oscl_Vector<PVMFMediaClockNotificationsInterfaceImpl*, OsclMemAllocator> iMediaClockSetCallbackObjects;
-
-        //latency handling
-        uint32 iHighestLatency;
-        void UpdateHighestLatency(uint32 alatency);
 
         //callback related functions, members
 
@@ -1522,6 +1410,10 @@ class PVMFMediaClock :  public OsclTimerObject,
 
         //common CancelCallback() for regular and NPT timers
         PVMFStatus CommonCancelCallback(uint32 aCallbackID, bool aThreadLock, bool aIsNPT);
+
+        //This function adjusts latencies of all PVMFMediaClockNotificationsInterfaceImpl objects
+        //stored in the vector by subtracting largest common latency from all.
+        void AdjustLatenciesOfSinks();
 
         /**
         This is a generic function for doing fresh scheduling of PVMFMediaClock object
@@ -1572,7 +1464,7 @@ class PVMFMediaClock :  public OsclTimerObject,
     the OSCL's system tickcount as the timebase. This class is provided
     as the default PVMFTimebase that is available on any platform with OSCL support.
 */
-class OSCL_IMPORT_REF PVMFTimebase_Tickcount : public PVMFTimebase
+class PVMFTimebase_Tickcount : public PVMFTimebase
 {
     public:
         /**

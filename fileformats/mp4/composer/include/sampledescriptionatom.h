@@ -24,7 +24,6 @@
 #ifndef __SampleDescriptionAtom_H__
 #define __SampleDescriptionAtom_H__
 
-#include "a_atomdefs.h"
 #include "fullatom.h"
 #include "sampleentry.h"
 #include "esdescriptor.h"
@@ -64,7 +63,7 @@ class PVA_FF_SampleDescriptionAtom : public PVA_FF_FullAtom
         }
 
         // Stream properties
-        void setTargetBitrate(uint32 avgBitRate, uint32 maxBitRate, uint32 bufferSizeDB);
+        void setTargetBitrate(uint32 bitrate);
 
         void addSampleEntry(PVA_FF_SampleEntry *entry);
         void insertSampleEntryAt(int32 index, PVA_FF_SampleEntry *entry);
@@ -97,8 +96,6 @@ class PVA_FF_SampleDescriptionAtom : public PVA_FF_FullAtom
             _frame_width = (uint16)frame_width;
             _frame_height = (uint16)frame_height;
         }
-
-        void setAudioEncodeParams(PVMP4FFComposerAudioEncodeParams &audioParams);
 
         void setH263ProfileLevel(uint8 profile, uint8 level)
         {

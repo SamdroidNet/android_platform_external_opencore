@@ -41,7 +41,6 @@
 #include "oscl_dll.h"
 #endif
 
-
 #if USE_DYNAMIC_LOAD_OMX_COMPONENTS
 OMX_ERRORTYPE OmxComponentFactoryDynamicCreate(OMX_OUT OMX_HANDLETYPE* pHandle, OMX_IN  OMX_PTR pAppData, OMX_IN OMX_PTR pProxy, OMX_STRING aOmxLibName, OMX_PTR &aOmxLib, OMX_PTR aOsclUuid, OMX_U32 &aRefCount);
 OMX_ERRORTYPE OmxComponentFactoryDynamicDestructor(OMX_IN OMX_HANDLETYPE pHandle, OMX_PTR &aOmxLib, OMX_PTR aOsclUuid, OMX_U32 &aRefCount);
@@ -88,6 +87,9 @@ OMX_ERRORTYPE ComponentRegister(ComponentRegistrationType *pCRT)
     return OMX_ErrorNone;
 }
 
+/* Mobile Media Lab. Start */
+#if (USE_DMC_OMX == 0)
+/* Mobile Media Lab. End */
 #if REGISTER_OMX_M4V_COMPONENT
 #if (DYNAMIC_LOAD_OMX_M4V_COMPONENT == 0)
 // external factory functions needed for creation of each component (or stubs for testing)
@@ -163,7 +165,7 @@ extern OMX_ERRORTYPE H263OmxComponentDestructor(OMX_IN OMX_HANDLETYPE pHandle, O
 #if (REGISTER_OMX_H263_COMPONENT) || (USE_DYNAMIC_LOAD_OMX_COMPONENTS)
 /////////////////////////////////////////////////////////////////////////////
 OMX_ERRORTYPE H263Register()
-{
+{/* Mobile Media Lab. Start */
     ComponentRegistrationType *pCRT = (ComponentRegistrationType *) oscl_malloc(sizeof(ComponentRegistrationType));
 
     if (pCRT)
@@ -333,6 +335,9 @@ OMX_ERRORTYPE WmvRegister()
     return  ComponentRegister(pCRT);
 }
 #endif
+/* Mobile Media Lab. Start */
+#endif /* #if (USE_DMC_OMX == 0) */
+/* Mobile Media Lab. End */
 ///////////////////////////////////////////////////////////////////////////////////////////////
 #if REGISTER_OMX_AAC_COMPONENT
 // external factory functions needed for creation of each component (or stubs for testing)
@@ -522,6 +527,304 @@ OMX_ERRORTYPE Mp3Register()
 }
 #endif
 
+#if REGISTER_OMX_WMA_SS_COMPONENT
+#if (DYNAMIC_LOAD_OMX_WMA_SS_COMPONENT == 0)
+extern OMX_ERRORTYPE Wma_ssOmxComponentFactory(OMX_OUT OMX_HANDLETYPE* pHandle, OMX_IN  OMX_PTR pAppData, OMX_PTR pProxy, OMX_STRING aOmxLibName, OMX_PTR &aOmxLib, OMX_PTR aOsclUuid, OMX_U32 &aRefCount);
+extern OMX_ERRORTYPE Wma_ssOmxComponentDestructor(OMX_IN OMX_HANDLETYPE pHandle, OMX_PTR &aOmxLib, OMX_PTR aOsclUuid, OMX_U32 &aRefCount);
+#endif
+#endif
+
+#if (REGISTER_OMX_WMA_SS_COMPONENT) || (USE_DYNAMIC_LOAD_OMX_COMPONENTS)
+/////////////////////////////////////////////////////////////////////////////
+OMX_ERRORTYPE Wma_ssRegister()
+{
+    ComponentRegistrationType *pCRT = (ComponentRegistrationType *) oscl_malloc(sizeof(ComponentRegistrationType));
+
+    if (pCRT)
+    {
+        pCRT->ComponentName = (OMX_STRING)"OMX.SS.wmadec";
+        pCRT->RoleString[0] = (OMX_STRING)"audio_decoder.wma";
+        pCRT->NumberOfRolesSupported = 1;
+        pCRT->SharedLibraryOsclUuid = NULL;
+#if DYNAMIC_LOAD_OMX_WMA_SS_COMPONENT
+        pCRT->FunctionPtrCreateComponent = &OmxComponentFactoryDynamicCreate;
+        pCRT->FunctionPtrDestroyComponent = &OmxComponentFactoryDynamicDestructor;
+        pCRT->SharedLibraryName = (OMX_STRING)"libomx_wma_ssdec_sharedlibrary.so";
+        pCRT->SharedLibraryPtr = NULL;
+
+        OsclUuid *temp = (OsclUuid *) oscl_malloc(sizeof(OsclUuid));
+        OSCL_PLACEMENT_NEW(temp, PV_OMX_WMA_SSDEC_UUID);
+
+        pCRT->SharedLibraryOsclUuid = (OMX_PTR) temp;
+        pCRT->SharedLibraryRefCounter = 0;
+#endif
+#if REGISTER_OMX_WMA_SS_COMPONENT
+#if (DYNAMIC_LOAD_OMX_WMA_SS_COMPONENT == 0)
+
+        pCRT->FunctionPtrCreateComponent = &Wma_ssOmxComponentFactory;
+        pCRT->FunctionPtrDestroyComponent = &Wma_ssOmxComponentDestructor;
+        pCRT->SharedLibraryName = NULL;
+        pCRT->SharedLibraryPtr = NULL;
+
+        if (pCRT->SharedLibraryOsclUuid)
+            oscl_free(pCRT->SharedLibraryOsclUuid);
+
+        pCRT->SharedLibraryOsclUuid = NULL;
+        pCRT->SharedLibraryRefCounter = 0;
+#endif
+#endif
+
+    }
+    else
+    {
+        return OMX_ErrorInsufficientResources;
+    }
+
+    return  ComponentRegister(pCRT);
+}
+#endif
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+#if REGISTER_OMX_AC3_COMPONENT
+// external factory functions needed for creation of each component (or stubs for testing)
+#if (DYNAMIC_LOAD_OMX_AC3_COMPONENT == 0)
+extern OMX_ERRORTYPE Ac3OmxComponentFactory(OMX_OUT OMX_HANDLETYPE* pHandle, OMX_IN  OMX_PTR pAppData, OMX_PTR pProxy, OMX_STRING aOmxLibName, OMX_PTR &aOmxLib, OMX_PTR aOsclUuid, OMX_U32 &aRefCount);
+extern OMX_ERRORTYPE Ac3OmxComponentDestructor(OMX_IN OMX_HANDLETYPE pHandle, OMX_PTR &aOmxLib, OMX_PTR aOsclUuid, OMX_U32 &aRefCount);
+#endif
+#endif
+#if (REGISTER_OMX_AC3_COMPONENT) || (USE_DYNAMIC_LOAD_OMX_COMPONENTS)
+/////////////////////////////////////////////////////////////////////////////
+OMX_ERRORTYPE Ac3Register()
+{
+    ComponentRegistrationType *pCRT = (ComponentRegistrationType *) oscl_malloc(sizeof(ComponentRegistrationType));
+
+    if (pCRT)
+    {
+        pCRT->ComponentName = (OMX_STRING)"OMX.PV.ac3dec";
+        pCRT->RoleString[0] = (OMX_STRING)"audio_decoder.ac3";
+        pCRT->NumberOfRolesSupported = 1;
+        pCRT->SharedLibraryOsclUuid = NULL;
+#if USE_DYNAMIC_LOAD_OMX_COMPONENTS
+        pCRT->FunctionPtrCreateComponent = &OmxComponentFactoryDynamicCreate;
+        pCRT->FunctionPtrDestroyComponent = &OmxComponentFactoryDynamicDestructor;
+        pCRT->SharedLibraryName = (OMX_STRING)"libomx_ac3dec_sharedlibrary.so";
+        pCRT->SharedLibraryPtr = NULL;
+
+        OsclUuid *temp = (OsclUuid *) oscl_malloc(sizeof(OsclUuid));
+        if (temp == NULL)
+        {
+            oscl_free(pCRT); // free allocated memory
+            return OMX_ErrorInsufficientResources;
+        }
+        OSCL_PLACEMENT_NEW(temp, PV_OMX_AC3DEC_UUID);
+
+        pCRT->SharedLibraryOsclUuid = (OMX_PTR) temp;
+        pCRT->SharedLibraryRefCounter = 0;
+#endif
+#if REGISTER_OMX_AC3_COMPONENT
+#if (DYNAMIC_LOAD_OMX_AC3_COMPONENT == 0)
+
+        pCRT->FunctionPtrCreateComponent = &Ac3OmxComponentFactory;
+        pCRT->FunctionPtrDestroyComponent = &Ac3OmxComponentDestructor;
+        pCRT->SharedLibraryName = NULL;
+        pCRT->SharedLibraryPtr = NULL;
+
+        if (pCRT->SharedLibraryOsclUuid)
+            oscl_free(pCRT->SharedLibraryOsclUuid);
+
+        pCRT->SharedLibraryOsclUuid = NULL;
+        pCRT->SharedLibraryRefCounter = 0;
+#endif
+#endif
+    }
+    else
+    {
+        return OMX_ErrorInsufficientResources;
+    }
+
+    return  ComponentRegister(pCRT);
+}
+#endif
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+#if REGISTER_OMX_G711_COMPONENT
+#if (DYNAMIC_LOAD_OMX_G711_COMPONENT == 0)
+extern OMX_ERRORTYPE G711OmxComponentFactory(OMX_OUT OMX_HANDLETYPE* pHandle, OMX_IN  OMX_PTR pAppData, OMX_IN OMX_PTR pProxy, OMX_STRING aOmxLibName, OMX_PTR &aOmxLib, OMX_PTR aOsclUuid, OMX_U32 &aRefCount);
+extern OMX_ERRORTYPE G711OmxComponentDestructor(OMX_IN OMX_HANDLETYPE pHandle, OMX_PTR &aOmxLib, OMX_PTR aOsclUuid, OMX_U32 &aRefCount);
+#endif
+#endif
+#if (REGISTER_OMX_G711_COMPONENT) || (USE_DYNAMIC_LOAD_OMX_COMPONENTS)
+/////////////////////////////////////////////////////////////////////////////
+OMX_ERRORTYPE G711Register()
+{
+    ComponentRegistrationType *pCRT = (ComponentRegistrationType *) oscl_malloc(sizeof(ComponentRegistrationType));
+
+    if (pCRT)
+    {
+        pCRT->ComponentName = (OMX_STRING)"OMX.PV.g711dec";
+        pCRT->RoleString[0] = (OMX_STRING)"audio_decoder.g711";
+        pCRT->NumberOfRolesSupported = 1;
+        pCRT->SharedLibraryOsclUuid = NULL;
+#if USE_DYNAMIC_LOAD_OMX_COMPONENTS
+        pCRT->FunctionPtrCreateComponent = &OmxComponentFactoryDynamicCreate;
+        pCRT->FunctionPtrDestroyComponent = &OmxComponentFactoryDynamicDestructor;
+        pCRT->SharedLibraryName = (OMX_STRING)"libomx_g711dec_sharedlibrary.so";
+        pCRT->SharedLibraryPtr = NULL;
+
+        OsclUuid *temp = (OsclUuid *) oscl_malloc(sizeof(OsclUuid));
+        if (temp == NULL)
+        {
+            oscl_free(pCRT); // free allocated memory
+            return OMX_ErrorInsufficientResources;
+        }
+        OSCL_PLACEMENT_NEW(temp, PV_OMX_G711DEC_UUID);
+
+        pCRT->SharedLibraryOsclUuid = (OMX_PTR) temp;
+        pCRT->SharedLibraryRefCounter = 0;
+#endif
+#if REGISTER_OMX_G711_COMPONENT
+#if (DYNAMIC_LOAD_OMX_G711_COMPONENT == 0)
+
+        pCRT->FunctionPtrCreateComponent = &G711OmxComponentFactory;
+        pCRT->FunctionPtrDestroyComponent = &G711OmxComponentDestructor;
+        pCRT->SharedLibraryName = NULL;
+        pCRT->SharedLibraryPtr = NULL;
+
+        if (pCRT->SharedLibraryOsclUuid)
+            oscl_free(pCRT->SharedLibraryOsclUuid);
+
+        pCRT->SharedLibraryOsclUuid = NULL;
+        pCRT->SharedLibraryRefCounter = 0;
+#endif
+#endif
+    }
+    else
+    {
+        return OMX_ErrorInsufficientResources;
+    }
+
+    return  ComponentRegister(pCRT);
+}
+#endif
+
+
+#if REGISTER_OMX_EVRC_COMPONENT
+// external factory functions needed for creation of each component (or stubs for testing)
+#if (DYNAMIC_LOAD_OMX_EVRC_COMPONENT == 0)
+extern OMX_ERRORTYPE EvrcOmxComponentFactory(OMX_OUT OMX_HANDLETYPE* pHandle, OMX_IN  OMX_PTR pAppData, OMX_PTR pProxy, OMX_STRING aOmxLibName, OMX_PTR &aOmxLib, OMX_PTR aOsclUuid, OMX_U32 &aRefCount);
+extern OMX_ERRORTYPE EvrcOmxComponentDestructor(OMX_IN OMX_HANDLETYPE pHandle, OMX_PTR &aOmxLib, OMX_PTR aOsclUuid, OMX_U32 &aRefCount);
+#endif
+#endif
+#if (REGISTER_OMX_EVRC_COMPONENT) || (USE_DYNAMIC_LOAD_OMX_COMPONENTS)
+/////////////////////////////////////////////////////////////////////////////
+OMX_ERRORTYPE EvrcRegister()
+{
+    ComponentRegistrationType *pCRT = (ComponentRegistrationType *) oscl_malloc(sizeof(ComponentRegistrationType));
+
+    if (pCRT)
+    {
+        pCRT->ComponentName = (OMX_STRING)"OMX.PV.evrcdec";
+        pCRT->RoleString[0] = (OMX_STRING)"audio_decoder.evrc";
+		pCRT->NumberOfRolesSupported = 1;
+        pCRT->SharedLibraryOsclUuid = NULL;
+#if DYNAMIC_LOAD_OMX_EVRC_COMPONENT
+        pCRT->FunctionPtrCreateComponent = &OmxComponentFactoryDynamicCreate;
+        pCRT->FunctionPtrDestroyComponent = &OmxComponentFactoryDynamicDestructor;
+        pCRT->SharedLibraryName = (OMX_STRING)"libomx_evrcdec_sharedlibrary.so";
+        pCRT->SharedLibraryPtr = NULL;
+
+        OsclUuid *temp = (OsclUuid *) oscl_malloc(sizeof(OsclUuid));
+		if (temp == NULL)
+        {
+            oscl_free(pCRT); // free allocated memory
+            return OMX_ErrorInsufficientResources;
+        }
+        OSCL_PLACEMENT_NEW(temp, PV_OMX_EVRCDEC_UUID);
+
+        pCRT->SharedLibraryOsclUuid = (OMX_PTR) temp;
+        pCRT->SharedLibraryRefCounter = 0;
+#endif
+#if REGISTER_OMX_EVRC_COMPONENT
+#if (DYNAMIC_LOAD_OMX_EVRC_COMPONENT == 0)
+        pCRT->FunctionPtrCreateComponent = &EvrcOmxComponentFactory;
+        pCRT->FunctionPtrDestroyComponent = &EvrcOmxComponentDestructor;
+        pCRT->SharedLibraryName = NULL;
+        pCRT->SharedLibraryPtr = NULL;
+        if (pCRT->SharedLibraryOsclUuid)
+            oscl_free(pCRT->SharedLibraryOsclUuid);
+        pCRT->SharedLibraryOsclUuid = NULL;
+        pCRT->SharedLibraryRefCounter = 0;
+#endif
+#endif
+    }
+    else
+    {
+        return OMX_ErrorInsufficientResources;
+    }
+
+    return  ComponentRegister(pCRT);
+}
+#endif
+///////////////////////////////////////////////////////////////////////////////////////////////
+#if REGISTER_OMX_G729_COMPONENT
+#if (DYNAMIC_LOAD_OMX_G729_COMPONENT == 0)
+extern OMX_ERRORTYPE G729OmxComponentFactory(OMX_OUT OMX_HANDLETYPE* pHandle, OMX_IN  OMX_PTR pAppData, OMX_IN OMX_PTR pProxy, OMX_STRING aOmxLibName, OMX_PTR &aOmxLib, OMX_PTR aOsclUuid, OMX_U32 &aRefCount);
+extern OMX_ERRORTYPE G729OmxComponentDestructor(OMX_IN OMX_HANDLETYPE pHandle, OMX_PTR &aOmxLib, OMX_PTR aOsclUuid, OMX_U32 &aRefCount);
+#endif
+#endif
+#if (REGISTER_OMX_G729_COMPONENT) || (USE_DYNAMIC_LOAD_OMX_COMPONENTS)
+/////////////////////////////////////////////////////////////////////////////
+OMX_ERRORTYPE G729Register()
+{
+    ComponentRegistrationType *pCRT = (ComponentRegistrationType *) oscl_malloc(sizeof(ComponentRegistrationType));
+
+    if (pCRT)
+    {
+        pCRT->ComponentName = (OMX_STRING)"OMX.PV.g729dec";
+        pCRT->RoleString[0] = (OMX_STRING)"audio_decoder.g729";
+        pCRT->NumberOfRolesSupported = 1;
+        pCRT->SharedLibraryOsclUuid = NULL;
+#if USE_DYNAMIC_LOAD_OMX_COMPONENTS
+        pCRT->FunctionPtrCreateComponent = &OmxComponentFactoryDynamicCreate;
+        pCRT->FunctionPtrDestroyComponent = &OmxComponentFactoryDynamicDestructor;
+        pCRT->SharedLibraryName = (OMX_STRING)"libomx_g729dec_sharedlibrary.so";
+        pCRT->SharedLibraryPtr = NULL;
+
+        OsclUuid *temp = (OsclUuid *) oscl_malloc(sizeof(OsclUuid));
+        if (temp == NULL)
+        {
+            oscl_free(pCRT); // free allocated memory
+            return OMX_ErrorInsufficientResources;
+        }
+        OSCL_PLACEMENT_NEW(temp, PV_OMX_G729DEC_UUID);
+
+        pCRT->SharedLibraryOsclUuid = (OMX_PTR) temp;
+        pCRT->SharedLibraryRefCounter = 0;
+#endif
+#if REGISTER_OMX_G729_COMPONENT
+#if (DYNAMIC_LOAD_OMX_G729_COMPONENT == 0)
+
+        pCRT->FunctionPtrCreateComponent = &G729OmxComponentFactory;
+        pCRT->FunctionPtrDestroyComponent = &G729OmxComponentDestructor;
+        pCRT->SharedLibraryName = NULL;
+        pCRT->SharedLibraryPtr = NULL;
+
+        if (pCRT->SharedLibraryOsclUuid)
+            oscl_free(pCRT->SharedLibraryOsclUuid);
+
+        pCRT->SharedLibraryOsclUuid = NULL;
+        pCRT->SharedLibraryRefCounter = 0;
+#endif
+#endif
+    }
+    else
+    {
+        return OMX_ErrorInsufficientResources;
+    }
+
+    return  ComponentRegister(pCRT);
+}
+#endif
 ///////////////////////////////////////////////////////////////////////////////////////////////
 #if REGISTER_OMX_WMA_COMPONENT
 // external factory functions needed for creation of each component (or stubs for testing)
@@ -583,7 +886,252 @@ OMX_ERRORTYPE WmaRegister()
     return  ComponentRegister(pCRT);
 }
 #endif
+//////////////////////////////////////////////////////////////////////////////////////////////
+#if REGISTER_OMX_G711ENC_COMPONENT
+// external factory functions needed for creation of each component (or stubs for testing)
+#if (DYNAMIC_LOAD_OMX_G711ENC_COMPONENT == 0)
+extern OMX_ERRORTYPE G711EncOmxComponentFactory(OMX_OUT OMX_HANDLETYPE* pHandle, OMX_IN  OMX_PTR pAppData, OMX_IN OMX_PTR pProxy, OMX_STRING aOmxLibName, OMX_PTR &aOmxLib, OMX_PTR aOsclUuid, OMX_U32 &aRefCount);
+extern OMX_ERRORTYPE G711EncOmxComponentDestructor(OMX_IN OMX_HANDLETYPE pHandle, OMX_PTR &aOmxLib, OMX_PTR aOsclUuid, OMX_U32 &aRefCount);
+#endif
+#endif
+#if (REGISTER_OMX_G711ENC_COMPONENT) || (USE_DYNAMIC_LOAD_OMX_COMPONENTS)
+/////////////////////////////////////////////////////////////////////////////
+OMX_ERRORTYPE G711EncRegister()
+{
+    ComponentRegistrationType* pCRT = (ComponentRegistrationType*) oscl_malloc(sizeof(ComponentRegistrationType));
 
+    if (pCRT)
+    {
+        pCRT->ComponentName = (OMX_STRING)"OMX.PV.g711enc";
+        pCRT->RoleString[0] = (OMX_STRING)"audio_encoder.g711";
+        pCRT->NumberOfRolesSupported = 1;
+        pCRT->SharedLibraryOsclUuid = NULL;
+#if USE_DYNAMIC_LOAD_OMX_COMPONENTS
+        pCRT->FunctionPtrCreateComponent = &OmxComponentFactoryDynamicCreate;
+        pCRT->FunctionPtrDestroyComponent = &OmxComponentFactoryDynamicDestructor;
+        pCRT->SharedLibraryName = (OMX_STRING)"libomx_g711enc_sharedlibrary.so";
+        pCRT->SharedLibraryPtr = NULL;
+
+        OsclUuid *temp = (OsclUuid *) oscl_malloc(sizeof(OsclUuid));
+        if (temp == NULL)
+        {
+            oscl_free(pCRT); // free allocated memory
+            return OMX_ErrorInsufficientResources;
+        }
+        OSCL_PLACEMENT_NEW(temp, PV_OMX_G711ENC_UUID);
+
+        pCRT->SharedLibraryOsclUuid = (OMX_PTR) temp;
+        pCRT->SharedLibraryRefCounter = 0;
+#endif
+#if REGISTER_OMX_G711ENC_COMPONENT
+#if (DYNAMIC_LOAD_OMX_G711ENC_COMPONENT == 0)
+
+        pCRT->FunctionPtrCreateComponent = &G711EncOmxComponentFactory;
+        pCRT->FunctionPtrDestroyComponent = &G711EncOmxComponentDestructor;
+        pCRT->SharedLibraryName = NULL;
+        pCRT->SharedLibraryPtr = NULL;
+
+        if (pCRT->SharedLibraryOsclUuid)
+            oscl_free(pCRT->SharedLibraryOsclUuid);
+
+        pCRT->SharedLibraryOsclUuid = NULL;
+        pCRT->SharedLibraryRefCounter = 0;
+#endif
+#endif
+    }
+    else
+    {
+        return OMX_ErrorInsufficientResources;
+    }
+
+    return  ComponentRegister(pCRT);
+}
+#endif
+///////////////////////////////////////////////////////////////////////////////////////////////
+#if REGISTER_OMX_EVRCENC_COMPONENT
+// external factory functions needed for creation of each component (or stubs for testing)
+#if (DYNAMIC_LOAD_OMX_EVRCENC_COMPONENT == 0)
+extern OMX_ERRORTYPE EvrcEncOmxComponentFactory(OMX_OUT OMX_HANDLETYPE* pHandle, OMX_IN  OMX_PTR pAppData, OMX_IN OMX_PTR pProxy, OMX_STRING aOmxLibName, OMX_PTR &aOmxLib, OMX_PTR aOsclUuid, OMX_U32 &aRefCount);
+extern OMX_ERRORTYPE EvrcEncOmxComponentDestructor(OMX_IN OMX_HANDLETYPE pHandle, OMX_PTR &aOmxLib, OMX_PTR aOsclUuid, OMX_U32 &aRefCount);
+#endif
+#endif
+#if (REGISTER_OMX_EVRCENC_COMPONENT) || (USE_DYNAMIC_LOAD_OMX_COMPONENTS)
+///////////////////////////////////////////////////////////////////////////////////////////////
+OMX_ERRORTYPE EvrcEncRegister()
+{
+    ComponentRegistrationType* pCRT = (ComponentRegistrationType*) oscl_malloc(sizeof(ComponentRegistrationType));
+
+    if (pCRT)
+    {
+        pCRT->ComponentName = (OMX_STRING)"OMX.PV.evrcenc";
+        pCRT->RoleString[0] = (OMX_STRING)"audio_encoder.evrc";
+        pCRT->NumberOfRolesSupported = 1;
+        pCRT->SharedLibraryOsclUuid = NULL;
+#if USE_DYNAMIC_LOAD_OMX_COMPONENTS
+        pCRT->FunctionPtrCreateComponent = &OmxComponentFactoryDynamicCreate;
+        pCRT->FunctionPtrDestroyComponent = &OmxComponentFactoryDynamicDestructor;
+        pCRT->SharedLibraryName = (OMX_STRING)"libomx_evrcenc_sharedlibrary.so";
+        pCRT->SharedLibraryPtr = NULL;
+
+        OsclUuid *temp = (OsclUuid *) oscl_malloc(sizeof(OsclUuid));
+        if (temp == NULL)
+        {
+            oscl_free(pCRT); // free allocated memory
+            return OMX_ErrorInsufficientResources;
+        }
+        OSCL_PLACEMENT_NEW(temp, PV_OMX_EVRCENC_UUID);
+
+        pCRT->SharedLibraryOsclUuid = (OMX_PTR) temp;
+        pCRT->SharedLibraryRefCounter = 0;
+#endif
+#if REGISTER_OMX_EVRCENC_COMPONENT
+#if (DYNAMIC_LOAD_OMX_EVRCENC_COMPONENT == 0)
+        pCRT->FunctionPtrCreateComponent = &EvrcEncOmxComponentFactory;
+        pCRT->FunctionPtrDestroyComponent = &EvrcEncOmxComponentDestructor;
+        pCRT->SharedLibraryName = NULL;
+        pCRT->SharedLibraryPtr = NULL;
+
+        if (pCRT->SharedLibraryOsclUuid)
+            oscl_free(pCRT->SharedLibraryOsclUuid);
+
+        pCRT->SharedLibraryOsclUuid = NULL;
+        pCRT->SharedLibraryRefCounter = 0;
+#endif
+#endif
+    }
+    else
+    {
+        return OMX_ErrorInsufficientResources;
+    }
+
+    return  ComponentRegister(pCRT);
+}
+#endif
+/////////////////////////////////////////////////////////////////////////////////////////////
+#if REGISTER_OMX_G729ENC_COMPONENT
+// external factory functions needed for creation of each component (or stubs for testing)
+#if (DYNAMIC_LOAD_OMX_G729ENC_COMPONENT == 0)
+extern OMX_ERRORTYPE G729EncOmxComponentFactory(OMX_OUT OMX_HANDLETYPE* pHandle, OMX_IN  OMX_PTR pAppData, OMX_IN OMX_PTR pProxy, OMX_STRING aOmxLibName, OMX_PTR &aOmxLib, OMX_PTR aOsclUuid, OMX_U32 &aRefCount);
+extern OMX_ERRORTYPE G729EncOmxComponentDestructor(OMX_IN OMX_HANDLETYPE pHandle, OMX_PTR &aOmxLib, OMX_PTR aOsclUuid, OMX_U32 &aRefCount);
+#endif
+#endif
+#if (REGISTER_OMX_G729ENC_COMPONENT) || (USE_DYNAMIC_LOAD_OMX_COMPONENTS)
+/////////////////////////////////////////////////////////////////////////////
+OMX_ERRORTYPE G729EncRegister()
+{
+    ComponentRegistrationType* pCRT = (ComponentRegistrationType*) oscl_malloc(sizeof(ComponentRegistrationType));
+
+    if (pCRT)
+    {
+        pCRT->ComponentName = (OMX_STRING)"OMX.PV.g729enc";
+        pCRT->RoleString[0] = (OMX_STRING)"audio_encoder.g729";
+        pCRT->NumberOfRolesSupported = 1;
+        pCRT->SharedLibraryOsclUuid = NULL;
+#if USE_DYNAMIC_LOAD_OMX_COMPONENTS
+        pCRT->FunctionPtrCreateComponent = &OmxComponentFactoryDynamicCreate;
+        pCRT->FunctionPtrDestroyComponent = &OmxComponentFactoryDynamicDestructor;
+        pCRT->SharedLibraryName = (OMX_STRING)"libomx_g729enc_sharedlibrary.so";
+        pCRT->SharedLibraryPtr = NULL;
+
+        OsclUuid *temp = (OsclUuid *) oscl_malloc(sizeof(OsclUuid));
+        if (temp == NULL)
+        {
+            oscl_free(pCRT); // free allocated memory
+            return OMX_ErrorInsufficientResources;
+        }
+        OSCL_PLACEMENT_NEW(temp, PV_OMX_G729ENC_UUID);
+
+        pCRT->SharedLibraryOsclUuid = (OMX_PTR) temp;
+        pCRT->SharedLibraryRefCounter = 0;
+#endif
+#if REGISTER_OMX_G729ENC_COMPONENT
+#if (DYNAMIC_LOAD_OMX_G729ENC_COMPONENT == 0)
+
+        pCRT->FunctionPtrCreateComponent = &G729EncOmxComponentFactory;
+        pCRT->FunctionPtrDestroyComponent = &G729EncOmxComponentDestructor;
+        pCRT->SharedLibraryName = NULL;
+        pCRT->SharedLibraryPtr = NULL;
+
+        if (pCRT->SharedLibraryOsclUuid)
+            oscl_free(pCRT->SharedLibraryOsclUuid);
+
+        pCRT->SharedLibraryOsclUuid = NULL;
+        pCRT->SharedLibraryRefCounter = 0;
+#endif
+#endif
+    }
+    else
+    {
+        return OMX_ErrorInsufficientResources;
+    }
+
+    return  ComponentRegister(pCRT);
+}
+#endif
+//////////////////////////////////////////////////////////////////////////////////////////
+#if REGISTER_OMX_MP3ENC_COMPONENT
+// external factory functions needed for creation of each component (or stubs for testing)
+#if (DYNAMIC_LOAD_OMX_MP3ENC_COMPONENT == 0)
+extern OMX_ERRORTYPE MP3EncOmxComponentFactory(OMX_OUT OMX_HANDLETYPE* pHandle, OMX_IN  OMX_PTR pAppData, OMX_IN OMX_PTR pProxy, OMX_STRING aOmxLibName, OMX_PTR &aOmxLib, OMX_PTR aOsclUuid, OMX_U32 &aRefCount);
+extern OMX_ERRORTYPE MP3EncOmxComponentDestructor(OMX_IN OMX_HANDLETYPE pHandle, OMX_PTR &aOmxLib, OMX_PTR aOsclUuid, OMX_U32 &aRefCount);
+#endif
+#endif
+///////////////////////////////////////////////////////////////////////////////////////////////
+#if (REGISTER_OMX_MP3ENC_COMPONENT) || (USE_DYNAMIC_LOAD_OMX_COMPONENTS)
+////////////////////////////////////////////////////////////////////////////////////////////////
+OMX_ERRORTYPE Mp3EncRegister()
+{
+	//LOGE("In Mp3EncRegister");
+
+    ComponentRegistrationType* pCRT = (ComponentRegistrationType*) oscl_malloc(sizeof(ComponentRegistrationType));
+
+    if (pCRT)
+    {
+		pCRT->ComponentName = (OMX_STRING)"OMX.PV.mp3enc";
+        pCRT->RoleString[0] = (OMX_STRING)"audio_encoder.mp3";
+        pCRT->NumberOfRolesSupported = 1;
+        pCRT->SharedLibraryOsclUuid = NULL;
+#if USE_DYNAMIC_LOAD_OMX_COMPONENTS
+        pCRT->FunctionPtrCreateComponent = &OmxComponentFactoryDynamicCreate;
+        pCRT->FunctionPtrDestroyComponent = &OmxComponentFactoryDynamicDestructor;
+        pCRT->SharedLibraryName = (OMX_STRING)"libomx_mp3enc_sharedlibrary.so";
+        pCRT->SharedLibraryPtr = NULL;
+
+        OsclUuid *temp = (OsclUuid *) oscl_malloc(sizeof(OsclUuid));
+        if (temp == NULL)
+        {
+            oscl_free(pCRT); // free allocated memory
+            return OMX_ErrorInsufficientResources;
+        }
+        OSCL_PLACEMENT_NEW(temp, PV_OMX_MP3ENC_UUID);
+
+        pCRT->SharedLibraryOsclUuid = (OMX_PTR) temp;
+        pCRT->SharedLibraryRefCounter = 0;
+#endif
+#if REGISTER_OMX_MP3ENC_COMPONENT
+#if (DYNAMIC_LOAD_OMX_MP3ENC_COMPONENT == 0)
+		//LOGE("In Mp3EncRegister: pCRT->FunctionPtrCreateComponent = &Mp3EncOmxComponentFactory");
+        pCRT->FunctionPtrCreateComponent = &Mp3EncOmxComponentFactory;
+        pCRT->FunctionPtrDestroyComponent = &Mp3EncOmxComponentDestructor;
+        pCRT->SharedLibraryName = NULL;
+        pCRT->SharedLibraryPtr = NULL;
+
+        if (pCRT->SharedLibraryOsclUuid)
+            oscl_free(pCRT->SharedLibraryOsclUuid);
+
+        pCRT->SharedLibraryOsclUuid = NULL;
+        pCRT->SharedLibraryRefCounter = 0;
+#endif
+#endif
+    }
+    else
+    {
+        return OMX_ErrorInsufficientResources;
+    }
+
+    return  ComponentRegister(pCRT);
+}
+#endif
 ///////////////////////////////////////////////////////////////////////////////////////////////
 #if REGISTER_OMX_AMRENC_COMPONENT
 // external factory functions needed for creation of each component (or stubs for testing)
@@ -646,7 +1194,9 @@ OMX_ERRORTYPE AmrEncRegister()
 }
 #endif
 
-
+/* Mobile Media Lab. Start */
+#if (USE_DMC_OMX == 0)
+/* Mobile Media Lab. End */
 ///////////////////////////////////////////////////////////////////////////////////////////////
 #if REGISTER_OMX_M4VENC_COMPONENT
 // external factory functions needed for creation of each component (or stubs for testing)
@@ -836,7 +1386,9 @@ OMX_ERRORTYPE AvcEncRegister()
     return  ComponentRegister(pCRT);
 }
 #endif
-
+/* Mobile Media Lab. Start */
+#endif /* #if (USE_DMC_OMX == 0) */
+/* Mobile Media Lab. End */
 ///////////////////////////////////////////////////////////////////////////////////////////////
 #if REGISTER_OMX_AACENC_COMPONENT
 // external factory functions needed for creation of each component (or stubs for testing)
@@ -942,7 +1494,6 @@ OMX_ERRORTYPE OmxComponentFactoryDynamicCreate(OMX_OUT OMX_HANDLETYPE* pHandle, 
         if (OsclLibSuccess == lib->QueryInterface(PV_OMX_SHARED_INTERFACE, (OsclAny*&)interfacePtr))
         {
 
-
             // the interface ptr should be ok, but check just in case
             if (interfacePtr != NULL)
             {
@@ -988,6 +1539,7 @@ OMX_ERRORTYPE OmxComponentFactoryDynamicCreate(OMX_OUT OMX_HANDLETYPE* pHandle, 
             aOmxLib = NULL;
         }
     }
+
     return returnStatus;
 }
 
@@ -1054,3 +1606,384 @@ OMX_ERRORTYPE OmxComponentFactoryDynamicDestructor(OMX_IN OMX_HANDLETYPE pHandle
 
 #endif // USE_DYNAMIC_LOAD_OMX_COMPONENTS
 
+/* Mobile Media Lab. Start */
+#if USE_DMC_OMX
+
+#if (DYNAMIC_LOAD_DMC_OMX_COMPONENT == 0)
+// external factory functions needed for creation of each component (or stubs for testing)
+extern OMX_ERRORTYPE SMp4vdOmxComponentFactory(OMX_OUT OMX_HANDLETYPE* pHandle, OMX_IN  OMX_PTR pAppData, OMX_IN OMX_PTR pProxy, OMX_STRING aOmxLibName, OMX_PTR &aOmxLib, OMX_PTR aOsclUuid, OMX_U32 &aRefCount);
+extern OMX_ERRORTYPE SMp4vdOmxComponentDestructor(OMX_IN OMX_HANDLETYPE pHandle, OMX_PTR &aOmxLib, OMX_PTR aOsclUuid, OMX_U32 &aRefCount);
+#endif
+/////////////////////////////////////////////////////////////////////////////
+OMX_ERRORTYPE SMp4vdRegister()
+{
+    ComponentRegistrationType *pCRT = (ComponentRegistrationType *) oscl_malloc(sizeof(ComponentRegistrationType));
+
+	if (pCRT)
+    {
+	pCRT->ComponentName = (OMX_STRING)"OMX.SEC.smp4vd";
+	pCRT->RoleString[0] = (OMX_STRING)"video_decoder.mpeg4";
+	pCRT->NumberOfRolesSupported = 1;
+	pCRT->SharedLibraryOsclUuid = NULL;
+#if DYNAMIC_LOAD_DMC_OMX_COMPONENT
+	pCRT->FunctionPtrCreateComponent = &OmxComponentFactoryDynamicCreate;
+	pCRT->FunctionPtrDestroyComponent = &OmxComponentFactoryDynamicDestructor;
+	pCRT->SharedLibraryName = (OMX_STRING)"libsmp4vdomxoc.so";
+	pCRT->SharedLibraryPtr = NULL;
+
+
+	OsclUuid *temp = (OsclUuid *) oscl_malloc(sizeof(OsclUuid));
+	if (temp == NULL)
+	{
+		oscl_free(pCRT); /* free allocated memory */
+		return OMX_ErrorInsufficientResources;
+	}
+	OSCL_PLACEMENT_NEW(temp, SEC_OMX_SMP4VD_UUID);
+
+	pCRT->SharedLibraryOsclUuid = (OMX_PTR) temp;
+	pCRT->SharedLibraryRefCounter = 0;
+#else
+	pCRT->FunctionPtrCreateComponent = &SMp4vdOmxComponentFactory;
+	pCRT->FunctionPtrDestroyComponent = &SMp4vdOmxComponentDestructor;
+	pCRT->SharedLibraryName = NULL;
+	pCRT->SharedLibraryPtr = NULL;
+
+	if (pCRT->SharedLibraryOsclUuid)
+		oscl_free(pCRT->SharedLibraryOsclUuid);
+
+	pCRT->SharedLibraryOsclUuid = NULL;
+	pCRT->SharedLibraryRefCounter = 0;
+#endif
+	}
+	else
+	{
+		return OMX_ErrorInsufficientResources;
+	}
+
+	return  ComponentRegister(pCRT);
+}
+
+#if (DYNAMIC_LOAD_DMC_OMX_COMPONENT == 0)
+extern OMX_ERRORTYPE S264dOmxComponentFactory(OMX_OUT OMX_HANDLETYPE* pHandle, OMX_IN  OMX_PTR pAppData, OMX_IN OMX_PTR pProxy, OMX_STRING aOmxLibName, OMX_PTR &aOmxLib, OMX_PTR aOsclUuid, OMX_U32 &aRefCount);
+extern OMX_ERRORTYPE S264dOmxComponentDestructor(OMX_IN OMX_HANDLETYPE pHandle, OMX_PTR &aOmxLib, OMX_PTR aOsclUuid, OMX_U32 &aRefCount);
+#endif
+/////////////////////////////////////////////////////////////////////
+OMX_ERRORTYPE S264dRegister()
+{
+    ComponentRegistrationType *pCRT = (ComponentRegistrationType *) oscl_malloc(sizeof(ComponentRegistrationType));
+
+    if (pCRT)
+    {
+        pCRT->ComponentName = (OMX_STRING)"OMX.SEC.s264d";
+        pCRT->RoleString[0] = (OMX_STRING)"video_decoder.avc";
+		pCRT->NumberOfRolesSupported = 1;
+		pCRT->SharedLibraryOsclUuid = NULL;
+#if DYNAMIC_LOAD_DMC_OMX_COMPONENT
+        pCRT->FunctionPtrCreateComponent = &OmxComponentFactoryDynamicCreate;
+        pCRT->FunctionPtrDestroyComponent = &OmxComponentFactoryDynamicDestructor;
+        pCRT->SharedLibraryName = (OMX_STRING)"libs264domxoc.so";
+        pCRT->SharedLibraryPtr = NULL;
+
+        OsclUuid *temp = (OsclUuid *) oscl_malloc(sizeof(OsclUuid));
+		if (temp == NULL)
+		{
+			oscl_free(pCRT); // free allocated memory
+			return OMX_ErrorInsufficientResources;
+		}		
+        OSCL_PLACEMENT_NEW(temp, SEC_OMX_S264D_UUID);
+
+        pCRT->SharedLibraryOsclUuid = (OMX_PTR) temp;
+        pCRT->SharedLibraryRefCounter = 0;
+#else
+        pCRT->FunctionPtrCreateComponent = &S264dOmxComponentFactory;
+        pCRT->FunctionPtrDestroyComponent = &S264dOmxComponentDestructor;
+        pCRT->SharedLibraryName = NULL;
+        pCRT->SharedLibraryPtr = NULL;
+
+		if (pCRT->SharedLibraryOsclUuid)
+			oscl_free(pCRT->SharedLibraryOsclUuid);		
+
+        pCRT->SharedLibraryOsclUuid = NULL;
+        pCRT->SharedLibraryRefCounter = 0;
+#endif
+
+    }
+    else
+    {
+        return OMX_ErrorInsufficientResources;
+    }
+
+    return  ComponentRegister(pCRT);
+}
+
+// external factory functions needed for creation of each component (or stubs for testing)
+#if (DYNAMIC_LOAD_DMC_OMX_COMPONENT == 0)
+extern OMX_ERRORTYPE S263dOmxComponentFactory(OMX_OUT OMX_HANDLETYPE* pHandle, OMX_IN  OMX_PTR pAppData, OMX_IN OMX_PTR pProxy, OMX_STRING aOmxLibName, OMX_PTR &aOmxLib, OMX_PTR aOsclUuid, OMX_U32 &aRefCount);
+extern OMX_ERRORTYPE S263dOmxComponentDestructor(OMX_IN OMX_HANDLETYPE pHandle, OMX_PTR &aOmxLib, OMX_PTR aOsclUuid, OMX_U32 &aRefCount);
+#endif
+/////////////////////////////////////////////////////////////////////////////
+OMX_ERRORTYPE S263dRegister()
+{
+    ComponentRegistrationType *pCRT = (ComponentRegistrationType *) oscl_malloc(sizeof(ComponentRegistrationType));
+
+    if (pCRT)
+    {
+        pCRT->ComponentName = (OMX_STRING)"OMX.SEC.s263d";
+        pCRT->RoleString[0] = (OMX_STRING)"video_decoder.h263";
+		pCRT->NumberOfRolesSupported = 1;
+		pCRT->SharedLibraryOsclUuid = NULL;		
+#if DYNAMIC_LOAD_DMC_OMX_COMPONENT
+        pCRT->FunctionPtrCreateComponent = &OmxComponentFactoryDynamicCreate;
+        pCRT->FunctionPtrDestroyComponent = &OmxComponentFactoryDynamicDestructor;
+        pCRT->SharedLibraryName = (OMX_STRING)"libs263domxoc.so";
+        pCRT->SharedLibraryPtr = NULL;
+
+        OsclUuid *temp = (OsclUuid *) oscl_malloc(sizeof(OsclUuid));
+		if (temp == NULL)
+		{
+			oscl_free(pCRT); // free allocated memory
+			return OMX_ErrorInsufficientResources;
+		}
+        OSCL_PLACEMENT_NEW(temp, SEC_OMX_S263D_UUID);
+
+        pCRT->SharedLibraryOsclUuid = (OMX_PTR) temp;
+        pCRT->SharedLibraryRefCounter = 0;
+#else
+        pCRT->FunctionPtrCreateComponent = &S263dOmxComponentFactory;
+        pCRT->FunctionPtrDestroyComponent = &S263dOmxComponentDestructor;
+        pCRT->SharedLibraryName = NULL;
+        pCRT->SharedLibraryPtr = NULL;
+
+		if (pCRT->SharedLibraryOsclUuid)
+			oscl_free(pCRT->SharedLibraryOsclUuid);
+
+        pCRT->SharedLibraryOsclUuid = NULL;
+        pCRT->SharedLibraryRefCounter = 0;
+#endif
+
+    }
+    else
+    {
+        return OMX_ErrorInsufficientResources;
+    }
+
+    return  ComponentRegister(pCRT);
+}
+
+// external factory functions needed for creation of each component (or stubs for testing)
+#if (DYNAMIC_LOAD_DMC_OMX_COMPONENT == 0)
+extern OMX_ERRORTYPE SVc1dOmxComponentFactory(OMX_OUT OMX_HANDLETYPE* pHandle, OMX_IN  OMX_PTR pAppData, OMX_IN OMX_PTR pProxy, OMX_STRING aOmxLibName, OMX_PTR &aOmxLib, OMX_PTR aOsclUuid, OMX_U32 &aRefCount);
+extern OMX_ERRORTYPE SVc1dOmxComponentDestructor(OMX_IN OMX_HANDLETYPE pHandle, OMX_PTR &aOmxLib, OMX_PTR aOsclUuid, OMX_U32 &aRefCount);
+#endif
+/////////////////////////////////////////////////////////////////////////////
+OMX_ERRORTYPE SVc1dRegister()
+{
+    ComponentRegistrationType *pCRT = (ComponentRegistrationType *) oscl_malloc(sizeof(ComponentRegistrationType));
+
+    if (pCRT)
+    {
+        pCRT->ComponentName = (OMX_STRING)"OMX.SEC.svc1d";
+        pCRT->RoleString[0] = (OMX_STRING)"video_decoder.wmv";
+		pCRT->NumberOfRolesSupported = 1;
+		pCRT->SharedLibraryOsclUuid = NULL;
+#if DYNAMIC_LOAD_DMC_OMX_COMPONENT
+        pCRT->FunctionPtrCreateComponent = &OmxComponentFactoryDynamicCreate;
+        pCRT->FunctionPtrDestroyComponent = &OmxComponentFactoryDynamicDestructor;
+        pCRT->SharedLibraryName = (OMX_STRING)"libsvc1domxoc.so";
+        pCRT->SharedLibraryPtr = NULL;
+
+        OsclUuid *temp = (OsclUuid *) oscl_malloc(sizeof(OsclUuid));
+		if (temp == NULL)
+		{
+			oscl_free(pCRT);
+			return OMX_ErrorInsufficientResources;
+		}
+        OSCL_PLACEMENT_NEW(temp, SEC_OMX_SVC1D_UUID);
+
+        pCRT->SharedLibraryOsclUuid = (OMX_PTR) temp;
+        pCRT->SharedLibraryRefCounter = 0;
+#else
+        pCRT->FunctionPtrCreateComponent = &SVc1dOmxComponentFactory;
+        pCRT->FunctionPtrDestroyComponent = &SVc1dOmxComponentDestructor;
+        pCRT->SharedLibraryName = NULL;
+        pCRT->SharedLibraryPtr = NULL;
+
+		if (pCRT->SharedLibraryOsclUuid)
+			oscl_free(pCRT->SharedLibraryOsclUuid);
+
+        pCRT->SharedLibraryOsclUuid = NULL;
+        pCRT->SharedLibraryRefCounter = 0;
+#endif
+
+    }
+    else
+    {
+        return OMX_ErrorInsufficientResources;
+    }
+
+    return  ComponentRegister(pCRT);
+}
+
+// external factory functions needed for creation of each component (or stubs for testing)
+#if (DYNAMIC_LOAD_DMC_OMX_COMPONENT == 0)
+extern OMX_ERRORTYPE SMp4veOmxOC_ComponentFactory(OMX_OUT OMX_HANDLETYPE* pHandle, OMX_IN  OMX_PTR pAppData, OMX_IN OMX_PTR pProxy, OMX_STRING aOmxLibName, OMX_PTR &aOmxLib, OMX_PTR aOsclUuid, OMX_U32 &aRefCount);
+extern OMX_ERRORTYPE SMp4veOmxOC_ComponentDestructor(OMX_IN OMX_HANDLETYPE pHandle, OMX_PTR &aOmxLib, OMX_PTR aOsclUuid, OMX_U32 &aRefCount);
+#endif
+/////////////////////////////////////////////////////////////////////////////
+OMX_ERRORTYPE SMp4veRegister()
+{
+    ComponentRegistrationType* pCRT = (ComponentRegistrationType*) oscl_malloc(sizeof(ComponentRegistrationType));
+
+    if (pCRT)
+    {
+        pCRT->ComponentName = (OMX_STRING)"OMX.SEC.smp4ve";
+        pCRT->RoleString[0] = (OMX_STRING)"video_encoder.mpeg4";
+		pCRT->NumberOfRolesSupported = 1;
+		pCRT->SharedLibraryOsclUuid = NULL;
+#if DYNAMIC_LOAD_DMC_OMX_COMPONENT
+        pCRT->FunctionPtrCreateComponent = &OmxComponentFactoryDynamicCreate;
+        pCRT->FunctionPtrDestroyComponent = &OmxComponentFactoryDynamicDestructor;
+        pCRT->SharedLibraryName = (OMX_STRING)"libsmp4veomxoc.so";		
+        pCRT->SharedLibraryPtr = NULL;
+
+        OsclUuid *temp = (OsclUuid *) oscl_malloc(sizeof(OsclUuid));
+		if (temp == NULL)
+		{
+			oscl_free(pCRT);
+			return OMX_ErrorInsufficientResources;
+		}
+        OSCL_PLACEMENT_NEW(temp, SEC_OMX_SMP4VE_UUID);
+
+        pCRT->SharedLibraryOsclUuid = (OMX_PTR) temp;
+        pCRT->SharedLibraryRefCounter = 0;
+
+#else
+        pCRT->FunctionPtrCreateComponent = &SMp4veOmxOC_ComponentFactory;
+        pCRT->FunctionPtrDestroyComponent = &SMp4veOmxOC_ComponentDestructor;
+        pCRT->SharedLibraryName = NULL;
+        pCRT->SharedLibraryPtr = NULL;
+
+		if (pCRT->SharedLibraryOsclUuid)
+			oscl_free(pCRT->SharedLibraryOsclUuid);
+
+        pCRT->SharedLibraryOsclUuid = NULL;
+        pCRT->SharedLibraryRefCounter = 0;
+#endif
+    }
+    else
+    {
+        return OMX_ErrorInsufficientResources;
+    }
+
+    return  ComponentRegister(pCRT);
+}
+
+// external factory functions needed for creation of each component (or stubs for testing)
+#if (DYNAMIC_LOAD_DMC_OMX_COMPONENT == 0)
+extern OMX_ERRORTYPE S263eOmxOC_ComponentFactory(OMX_OUT OMX_HANDLETYPE* pHandle, OMX_IN  OMX_PTR pAppData, OMX_IN OMX_PTR pProxy, OMX_STRING aOmxLibName, OMX_PTR &aOmxLib, OMX_PTR aOsclUuid, OMX_U32 &aRefCount);
+extern OMX_ERRORTYPE S263eOmxOC_ComponentDestructor(OMX_IN OMX_HANDLETYPE pHandle, OMX_PTR &aOmxLib, OMX_PTR aOsclUuid, OMX_U32 &aRefCount);
+#endif
+/////////////////////////////////////////////////////////////////////////////
+OMX_ERRORTYPE S263eRegister()
+{
+    ComponentRegistrationType* pCRT = (ComponentRegistrationType*) oscl_malloc(sizeof(ComponentRegistrationType));
+
+    if (pCRT)
+    {
+        pCRT->ComponentName = (OMX_STRING)"OMX.SEC.s263e";
+        pCRT->RoleString[0] = (OMX_STRING)"video_encoder.h263";
+		pCRT->NumberOfRolesSupported = 1;
+		pCRT->SharedLibraryOsclUuid = NULL;
+#if DYNAMIC_LOAD_DMC_OMX_COMPONENT
+        pCRT->FunctionPtrCreateComponent = &OmxComponentFactoryDynamicCreate;
+        pCRT->FunctionPtrDestroyComponent = &OmxComponentFactoryDynamicDestructor;
+        pCRT->SharedLibraryName = (OMX_STRING)"libs263eomxoc.so";
+        pCRT->SharedLibraryPtr = NULL;
+
+        OsclUuid *temp = (OsclUuid *) oscl_malloc(sizeof(OsclUuid));
+		if (temp == NULL)
+		{
+			oscl_free(pCRT);
+			return OMX_ErrorInsufficientResources;
+		}
+        OSCL_PLACEMENT_NEW(temp, SEC_OMX_S263E_UUID);
+
+        pCRT->SharedLibraryOsclUuid = (OMX_PTR) temp;
+        pCRT->SharedLibraryRefCounter = 0;
+#else
+        pCRT->FunctionPtrCreateComponent = &S263eOmxOC_ComponentFactory;
+        pCRT->FunctionPtrDestroyComponent = &S263eOmxOC_ComponentDestructor;
+        pCRT->SharedLibraryName = NULL;
+        pCRT->SharedLibraryPtr = NULL;
+
+		if (pCRT->SharedLibraryOsclUuid)
+			oscl_free(pCRT->SharedLibraryOsclUuid);		
+
+        pCRT->SharedLibraryOsclUuid = NULL;
+        pCRT->SharedLibraryRefCounter = 0;
+#endif
+    }
+    else
+    {
+        return OMX_ErrorInsufficientResources;
+    }
+
+    return  ComponentRegister(pCRT);
+}
+
+// external factory functions needed for creation of each component (or stubs for testing)
+#if (DYNAMIC_LOAD_DMC_OMX_COMPONENT == 0)
+extern OMX_ERRORTYPE S264eOmxOC_ComponentFactory(OMX_OUT OMX_HANDLETYPE* pHandle, OMX_IN  OMX_PTR pAppData, OMX_IN OMX_PTR pProxy, OMX_STRING aOmxLibName, OMX_PTR &aOmxLib, OMX_PTR aOsclUuid, OMX_U32 &aRefCount);
+extern OMX_ERRORTYPE S264eOmxOC_ComponentDestructor(OMX_IN OMX_HANDLETYPE pHandle, OMX_PTR &aOmxLib, OMX_PTR aOsclUuid, OMX_U32 &aRefCount);
+#endif
+/////////////////////////////////////////////////////////////////////////////
+OMX_ERRORTYPE S264eRegister()
+{
+    ComponentRegistrationType* pCRT = (ComponentRegistrationType*) oscl_malloc(sizeof(ComponentRegistrationType));
+
+    if (pCRT)
+    {
+        pCRT->ComponentName = (OMX_STRING)"OMX.SEC.s264e";
+        pCRT->RoleString[0] = (OMX_STRING)"video_encoder.avc";
+		pCRT->NumberOfRolesSupported = 1;
+		pCRT->SharedLibraryOsclUuid = NULL;
+#if DYNAMIC_LOAD_DMC_OMX_COMPONENT
+        pCRT->FunctionPtrCreateComponent = &OmxComponentFactoryDynamicCreate;
+        pCRT->FunctionPtrDestroyComponent = &OmxComponentFactoryDynamicDestructor;
+        pCRT->SharedLibraryName = (OMX_STRING)"libs264eomxoc.so";
+        pCRT->SharedLibraryPtr = NULL;
+
+        OsclUuid *temp = (OsclUuid *) oscl_malloc(sizeof(OsclUuid));
+		if (temp == NULL)
+		{
+			oscl_free(pCRT);
+			return OMX_ErrorInsufficientResources;
+		}
+        OSCL_PLACEMENT_NEW(temp, SEC_OMX_S264E_UUID);
+
+        pCRT->SharedLibraryOsclUuid = (OMX_PTR) temp;
+        pCRT->SharedLibraryRefCounter = 0;
+
+#else
+        pCRT->FunctionPtrCreateComponent = &S264eOmxOC_ComponentFactory;
+        pCRT->FunctionPtrDestroyComponent = &S264eOmxOC_ComponentDestructor;
+        pCRT->SharedLibraryName = NULL;
+        pCRT->SharedLibraryPtr = NULL;
+
+		if (pCRT->SharedLibraryOsclUuid)
+			oscl_free(pCRT->SharedLibraryOsclUuid);		
+
+        pCRT->SharedLibraryOsclUuid = NULL;
+        pCRT->SharedLibraryRefCounter = 0;
+#endif
+    }
+    else
+    {
+        return OMX_ErrorInsufficientResources;
+    }
+
+    return  ComponentRegister(pCRT);
+}
+
+#endif /* #if USE_DMC_OMX */
+/* Mobile Media Lab. End */

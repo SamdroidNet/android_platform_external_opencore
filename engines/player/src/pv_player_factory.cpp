@@ -44,10 +44,9 @@ OSCL_DLL_ENTRY_POINT_DEFAULT()
 
 OSCL_EXPORT_REF PVPlayerInterface *PVPlayerFactory::CreatePlayer(PVCommandStatusObserver* aCmdStatusObserver,
         PVErrorEventObserver *aErrorEventObserver,
-        PVInformationalEventObserver *aInfoEventObserver,
-        bool aHwAccelerated)
+        PVInformationalEventObserver *aInfoEventObserver)
 {
-    return PVPlayerEngine::New(aCmdStatusObserver, aErrorEventObserver, aInfoEventObserver, aHwAccelerated);
+    return PVPlayerEngine::New(aCmdStatusObserver, aErrorEventObserver, aInfoEventObserver);
 }
 
 OSCL_EXPORT_REF bool PVPlayerFactory::DeletePlayer(PVPlayerInterface* aPlayer)

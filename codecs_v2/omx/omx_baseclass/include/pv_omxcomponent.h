@@ -16,8 +16,8 @@
  * -------------------------------------------------------------------
  */
 /**
-    @file pv_omxcomponent.h
-    OpenMax decoder_component base header file.
+	@file pv_omxcomponent.h
+	OpenMax decoder_component base header file.
 
 */
 
@@ -45,7 +45,6 @@
 #include "pv_omxcore.h"
 #endif
 
-
 #define OMX_PORT_INPUTPORT_INDEX OMX_DirInput
 #define OMX_PORT_OUTPUTPORT_INDEX OMX_DirOutput
 #define OMX_PORT_ALLPORT_INDEX -1
@@ -58,7 +57,7 @@ typedef struct ComponentPrivateType
 {
     OMX_HANDLETYPE CompHandle;
 
-} ComponentPrivateType;
+}ComponentPrivateType;
 
 /**
  * This is the Component template from which all
@@ -87,45 +86,50 @@ typedef struct ComponentPortType
     OMX_BOOL IsPortFlushed;
 
     //AUDIO SPECIFIC PARAMETERS
-    OMX_AUDIO_PARAM_PORTFORMATTYPE  AudioParam;
-    OMX_AUDIO_PARAM_PCMMODETYPE     AudioPcmMode;
-    OMX_AUDIO_PARAM_WMATYPE         AudioWmaParam;
-    OMX_AUDIO_PARAM_MP3TYPE         AudioMp3Param;
-    OMX_AUDIO_CONFIG_EQUALIZERTYPE  AudioEqualizerType;
-    OMX_AUDIO_PARAM_AACPROFILETYPE  AudioAacParam;
-    OMX_AUDIO_PARAM_AMRTYPE         AudioAmrParam;
+    OMX_AUDIO_PARAM_PORTFORMATTYPE	AudioParam;
+    OMX_AUDIO_PARAM_PCMMODETYPE		AudioPcmMode;
+    OMX_AUDIO_PARAM_WMATYPE			AudioWmaParam;
+    OMX_AUDIO_PARAM_MP3TYPE			AudioMp3Param;
+    OMX_AUDIO_CONFIG_EQUALIZERTYPE	AudioEqualizerType;
+    OMX_AUDIO_PARAM_AACPROFILETYPE	AudioAacParam;
+    OMX_AUDIO_PARAM_AMRTYPE			AudioAmrParam;    
 
     //VIDEO SPECIFIC PARAMETERS
-    OMX_VIDEO_PARAM_PORTFORMATTYPE   VideoParam[OMX_PORT_NUMBER_FORMATS_SUPPORTED];
+    OMX_VIDEO_PARAM_PORTFORMATTYPE	 VideoParam[OMX_PORT_NUMBER_FORMATS_SUPPORTED];
     OMX_VIDEO_PARAM_PROFILELEVELTYPE ProfileLevel;
-    OMX_VIDEO_PARAM_MPEG4TYPE        VideoMpeg4;
-    OMX_VIDEO_PARAM_H263TYPE         VideoH263;
-    OMX_VIDEO_PARAM_AVCTYPE          VideoAvc;
-    OMX_VIDEO_PARAM_WMVTYPE          VideoWmv;
+    OMX_VIDEO_PARAM_MPEG4TYPE		 VideoMpeg4;
+    OMX_VIDEO_PARAM_H263TYPE		 VideoH263;
+    OMX_VIDEO_PARAM_AVCTYPE			 VideoAvc;
+    OMX_VIDEO_PARAM_WMVTYPE			 VideoWmv;
 
     //VIDEO ENCODER SPECIFIC PARAMETERS
-    OMX_CONFIG_ROTATIONTYPE             VideoOrientationType;
+    OMX_CONFIG_ROTATIONTYPE				VideoOrientationType;
     OMX_VIDEO_PARAM_ERRORCORRECTIONTYPE VideoErrorCorrection;
-    OMX_VIDEO_PARAM_BITRATETYPE         VideoRateType;      //Only for rate control type in mpeg4
-    OMX_VIDEO_PARAM_QUANTIZATIONTYPE    VideoQuantType;
-    OMX_VIDEO_PARAM_VBSMCTYPE           VideoBlockMotionSize;
-    OMX_VIDEO_PARAM_MOTIONVECTORTYPE    VideoMotionVector;
-    OMX_VIDEO_PARAM_INTRAREFRESHTYPE    VideoIntraRefresh;
-    OMX_VIDEO_PARAM_AVCSLICEFMO         AvcSliceFMO;
+    OMX_VIDEO_PARAM_BITRATETYPE			VideoRateType;		//Only for rate control type in mpeg4
+    OMX_VIDEO_PARAM_QUANTIZATIONTYPE	VideoQuantType;
+    OMX_VIDEO_PARAM_VBSMCTYPE			VideoBlockMotionSize;
+    OMX_VIDEO_PARAM_MOTIONVECTORTYPE	VideoMotionVector;
+    OMX_VIDEO_PARAM_INTRAREFRESHTYPE	VideoIntraRefresh;
+    OMX_VIDEO_PARAM_AVCSLICEFMO			AvcSliceFMO;
 
-    OMX_CONFIG_FRAMERATETYPE            VideoConfigFrameRateType;
-    OMX_VIDEO_CONFIG_BITRATETYPE        VideoConfigBitRateType;
+    OMX_CONFIG_FRAMERATETYPE			VideoConfigFrameRateType;
+    OMX_VIDEO_CONFIG_BITRATETYPE		VideoConfigBitRateType;
 
     //This will be used to dynamically request the Iframe using SetConfig API
-    OMX_CONFIG_INTRAREFRESHVOPTYPE      VideoIFrame;
+    OMX_CONFIG_INTRAREFRESHVOPTYPE		VideoIFrame;
 
     OMX_U32  ActualNumPortFormatsSupported;
+    
+    OMX_AUDIO_PARAM_AC3TYPE			AudioAc3Param;
+    OMX_AUDIO_PARAM_G711TYPE		AudioG711Param;
+    OMX_AUDIO_PARAM_EVRCTYPE		AudioEvrcParam;
+    OMX_AUDIO_PARAM_G729TYPE		AudioG729Param;
 
 } ComponentPortType;
 
 
 
-class OSCL_IMPORT_REF OmxComponentBase : public OsclActiveObject
+class OmxComponentBase : public OsclActiveObject
 {
     public:
 
@@ -140,36 +144,36 @@ class OSCL_IMPORT_REF OmxComponentBase : public OsclActiveObject
             OMX_OUT OMX_VERSIONTYPE* pSpecVersion,
             OMX_OUT OMX_UUIDTYPE* pComponentUUID);
 
-        static OSCL_IMPORT_REF OMX_ERRORTYPE BaseComponentGetConfig(
+        static OMX_ERRORTYPE BaseComponentGetConfig(
             OMX_IN  OMX_HANDLETYPE hComponent,
             OMX_IN  OMX_INDEXTYPE nIndex,
             OMX_INOUT OMX_PTR pComponentConfigStructure);
 
-        static OSCL_IMPORT_REF OMX_ERRORTYPE BaseComponentSetConfig(
+        static OMX_ERRORTYPE BaseComponentSetConfig(
             OMX_IN  OMX_HANDLETYPE hComponent,
             OMX_IN  OMX_INDEXTYPE nIndex,
             OMX_IN  OMX_PTR pComponentConfigStructure);
 
-        static OSCL_IMPORT_REF OMX_ERRORTYPE BaseComponentGetExtensionIndex(
+        static OMX_ERRORTYPE BaseComponentGetExtensionIndex(
             OMX_IN  OMX_HANDLETYPE hComponent,
             OMX_IN  OMX_STRING cParameterName,
             OMX_OUT OMX_INDEXTYPE* pIndexType);
 
-        static OSCL_IMPORT_REF OMX_ERRORTYPE BaseComponentGetState(
+        static OMX_ERRORTYPE BaseComponentGetState(
             OMX_IN  OMX_HANDLETYPE hComponent,
             OMX_OUT OMX_STATETYPE* pState);
 
-        static OSCL_IMPORT_REF OMX_ERRORTYPE BaseComponentGetParameter(
+        static OMX_ERRORTYPE BaseComponentGetParameter(
             OMX_IN  OMX_HANDLETYPE hComponent,
             OMX_IN  OMX_INDEXTYPE nParamIndex,
             OMX_INOUT OMX_PTR ComponentParameterStructure);
 
-        static OSCL_IMPORT_REF OMX_ERRORTYPE BaseComponentSetParameter(
+        static OMX_ERRORTYPE BaseComponentSetParameter(
             OMX_IN  OMX_HANDLETYPE hComponent,
             OMX_IN  OMX_INDEXTYPE nParamIndex,
             OMX_IN  OMX_PTR ComponentParameterStructure);
 
-        static OSCL_IMPORT_REF OMX_ERRORTYPE BaseComponentUseBuffer(
+        static OMX_ERRORTYPE BaseComponentUseBuffer(
             OMX_IN OMX_HANDLETYPE hComponent,
             OMX_INOUT OMX_BUFFERHEADERTYPE** ppBufferHdr,
             OMX_IN OMX_U32 nPortIndex,
@@ -177,19 +181,19 @@ class OSCL_IMPORT_REF OmxComponentBase : public OsclActiveObject
             OMX_IN OMX_U32 nSizeBytes,
             OMX_IN OMX_U8* pBuffer);
 
-        static OSCL_IMPORT_REF OMX_ERRORTYPE BaseComponentAllocateBuffer(
+        static OMX_ERRORTYPE BaseComponentAllocateBuffer(
             OMX_IN OMX_HANDLETYPE hComponent,
             OMX_INOUT OMX_BUFFERHEADERTYPE** pBuffer,
             OMX_IN OMX_U32 nPortIndex,
             OMX_IN OMX_PTR pAppPrivate,
             OMX_IN OMX_U32 nSizeBytes);
 
-        static OSCL_IMPORT_REF OMX_ERRORTYPE BaseComponentFreeBuffer(
+        static OMX_ERRORTYPE BaseComponentFreeBuffer(
             OMX_IN  OMX_HANDLETYPE hComponent,
             OMX_IN  OMX_U32 nPortIndex,
             OMX_IN  OMX_BUFFERHEADERTYPE* pBuffer);
 
-        static OSCL_IMPORT_REF OMX_ERRORTYPE BaseComponentSendCommand(
+        static OMX_ERRORTYPE BaseComponentSendCommand(
             OMX_IN  OMX_HANDLETYPE hComponent,
             OMX_IN  OMX_COMMANDTYPE Cmd,
             OMX_IN  OMX_U32 nParam,
@@ -198,15 +202,15 @@ class OSCL_IMPORT_REF OmxComponentBase : public OsclActiveObject
         static OMX_ERRORTYPE BaseComponentComponentDeInit(
             OMX_IN  OMX_HANDLETYPE hComponent);
 
-        static OSCL_IMPORT_REF OMX_ERRORTYPE BaseComponentEmptyThisBuffer(
+        static OMX_ERRORTYPE BaseComponentEmptyThisBuffer(
             OMX_IN  OMX_HANDLETYPE hComponent,
             OMX_IN  OMX_BUFFERHEADERTYPE* pBuffer);
 
-        static OSCL_IMPORT_REF OMX_ERRORTYPE BaseComponentFillThisBuffer(
+        static OMX_ERRORTYPE BaseComponentFillThisBuffer(
             OMX_IN  OMX_HANDLETYPE hComponent,
             OMX_IN  OMX_BUFFERHEADERTYPE* pBuffer);
 
-        static OSCL_IMPORT_REF OMX_ERRORTYPE BaseComponentSetCallbacks(
+        static OMX_ERRORTYPE BaseComponentSetCallbacks(
             OMX_IN  OMX_HANDLETYPE hComponent,
             OMX_IN  OMX_CALLBACKTYPE* pCallbacks,
             OMX_IN  OMX_PTR pAppData);
@@ -220,36 +224,36 @@ class OSCL_IMPORT_REF OmxComponentBase : public OsclActiveObject
             OMX_OUT OMX_VERSIONTYPE* pSpecVersion,
             OMX_OUT OMX_UUIDTYPE* pComponentUUID);
 
-        static OSCL_IMPORT_REF OMX_ERRORTYPE BaseComponentProxyGetParameter(
+        static OMX_ERRORTYPE BaseComponentProxyGetParameter(
             OMX_IN  OMX_HANDLETYPE hComponent,
             OMX_IN  OMX_INDEXTYPE nParamIndex,
             OMX_INOUT OMX_PTR ComponentParameterStructure);
 
-        static OSCL_IMPORT_REF OMX_ERRORTYPE BaseComponentProxySetParameter(
+        static OMX_ERRORTYPE BaseComponentProxySetParameter(
             OMX_IN  OMX_HANDLETYPE hComponent,
             OMX_IN  OMX_INDEXTYPE nParamIndex,
             OMX_IN  OMX_PTR ComponentParameterStructure);
 
-        static OSCL_IMPORT_REF OMX_ERRORTYPE BaseComponentProxyGetConfig(
+        static OMX_ERRORTYPE BaseComponentProxyGetConfig(
             OMX_IN  OMX_HANDLETYPE hComponent,
             OMX_IN  OMX_INDEXTYPE nIndex,
             OMX_INOUT OMX_PTR pComponentConfigStructure);
 
-        static OSCL_IMPORT_REF OMX_ERRORTYPE BaseComponentProxySetConfig(
+        static OMX_ERRORTYPE BaseComponentProxySetConfig(
             OMX_IN  OMX_HANDLETYPE hComponent,
             OMX_IN  OMX_INDEXTYPE nIndex,
             OMX_IN  OMX_PTR pComponentConfigStructure);
 
-        static OSCL_IMPORT_REF OMX_ERRORTYPE BaseComponentProxyGetExtensionIndex(
+        static OMX_ERRORTYPE BaseComponentProxyGetExtensionIndex(
             OMX_IN  OMX_HANDLETYPE hComponent,
             OMX_IN  OMX_STRING cParameterName,
             OMX_OUT OMX_INDEXTYPE* pIndexType);
 
-        static OSCL_IMPORT_REF OMX_ERRORTYPE BaseComponentProxyGetState(
+        static OMX_ERRORTYPE BaseComponentProxyGetState(
             OMX_IN  OMX_HANDLETYPE hComponent,
             OMX_OUT OMX_STATETYPE* pState);
 
-        static OSCL_IMPORT_REF OMX_ERRORTYPE BaseComponentProxyUseBuffer(
+        static OMX_ERRORTYPE BaseComponentProxyUseBuffer(
             OMX_IN OMX_HANDLETYPE hComponent,
             OMX_INOUT OMX_BUFFERHEADERTYPE** ppBufferHdr,
             OMX_IN OMX_U32 nPortIndex,
@@ -257,19 +261,19 @@ class OSCL_IMPORT_REF OmxComponentBase : public OsclActiveObject
             OMX_IN OMX_U32 nSizeBytes,
             OMX_IN OMX_U8* pBuffer);
 
-        static OSCL_IMPORT_REF OMX_ERRORTYPE BaseComponentProxyAllocateBuffer(
+        static OMX_ERRORTYPE BaseComponentProxyAllocateBuffer(
             OMX_IN OMX_HANDLETYPE hComponent,
             OMX_INOUT OMX_BUFFERHEADERTYPE** pBuffer,
             OMX_IN OMX_U32 nPortIndex,
             OMX_IN OMX_PTR pAppPrivate,
             OMX_IN OMX_U32 nSizeBytes);
 
-        static OSCL_IMPORT_REF OMX_ERRORTYPE BaseComponentProxyFreeBuffer(
+        static OMX_ERRORTYPE BaseComponentProxyFreeBuffer(
             OMX_IN  OMX_HANDLETYPE hComponent,
             OMX_IN  OMX_U32 nPortIndex,
             OMX_IN  OMX_BUFFERHEADERTYPE* pBuffer);
 
-        static OSCL_IMPORT_REF OMX_ERRORTYPE BaseComponentProxySendCommand(
+        static OMX_ERRORTYPE BaseComponentProxySendCommand(
             OMX_IN  OMX_HANDLETYPE hComponent,
             OMX_IN  OMX_COMMANDTYPE Cmd,
             OMX_IN  OMX_U32 nParam,
@@ -278,11 +282,11 @@ class OSCL_IMPORT_REF OmxComponentBase : public OsclActiveObject
         static OMX_ERRORTYPE BaseComponentProxyComponentDeInit(
             OMX_IN  OMX_HANDLETYPE hComponent);
 
-        static OSCL_IMPORT_REF OMX_ERRORTYPE BaseComponentProxyEmptyThisBuffer(
+        static OMX_ERRORTYPE BaseComponentProxyEmptyThisBuffer(
             OMX_IN  OMX_HANDLETYPE hComponent,
             OMX_IN  OMX_BUFFERHEADERTYPE* pBuffer);
 
-        static OSCL_IMPORT_REF OMX_ERRORTYPE BaseComponentProxyFillThisBuffer(
+        static OMX_ERRORTYPE BaseComponentProxyFillThisBuffer(
             OMX_IN  OMX_HANDLETYPE hComponent,
             OMX_IN  OMX_BUFFERHEADERTYPE* pBuffer);
 
@@ -306,13 +310,13 @@ class OSCL_IMPORT_REF OmxComponentBase : public OsclActiveObject
             OMX_IN  OMX_INDEXTYPE nParamIndex,
             OMX_IN  OMX_PTR ComponentParameterStructure) = 0;
 
-        virtual OSCL_IMPORT_REF OMX_ERRORTYPE GetConfig(
+        virtual OMX_ERRORTYPE GetConfig(
             OMX_IN  OMX_HANDLETYPE hComponent,
             OMX_IN  OMX_INDEXTYPE nIndex,
             OMX_INOUT OMX_PTR pComponentConfigStructure);
 
         //Making Setconfig as virtual function to be implemented in respective component class
-        virtual OSCL_IMPORT_REF OMX_ERRORTYPE SetConfig(
+        virtual OMX_ERRORTYPE SetConfig(
             OMX_IN  OMX_HANDLETYPE hComponent,
             OMX_IN  OMX_INDEXTYPE nIndex,
             OMX_IN  OMX_PTR pComponentConfigStructure);
@@ -375,11 +379,11 @@ class OSCL_IMPORT_REF OmxComponentBase : public OsclActiveObject
         //virtual void Decode() = 0;
         virtual void ProcessData() = 0;
 
-        virtual OSCL_IMPORT_REF void BufferMgmtFunction();
-        virtual OSCL_IMPORT_REF OMX_BOOL BufferMgmtWithoutMarker();
+        virtual void BufferMgmtFunction();
+        virtual OMX_BOOL BufferMgmtWithoutMarker();
         //Extra routines called from BufferMgmtWithoutMarker that may vary from component to component
-        virtual OSCL_IMPORT_REF void ComponentBufferMgmtWithoutMarker();
-        OSCL_IMPORT_REF void TempInputBufferMgmtWithoutMarker();
+        virtual void ComponentBufferMgmtWithoutMarker();
+        void TempInputBufferMgmtWithoutMarker();
 
 
         virtual void ProcessInBufferFlag() {};
@@ -397,7 +401,7 @@ class OSCL_IMPORT_REF OmxComponentBase : public OsclActiveObject
         }
 
         OMX_BOOL AssemblePartialFrames(OMX_BUFFERHEADERTYPE* aInputBuffer);
-        virtual OSCL_IMPORT_REF OMX_BOOL ParseFullAVCFramesIntoNALs(OMX_BUFFERHEADERTYPE* aInputBuffer);
+        virtual OMX_BOOL ParseFullAVCFramesIntoNALs(OMX_BUFFERHEADERTYPE* aInputBuffer);
         OMX_ERRORTYPE MessageHandler(CoreMessage* Message);
         OMX_ERRORTYPE DoStateSet(OMX_U32);
 
@@ -411,14 +415,14 @@ class OSCL_IMPORT_REF OmxComponentBase : public OsclActiveObject
         void SetPortFlushFlag(OMX_S32, OMX_S32 index, OMX_BOOL value);
         void SetNumBufferFlush(OMX_S32, OMX_S32 index, OMX_S32 value);
 
-        OSCL_IMPORT_REF void ReturnInputBuffer(OMX_BUFFERHEADERTYPE* pInputBuffer, ComponentPortType* pPort);
-        OSCL_IMPORT_REF void ReturnOutputBuffer(OMX_BUFFERHEADERTYPE* pOutputBuffer, ComponentPortType* pPort);
+        void ReturnInputBuffer(OMX_BUFFERHEADERTYPE* pInputBuffer, ComponentPortType* pPort);
+        void ReturnOutputBuffer(OMX_BUFFERHEADERTYPE* pOutputBuffer, ComponentPortType* pPort);
 
         virtual OMX_ERRORTYPE ComponentInit() = 0;
         virtual OMX_ERRORTYPE ComponentDeInit() = 0;
 
-        OSCL_IMPORT_REF OMX_ERRORTYPE ConstructBaseComponent(OMX_PTR pAppData);
-        OSCL_IMPORT_REF OMX_ERRORTYPE DestroyBaseComponent();
+        OMX_ERRORTYPE ConstructBaseComponent(OMX_PTR pAppData);
+        OMX_ERRORTYPE DestroyBaseComponent();
 
         OMX_ERRORTYPE TunnelRequest(
             OMX_IN  OMX_HANDLETYPE hComp,
@@ -433,59 +437,59 @@ class OSCL_IMPORT_REF OmxComponentBase : public OsclActiveObject
             OMX_IN  OMX_PTR pStructure,
             OMX_IN  size_t size);
 
-        OSCL_IMPORT_REF void SetHeader(OMX_PTR aheader, OMX_U32 asize);
-        OSCL_IMPORT_REF OMX_ERRORTYPE CheckHeader(OMX_PTR aheader, OMX_U32 asize);
+        void SetHeader(OMX_PTR aheader, OMX_U32 asize);
+        OMX_ERRORTYPE CheckHeader(OMX_PTR aheader, OMX_U32 asize);
 
         void ResetAfterFlush(OMX_S32 PortIndex);
 
         //Flag to call BufferMgmtFunction in the RunL() when the component state is executing
-        OMX_BOOL                iBufferExecuteFlag;
-        ComponentPrivateType*   ipAppPriv;
+        OMX_BOOL				iBufferExecuteFlag;
+        ComponentPrivateType*	ipAppPriv;
 
 
     protected:
 
         PVLogger* iLogger;
 
-        OSCL_IMPORT_REF void Run();
+        void Run();
 
-        OMX_CALLBACKTYPE*   ipCallbacks;
-        OMX_PTR             iCallbackData;
-        OMX_STATETYPE       iState;
+        OMX_CALLBACKTYPE*	ipCallbacks;
+        OMX_PTR				iCallbackData;
+        OMX_STATETYPE		iState;
 
         CoreDescriptorType* ipCoreDescriptor;
-        OMX_U32             iNumInputBuffer;
+        OMX_U32				iNumInputBuffer;
 
-        OMX_U8*             ipFrameDecodeBuffer;
-        OMX_BOOL            iPartialFrameAssembly;
-        OMX_BOOL            iIsInputBufferEnded;
-        OMX_BOOL            iEndofStream;
-        OMX_U8*             ipTempInputBuffer;
-        OMX_U32             iTempInputBufferLength;
-        OMX_COMPONENTTYPE*  ipTargetComponent;
-        OMX_PTR             iTargetMarkData;
-        OMX_COMPONENTTYPE*  ipTempTargetComponent;
-        OMX_PTR             iTempTargetMarkData;
-        OMX_BOOL            iMarkPropagate;
-        OMX_BOOL            iNewInBufferRequired;
-        OMX_BOOL            iNewOutBufRequired;
-        OMX_U32             iTempConsumedLength;
-        OMX_U32             iOutBufferCount;
-        OMX_BOOL            iCodecReady;
-        OMX_U8*             ipInputCurrBuffer;
-        OMX_U32             iInputCurrBufferSize;
-        OMX_U32             iInputCurrLength;
-        OMX_S32             iFrameCount;
-        OMX_BOOL            iStateTransitionFlag;
+        OMX_U8*				ipFrameDecodeBuffer;
+        OMX_BOOL			iPartialFrameAssembly;
+        OMX_BOOL			iIsInputBufferEnded;
+        OMX_BOOL			iEndofStream;
+        OMX_U8*				ipTempInputBuffer;
+        OMX_U32				iTempInputBufferLength;
+        OMX_COMPONENTTYPE*	ipTargetComponent;
+        OMX_PTR				iTargetMarkData;
+        OMX_COMPONENTTYPE*	ipTempTargetComponent;
+        OMX_PTR				iTempTargetMarkData;
+        OMX_BOOL			iMarkPropagate;
+        OMX_BOOL			iNewInBufferRequired;
+        OMX_BOOL			iNewOutBufRequired;
+        OMX_U32				iTempConsumedLength;
+        OMX_U32				iOutBufferCount;
+        OMX_BOOL			iCodecReady;
+        OMX_U8*				ipInputCurrBuffer;
+        OMX_U32				iInputCurrBufferSize;
+        OMX_U32				iInputCurrLength;
+        OMX_S32				iFrameCount;
+        OMX_BOOL			iStateTransitionFlag;
 
-        OMX_BOOL                iEndOfFrameFlag;
-        OMX_BUFFERHEADERTYPE*   ipInputBuffer;
-        OMX_BUFFERHEADERTYPE*   ipOutputBuffer;
-        OMX_U32                 iOutputFrameLength;
-        OMX_COMPONENTTYPE       iOmxComponent;  // structure
-        OMX_U32                 iNumPorts;
-        OMX_U32                 iCompressedFormatPortNum;
-        OMX_PTR                 ipComponentProxy;
+        OMX_BOOL				iEndOfFrameFlag;
+        OMX_BUFFERHEADERTYPE*	ipInputBuffer;
+        OMX_BUFFERHEADERTYPE*	ipOutputBuffer;
+        OMX_U32					iOutputFrameLength;
+        OMX_COMPONENTTYPE		iOmxComponent;	// structure
+        OMX_U32					iNumPorts;
+        OMX_U32					iCompressedFormatPortNum;
+        OMX_PTR					ipComponentProxy;
 
         PV_OMXComponentCapabilityFlagsType iPVCapabilityFlags;
 
@@ -505,41 +509,41 @@ class OSCL_IMPORT_REF OmxComponentBase : public OsclActiveObject
         //This field holds the private data associated with a mark request, if any
         OMX_MARKTYPE* ipMark;
 
-        OMX_BOOL                iEosProcessing;
-        OMX_BOOL                iFirstFragment;
-        OMX_TICKS               iFrameTimestamp;
-        OMX_BOOL                iRepositionFlag;
-        OMX_U32                 iSamplesPerFrame;
-        OMX_BOOL                iSilenceInsertionInProgress;
-        OMX_U32                 iSilenceFramesNeeded;
-        OMX_BOOL                iIsFirstOutputFrame;
-        OMX_S32                 iInputBufferRemainingBytes;
-        OMX_BOOL                iResizePending;
-        OMX_U8*                 ipTempOutBufferForPortReconfig;
-        OMX_U32                 iSizeOutBufferForPortReconfig;
-        OMX_BOOL                iSendOutBufferAfterPortReconfigFlag;
-        OMX_TICKS               iTimestampOutBufferForPortReconfig;
-        OMX_TICKS               iOutputMicroSecPerFrame;
+        OMX_BOOL				iEosProcessing;
+        OMX_BOOL				iFirstFragment;
+        OMX_TICKS				iFrameTimestamp;
+        OMX_BOOL				iRepositionFlag;
+        OMX_U32					iSamplesPerFrame;
+        OMX_BOOL				iSilenceInsertionInProgress;
+        OMX_U32					iSilenceFramesNeeded;
+        OMX_U32					iOutputMilliSecPerFrame;
+        OMX_BOOL				iIsFirstOutputFrame;
+        OMX_S32					iInputBufferRemainingBytes;
+        OMX_BOOL				iResizePending;
+        OMX_U8*					ipTempOutBufferForPortReconfig;
+        OMX_U32					iSizeOutBufferForPortReconfig;
+        OMX_BOOL				iSendOutBufferAfterPortReconfigFlag;
+        OMX_TICKS				iTimestampOutBufferForPortReconfig;
 
 
-        OMX_BOOL                iIsAudioComponent;
+        OMX_BOOL				iIsAudioComponent;
 
 
 };
 
 
-class OSCL_IMPORT_REF OmxComponentAudio : public OmxComponentBase
+class OmxComponentAudio : public OmxComponentBase
 {
     public:
-        OSCL_IMPORT_REF OmxComponentAudio();
+        OmxComponentAudio();
         virtual ~OmxComponentAudio() {}
 
-        OSCL_IMPORT_REF OMX_ERRORTYPE GetParameter(
+        OMX_ERRORTYPE GetParameter(
             OMX_IN  OMX_HANDLETYPE hComponent,
             OMX_IN  OMX_INDEXTYPE nParamIndex,
             OMX_INOUT OMX_PTR ComponentParameterStructure);
 
-        OSCL_IMPORT_REF OMX_ERRORTYPE SetParameter(
+        OMX_ERRORTYPE SetParameter(
             OMX_IN  OMX_HANDLETYPE hComponent,
             OMX_IN  OMX_INDEXTYPE nParamIndex,
             OMX_IN  OMX_PTR ComponentParameterStructure);
@@ -548,22 +552,27 @@ class OSCL_IMPORT_REF OmxComponentAudio : public OmxComponentBase
         {
             OSCL_UNUSED_ARG(aAacPlusFlag);
         }
+
+	 virtual void UpdateAACStreamFormat(OMX_AUDIO_AACSTREAMFORMATTYPE aAACStreamFormat)
+        {
+            OSCL_UNUSED_ARG(aAACStreamFormat);
+        }
 };
 
 
 
-class OSCL_IMPORT_REF OmxComponentVideo : public OmxComponentBase
+class OmxComponentVideo : public OmxComponentBase
 {
     public:
-        OSCL_IMPORT_REF OmxComponentVideo();
+        OmxComponentVideo();
         virtual ~OmxComponentVideo() {}
 
-        OSCL_IMPORT_REF OMX_ERRORTYPE GetParameter(
+        OMX_ERRORTYPE GetParameter(
             OMX_IN  OMX_HANDLETYPE hComponent,
             OMX_IN  OMX_INDEXTYPE nParamIndex,
             OMX_INOUT OMX_PTR ComponentParameterStructure);
 
-        OSCL_IMPORT_REF OMX_ERRORTYPE SetParameter(
+        OMX_ERRORTYPE SetParameter(
             OMX_IN  OMX_HANDLETYPE hComponent,
             OMX_IN  OMX_INDEXTYPE nParamIndex,
             OMX_IN  OMX_PTR ComponentParameterStructure);
@@ -572,4 +581,4 @@ class OSCL_IMPORT_REF OmxComponentVideo : public OmxComponentBase
 };
 
 
-#endif      //#ifndef PV_OMXCOMPONENT_H_INCLUDED
+#endif		//#ifndef PV_OMXCOMPONENT_H_INCLUDED

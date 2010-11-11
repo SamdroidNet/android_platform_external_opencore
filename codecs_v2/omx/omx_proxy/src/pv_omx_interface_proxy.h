@@ -61,6 +61,31 @@ class Oscl_DefAlloc;
 //list element for the proxy message queues.
 */
 
+//Memory allocator class (to replace OsclMemAllocator
+class oscl_allocator: public Oscl_DefAlloc
+{
+    public:
+        OsclAny* allocate(const uint32 size)
+        {
+            OsclAny* tmp = iDefAlloc.allocate(size);
+
+
+            return tmp;
+        }
+
+        OsclAny deallocate(OsclAny* p)
+        {
+
+            iDefAlloc.deallocate(p);
+        }
+        virtual ~oscl_allocator() {};
+
+    private:
+        _OsclBasicAllocator iDefAlloc;
+
+};
+
+
 class CPVProxyMsg_OMX
 {
     public:
@@ -205,8 +230,8 @@ class CPVInterfaceProxy_OMX: public PVMainProxy_OMX
         void CleanupNotifications(CPVProxyInterface_OMX *aExt, bool aAll, TPVProxyMsgId aMsgId = 0);
         void CleanupCommands(CPVProxyInterface_OMX *aExt, bool aAll, TPVProxyMsgId aMsgId = 0);
 
-        /* iDefAlloc is static because we need it to still be valid after ~CPVInterfaceProxy_OMX is called */
-        static _OsclBasicAllocator iDefAlloc;
+        //OsclMemAllocator iDefAlloc;
+        oscl_allocator iDefAlloc;
         Oscl_DefAlloc *iAlloc;
 
         PVProxiedEngine_OMX &iPVApp;

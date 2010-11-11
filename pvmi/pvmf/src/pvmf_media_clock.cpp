@@ -46,7 +46,6 @@ OSCL_EXPORT_REF PVMFMediaClock::PVMFMediaClock() : OsclTimerObject(OsclActiveObj
     iLastTimebaseRate = REALTIME_PLAYBACK_RATE;
 
     iIsTimebaseCountBased = false;
-    iHighestLatency = 0;
 }
 
 OSCL_EXPORT_REF PVMFMediaClock::~PVMFMediaClock()
@@ -60,7 +59,7 @@ OSCL_EXPORT_REF PVMFMediaClock::~PVMFMediaClock()
 
 void PVMFMediaClock::CleanCallbackInfImplObjects()
 {
-    for (uint32 ii = 0; ii < iMediaClockSetCallbackObjects.size(); ii++)
+    for (uint32 ii = 0;ii < iMediaClockSetCallbackObjects.size();ii++)
     {
         if (iMediaClockSetCallbackObjects[ii]->iNotificationInterfaceDestroyedCallback)
         {
@@ -69,8 +68,6 @@ void PVMFMediaClock::CleanCallbackInfImplObjects()
         OSCL_DELETE(iMediaClockSetCallbackObjects[ii]);
         iMediaClockSetCallbackObjects.erase(&iMediaClockSetCallbackObjects[ii]);
     }
-
-    iHighestLatency = 0;
 }
 
 OSCL_EXPORT_REF PVMFStatus
@@ -91,8 +88,8 @@ PVMFMediaClock::ConstructMediaClockNotificationsInterface(PVMFMediaClockNotifica
 
     if (aIface)
     {
-        UpdateHighestLatency(aLatency);
         iMediaClockSetCallbackObjects.push_back(ifaceImpl);
+        AdjustLatenciesOfSinks();
         return PVMFSuccess;
     }
     else
@@ -112,7 +109,7 @@ OSCL_EXPORT_REF void PVMFMediaClock::DestroyMediaClockNotificationsInterface(PVM
     if (!iTimersPriQueue.empty())
     {
         Oscl_Vector<PVMFMediaClockTimerQueueElement, OsclMemAllocator> qVector = iTimersPriQueue.vec();
-        for (uint32 ii = 0; ii < qVector.size(); ii++)
+        for (uint32 ii = 0;ii < qVector.size();ii++)
         {
             if (qVector[ii].pInterfaceObject == aInf)
             {
@@ -126,7 +123,7 @@ OSCL_EXPORT_REF void PVMFMediaClock::DestroyMediaClockNotificationsInterface(PVM
         if (!iTimersPriQueueNPT.empty())
         {
             Oscl_Vector<PVMFMediaClockTimerQueueElement, OsclMemAllocator> qVector = iTimersPriQueueNPT.vec();
-            for (uint32 ii = 0; ii < qVector.size(); ii++)
+            for (uint32 ii = 0;ii < qVector.size();ii++)
             {
                 if (qVector[ii].pInterfaceObject == aInf)
                 {
@@ -140,7 +137,7 @@ OSCL_EXPORT_REF void PVMFMediaClock::DestroyMediaClockNotificationsInterface(PVM
         if (!iTimersPriQueueNPTBackwards.empty())
         {
             Oscl_Vector<PVMFMediaClockTimerQueueElement, OsclMemAllocator> qVector = iTimersPriQueueNPTBackwards.vec();
-            for (uint32 ii = 0; ii < qVector.size(); ii++)
+            for (uint32 ii = 0;ii < qVector.size();ii++)
             {
                 if (qVector[ii].pInterfaceObject == aInf)
                 {
@@ -157,7 +154,7 @@ OSCL_EXPORT_REF void PVMFMediaClock::DestroyMediaClockNotificationsInterface(PVM
     PVMFMediaClockNotificationsInterfaceImpl* ifaceImpl = NULL;
 
     ifaceImpl = OSCL_STATIC_CAST(PVMFMediaClockNotificationsInterfaceImpl*, aInf);
-    for (uint32 ii = 0; ii < iMediaClockSetCallbackObjects.size(); ii++)
+    for (uint32 ii = 0;ii < iMediaClockSetCallbackObjects.size();ii++)
     {
         if (iMediaClockSetCallbackObjects[ii] == ifaceImpl)
         {
@@ -169,8 +166,6 @@ OSCL_EXPORT_REF void PVMFMediaClock::DestroyMediaClockNotificationsInterface(PVM
             iMediaClockSetCallbackObjects.erase(&iMediaClockSetCallbackObjects[ii]);
         }
     }
-
-    iHighestLatency = 0;
 }
 
 OSCL_EXPORT_REF bool PVMFMediaClock::SetClockTimebase(PVMFTimebase& aTimebase)
@@ -212,15 +207,48 @@ OSCL_EXPORT_REF bool PVMFMediaClock::SetClockTimebase(PVMFTimebase& aTimebase)
 
     return true;
 }
-
-void PVMFMediaClock::UpdateHighestLatency(uint32 alatency)
+void PVMFMediaClock::AdjustLatenciesOfSinks()
 {
-    //Negative clock adjustment should be equal to the biggest latency
-    // among all the sinks.
-    if (iHighestLatency < alatency)
+    uint32 size = iMediaClockSetCallbackObjects.size();
+    uint32 ii = 0;
+
+    if (!size)
+        return;
+
+    //find the minimum and maximum latencies
+    uint32 minLatency = iMediaClockSetCallbackObjects[0]->iLatency;
+    uint32 maxLatency = iMediaClockSetCallbackObjects[0]->iLatency;
+    for (ii = 0;ii < size - 1;ii++)
     {
-        iHighestLatency = alatency;
+        if (iMediaClockSetCallbackObjects[ii+1]->iLatency > iMediaClockSetCallbackObjects[ii]->iLatency)
+        {
+            minLatency = iMediaClockSetCallbackObjects[ii]->iLatency;
+        }
+        else
+        {
+            minLatency = iMediaClockSetCallbackObjects[ii+1]->iLatency;
+        }
+
+        if (iMediaClockSetCallbackObjects[ii+1]->iLatency > iMediaClockSetCallbackObjects[ii]->iLatency)
+        {
+            maxLatency = iMediaClockSetCallbackObjects[ii+1]->iLatency;
+        }
+        else
+        {
+            maxLatency = iMediaClockSetCallbackObjects[ii]->iLatency;
+        }
     }
+
+    //set adjusted-latencies and latency-delays
+    for (ii = 0;ii < size;ii++)
+    {
+        iMediaClockSetCallbackObjects[ii]->iAdjustedLatency =
+            iMediaClockSetCallbackObjects[ii]->iLatency - minLatency;
+
+        iMediaClockSetCallbackObjects[ii]->iLatencyDelayForClockStartNotification =
+            maxLatency - iMediaClockSetCallbackObjects[ii]->iLatency;
+    }
+
 }
 
 OSCL_EXPORT_REF bool PVMFMediaClock::Start()
@@ -240,33 +268,6 @@ OSCL_EXPORT_REF bool PVMFMediaClock::Start()
     // variable and update the iLatest... values.
     if (iState == STOPPED)
     {
-        // Push back clock by highest latency value so that all modules
-        // with latencies can see a zero
-        if (iHighestLatency != 0)
-        {
-            uint32 currentTime = 0;
-            uint32 currentTimebaseTime = 0;
-            uint32 adjustedTime = 0;
-            bool gOverflowFlag = 0;
-
-            //This is the default value of clock units
-            PVMFMediaClock_TimeUnits timeUnits = PVMF_MEDIA_CLOCK_MSEC;
-
-            if (iClockUnit == PVMF_MEDIA_CLOCK_CLOCKUNIT_USEC)
-            {
-                timeUnits =  PVMF_MEDIA_CLOCK_USEC;
-            }
-
-            GetCurrentTime32(currentTime, gOverflowFlag, timeUnits, currentTimebaseTime);
-            adjustedTime = currentTime - iHighestLatency;
-
-            PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_INFO,
-                            (0, "PVMFMediaClock::Start - Pushing back Clock to %d",
-                             adjustedTime));
-
-            SetStartTime32(adjustedTime, timeUnits, gOverflowFlag);
-        }
-
         // Retrieve the current time value from the clock timebase
         if (iClockTimebase != NULL)
         {
@@ -374,18 +375,12 @@ OSCL_EXPORT_REF bool PVMFMediaClock::SetStartTime32(uint32& aTime, PVMFMediaCloc
 
     aOverFlow = aOverFlow | overflowFlag1;
 
-    PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_INFO, (0,
-                    "PVMFMediaClock::SetStartTime32 - Clock Start time set to %d", iStartClockTime));
     //start scheduling afresh
     AdjustScheduling();
     return true;
 }
 
-OSCL_EXPORT_REF PVMFMediaClockAdjustTimeStatus PVMFMediaClock::AdjustClockTime32(uint32& aClockTime,
-        uint32& aTimebaseTime,
-        uint32& aAdjustedTime,
-        PVMFMediaClock_TimeUnits aUnits,
-        bool& aOverFlow)
+OSCL_EXPORT_REF PVMFMediaClockAdjustTimeStatus PVMFMediaClock::AdjustClockTime32(uint32& aClockTime, uint32& aTimebaseTime, uint32& aAdjustedTime, PVMFMediaClock_TimeUnits aUnits, bool& aOverFlow)
 {
     aOverFlow = false;
 
@@ -448,6 +443,7 @@ OSCL_EXPORT_REF PVMFMediaClockAdjustTimeStatus PVMFMediaClock::AdjustClockTime32
 
     // Make the adjustment
     return AdjustClock(clocktime, aTimebaseTime, adjusttime, currenttime, tbval);
+
 }
 
 OSCL_EXPORT_REF bool PVMFMediaClock::Reset()
@@ -590,7 +586,7 @@ OSCL_EXPORT_REF void PVMFMediaClock::SetClockObserver(PVMFMediaClockObserver& aO
 
 OSCL_EXPORT_REF void PVMFMediaClock::RemoveClockObserver(PVMFMediaClockObserver& aObserver)
 {
-    for (uint32 i = 0; i < iClockObservers.size(); i++)
+    for (uint32 i = 0;i < iClockObservers.size();i++)
     {
         if (iClockObservers[i] == &aObserver)
             iClockObservers.erase(&iClockObservers[i]);
@@ -603,20 +599,30 @@ void PVMFMediaClock::SetClockState(PVMFMediaClockState aState)
     iState = aState;
 
     // Notify observers
+
+    //If this is clock start, we need to send start notification after adjusting latency
     if (RUNNING == iState)
     {
-        //Send notifications
-        for (uint32 ii = 0; ii < iMediaClockSetCallbackObjects.size(); ii++)
+        for (uint32 ii = 0;ii < iMediaClockSetCallbackObjects.size();ii++)
         {
             if (iMediaClockSetCallbackObjects[ii]->iClockStateObserver != NULL)
             {
-                (iMediaClockSetCallbackObjects[ii]->iClockStateObserver)->ClockStateUpdated();
+                if (0 == iMediaClockSetCallbackObjects[ii]->iLatencyDelayForClockStartNotification)
+                {
+                    (iMediaClockSetCallbackObjects[ii]->iClockStateObserver)->ClockStateUpdated();
+                }
+                else
+                {
+                    //Queue notification
+                    QueueClockStartNotificationEvent(iMediaClockSetCallbackObjects[ii]->iLatencyDelayForClockStartNotification,
+                                                     iMediaClockSetCallbackObjects[ii]->iClockStateObserver);
+                }
             }
         }
     }
     else
     {
-        for (uint32 ii = 0; ii < iMediaClockSetCallbackObjects.size(); ii++)
+        for (uint32 ii = 0;ii < iMediaClockSetCallbackObjects.size();ii++)
         {
             if (iMediaClockSetCallbackObjects[ii]->iClockStateObserver != NULL)
             {
@@ -967,7 +973,7 @@ PVMFMediaClockAdjustTimeStatus PVMFMediaClock::AdjustClock(uint32& aObsTime, uin
     }
 
     // Make the adjustment
-    if (PVTimeComparisonUtils::IsEarlier(aObsTime, aAdjTime, temp) && (temp != 0))
+    if (aAdjTime > aObsTime)
     {
         // Adjusted time is ahead so move ahead
 
@@ -978,7 +984,7 @@ PVMFMediaClockAdjustTimeStatus PVMFMediaClock::AdjustClock(uint32& aObsTime, uin
         // Set the latest adjustment time as the current timebase time
         iAdjustmentTimebaseTime = aCurrentTimebase;
     }
-    else if (PVTimeComparisonUtils::IsEarlier(aAdjTime , aObsTime, temp) && (temp != 0))
+    else if (aAdjTime < aObsTime)
     {
         // Adjusted time is before the current time
 
@@ -1046,21 +1052,21 @@ void PVMFMediaClock::ClockCountUpdated()
     Run();
 
     //notify all observers that the clock count was updated.
-    for (uint32 i = 0; i < iClockObservers.size(); i++)
+    for (uint32 i = 0;i < iClockObservers.size();i++)
         iClockObservers[i]->ClockCountUpdated();
 }
 
 void PVMFMediaClock::ClockAdjusted()
 {
     //notify all observers that the clock was adjusted
-    for (uint32 i = 0; i < iClockObservers.size(); i++)
+    for (uint32 i = 0;i < iClockObservers.size();i++)
         iClockObservers[i]->ClockAdjusted();
 }
 
 void PVMFMediaClock::ClockTimebaseUpdated()
 {
     //notify all observers that the clock timebase was updated.
-    for (uint32 i = 0; i < iClockObservers.size(); i++)
+    for (uint32 i = 0;i < iClockObservers.size();i++)
     {
         PVMFMediaClockObserver* obs = iClockObservers[i];
         obs->ClockTimebaseUpdated();
@@ -1112,7 +1118,6 @@ PVMFStatus PVMFMediaClock::SetCallbackCommon(uint32 aAbsoluteTime,
         iMutex->Lock();
 
     aCallBackID = iTimerIDCount++;
-
     //insert the timer in the queue
     //
     PVMFMediaClockTimerQueueElement timerQueueElement;
@@ -1680,7 +1685,7 @@ PVMFStatus PVMFMediaClock::CancelNPTClockTransitionEvent(uint32 aClockTransition
         return status;
     }
 
-    for (uint32 ii = 0; ii < iNPTTransitionEventQueue.size(); ii++)
+    for (uint32 ii = 0;ii < iNPTTransitionEventQueue.size();ii++)
     {
         if (iNPTTransitionEventQueue[ii].eventID == aClockTransitionEventID)
             iNPTTransitionEventQueue.erase(&iNPTTransitionEventQueue[ii]);
@@ -1703,7 +1708,7 @@ void PVMFMediaClock::ProcessCallBack(uint32 aCallBackID, PVTimeComparisonUtils::
     //if event is NPT transition
     if (aContextData == (void*)&iNPTTransitionEventQueue)
     {
-        for (uint32 ii = 0; ii < iNPTTransitionEventQueue.size(); ii++)
+        for (uint32 ii = 0;ii < iNPTTransitionEventQueue.size();ii++)
         {
             if (iNPTTransitionEventQueue[ii].eventID == aCallBackID)
             {
@@ -1717,7 +1722,7 @@ void PVMFMediaClock::ProcessCallBack(uint32 aCallBackID, PVTimeComparisonUtils::
     //if event is clock-start notification
     else if (aContextData == (void*)&iClockStartNotificationEventQueue)
     {
-        for (uint32 ii = 0; ii < iClockStartNotificationEventQueue.size(); ii++)
+        for (uint32 ii = 0;ii < iClockStartNotificationEventQueue.size();ii++)
         {
             if (iClockStartNotificationEventQueue[ii].eventID == aCallBackID)
             {
@@ -1929,7 +1934,9 @@ OSCL_EXPORT_REF PVMFMediaClockNotificationsInterfaceImpl::PVMFMediaClockNotifica
     iContainer = aClock;
     iLatency = aLatency;
     iNotificationInterfaceDestroyedCallback = &aNotificationInterfaceDestroyedCallback;
+    iAdjustedLatency = 0;
     iClockStateObserver = NULL;
+    iLatencyDelayForClockStartNotification = 0;
 }
 
 OSCL_EXPORT_REF PVMFMediaClockNotificationsInterfaceImpl::~PVMFMediaClockNotificationsInterfaceImpl()
@@ -1947,7 +1954,7 @@ OSCL_EXPORT_REF PVMFStatus PVMFMediaClockNotificationsInterfaceImpl::SetCallback
 {
     if (iContainer)
     {
-        return iContainer->SetCallbackAbsoluteTime(aAbsoluteTime - iLatency, aWindow, aCallback, aThreadLock, aContextData,
+        return iContainer->SetCallbackAbsoluteTime(aAbsoluteTime - iAdjustedLatency, aWindow, aCallback, aThreadLock, aContextData,
                 aCallBackID, this);
     }
     else
@@ -1966,7 +1973,7 @@ OSCL_EXPORT_REF PVMFStatus PVMFMediaClockNotificationsInterfaceImpl::SetCallback
 {
     if (iContainer)
     {
-        return iContainer->SetCallbackDeltaTime(aDeltaTime, aWindow, aCallback, aThreadLock, aContextData,
+        return iContainer->SetCallbackDeltaTime(aDeltaTime - iAdjustedLatency, aWindow, aCallback, aThreadLock, aContextData,
                                                 aCallBackID, this);
     }
     else
@@ -1998,7 +2005,7 @@ OSCL_EXPORT_REF PVMFStatus PVMFMediaClockNotificationsInterfaceImpl::SetNPTCallb
 {
     if (iContainer)
     {
-        return iContainer->SetNPTCallbackAbsoluteTime(aAbsoluteTime - iLatency, aWindow, aCallback, aThreadLock, aContextData,
+        return iContainer->SetNPTCallbackAbsoluteTime(aAbsoluteTime - iAdjustedLatency, aWindow, aCallback, aThreadLock, aContextData,
                 aCallBackID, this);
     }
     else
@@ -2017,7 +2024,7 @@ OSCL_EXPORT_REF PVMFStatus PVMFMediaClockNotificationsInterfaceImpl::SetNPTCallb
 {
     if (iContainer)
     {
-        return iContainer->SetNPTCallbackDeltaTime(aDeltaTime , aWindow, aCallback, aThreadLock, aContextData,
+        return iContainer->SetNPTCallbackDeltaTime(aDeltaTime - iAdjustedLatency, aWindow, aCallback, aThreadLock, aContextData,
                 aCallBackID, this);
     }
     else
@@ -2064,85 +2071,6 @@ OSCL_EXPORT_REF void PVMFMediaClockNotificationsInterfaceImpl::RemoveClockStateO
 {
     OSCL_UNUSED_ARG(aObserver);
     iClockStateObserver = NULL;
-}
-
-OSCL_EXPORT_REF PVMFMediaClockCheckTimeWindowStatus PVMFMediaClockNotificationsInterfaceImpl::CheckTimeWindow(
-    PVMFMediaClockCheckTimeWindowArgs &aArgsStruct)
-{
-    uint32 currTime;
-    bool overflowFlag = false;
-    PVMFMediaClockCheckTimeWindowStatus mediaStatus = PVMF_MEDIA_CLOCK_MEDIA_ERROR;
-
-    //Compare timestamp with latency adjusted current time
-    GetLatencyAdjustedCurrentTime32(currTime, overflowFlag, aArgsStruct.aUnits);
-
-    PVTimeComparisonUtils::MediaTimeStatus status;
-    status = PVTimeComparisonUtils::CheckTimeWindow(aArgsStruct.aTimeStampToBeChecked,
-             currTime, aArgsStruct.aWindowEarlyMargin,
-             aArgsStruct.aWindowLateMargin, aArgsStruct.aDelta);
-
-    switch (status)
-    {
-        case PVTimeComparisonUtils::MEDIA_EARLY_OUTSIDE_WINDOW:
-        {
-            PVMFStatus cbStatus = SetCallbackDeltaTime(aArgsStruct.aDelta, aArgsStruct.aCallbackToleranceWindow,
-                                  aArgsStruct.aCallbackObserver, aArgsStruct.aThreadLock, aArgsStruct.aContextData,
-                                  aArgsStruct.aCallBackID);
-
-            if (PVMFSuccess == cbStatus)
-            {
-                mediaStatus = PVMF_MEDIA_CLOCK_MEDIA_EARLY_OUTSIDE_WINDOW_CALLBACK_SET;
-            }
-            else
-            {
-                mediaStatus = PVMF_MEDIA_CLOCK_MEDIA_ERROR;
-            }
-        }
-        break;
-
-        case PVTimeComparisonUtils::MEDIA_EARLY_WITHIN_WINDOW:
-        {
-            mediaStatus = PVMF_MEDIA_CLOCK_MEDIA_EARLY_WITHIN_WINDOW;
-        }
-        break;
-
-        case PVTimeComparisonUtils::MEDIA_ONTIME_WITHIN_WINDOW:
-        {
-            mediaStatus = PVMF_MEDIA_CLOCK_MEDIA_ONTIME_WITHIN_WINDOW;
-        }
-        break;
-
-        case PVTimeComparisonUtils::MEDIA_LATE_WITHIN_WINDOW:
-        {
-            mediaStatus = PVMF_MEDIA_CLOCK_MEDIA_LATE_WITHIN_WINDOW;
-        }
-        break;
-
-        case PVTimeComparisonUtils::MEDIA_LATE_OUTSIDE_WINDOW:
-        {
-            mediaStatus = PVMF_MEDIA_CLOCK_MEDIA_LATE_OUTSIDE_WINDOW;
-        }
-        break;
-
-        default:
-        {
-            mediaStatus = PVMF_MEDIA_CLOCK_MEDIA_ERROR;
-        }
-    }
-
-    return mediaStatus;
-}
-
-OSCL_EXPORT_REF void PVMFMediaClockNotificationsInterfaceImpl::GetLatencyAdjustedCurrentTime32(
-    uint32& aClockTime,
-    bool& aOverflow,
-    PVMFMediaClock_TimeUnits aUnits)
-{
-    if (iContainer)
-    {
-        iContainer->GetCurrentTime32(aClockTime, aOverflow, aUnits);
-        aClockTime += iLatency;
-    }
 }
 
 OSCL_EXPORT_REF void PVMFTimebase_Tickcount::GetCurrentTick32(uint32& aTimebaseTickCount, bool& aOverflow)

@@ -27,9 +27,15 @@
 #include "pvmf_fileoutput_config.h"
 #endif
 
+/* Mobile Media Lab. Start */
+#if USE_DMC_MP4_MUX
+#include "smp4fm_oc_clipcfg.h"
+#else
 #ifndef PVMP4FFCN_CLIPCONFIG_H_INCLUDED
 #include "pvmp4ffcn_clipconfig.h"
 #endif
+#endif
+/* Mobile Media Lab. End */
 
 #ifndef PV_MP4_H263_ENC_EXTENSION_H_INCLUDED
 #include "pvmp4h263encextension.h"
@@ -345,8 +351,15 @@ bool pvauthor_async_compressed_test_errorhandling::ConfigMp43gpComposer()
             }
     }
 
+	/* Mobile Media Lab. Start */
+#if USE_DMC_MP4_MUX
+	SMp4fmOcClipCfgIf * clipConfig;
+	clipConfig = OSCL_STATIC_CAST(SMp4fmOcClipCfgIf *, iComposerConfig);
+#else	
     PVMp4FFCNClipConfigInterface* clipConfig;
     clipConfig = OSCL_STATIC_CAST(PVMp4FFCNClipConfigInterface*, iComposerConfig);
+#endif
+	/* Mobile Media Lab. End */
     if (!clipConfig)
     {
         PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_ERR,
@@ -376,6 +389,17 @@ bool pvauthor_async_compressed_test_errorhandling::ConfigMp43gpComposer()
     clipConfig->SetAlbumInfo(iAlbumTitle, lang_code);
     clipConfig->SetRecordingYear(iRecordingYear);
 
+	/* Mobile Media Lab. Start */
+#if USE_DMC_MP4_MUX
+	if (iTestCaseNum == K3GPPDownloadModeTest)
+	{
+		clipConfig->SetAuthoringMode(SMP4FM_OC_3GPP_DOWNLOAD_MODE);
+	}
+	else if (iTestCaseNum == K3GPPProgressiveDownloadModeTest)
+	{
+		clipConfig->SetAuthoringMode(SMP4FM_OC_3GPP_PROGRESSIVE_DOWNLOAD_MODE);
+	}
+#else	
     if (iTestCaseNum == K3GPPDownloadModeTest)
     {
         clipConfig->SetAuthoringMode(PVMP4FFCN_3GPP_DOWNLOAD_MODE);
@@ -384,7 +408,8 @@ bool pvauthor_async_compressed_test_errorhandling::ConfigMp43gpComposer()
     {
         clipConfig->SetAuthoringMode(PVMP4FFCN_3GPP_PROGRESSIVE_DOWNLOAD_MODE);
     }
-
+#endif	
+	/* Mobile Media Lab. End */
 
     return true;
 }

@@ -35,9 +35,7 @@
 #endif
 
 
-
-// frame length is 20 milliseconds i.e. 20000 omx ticks/microseconds
-#define AMR_FRAME_LENGTH_IN_TIMESTAMP 20000
+#define AMR_FRAME_LENGTH_IN_TIMESTAMP 20
 #define MAX_AMR_FRAME_SIZE 32
 #define MAX_NUM_OUTPUT_FRAMES_PER_BUFFER 10
 
@@ -61,10 +59,6 @@ class OmxAmrEncoder
                                 OMX_TICKS aInTimeStamp,
                                 OMX_TICKS* aOutTimeStamp);
 
-
-
-
-
     private:
 
         //Codec and encoder settings
@@ -73,12 +67,12 @@ class OmxAmrEncoder
 
         //Encoding Settings parameters
 
-        int32*           ipSizeArrayForOutputFrames;
-        uint32           iNextStartTime;
-        uint32           iMaxNumOutputFramesPerBuffer;
-        uint32           iOneInputFrameLength;
-        uint32           iMaxInputSize;
-        PVMFFormatType   iOutputFormat;
+        int32*			 ipSizeArrayForOutputFrames;
+        uint32			 iNextStartTime;
+        uint32			 iMaxNumOutputFramesPerBuffer;
+        uint32			 iOneInputFrameLength;
+        uint32			 iMaxInputSize;
+        PVMFFormatType	 iOutputFormat;
 
         OMX_S32 iAmrInitFlag;
 
@@ -86,5 +80,5 @@ class OmxAmrEncoder
 
 
 
-#endif  //#ifndef AMR_ENC_H_INCLUDED
+#endif	//#ifndef AMR_ENC_H_INCLUDED
 

@@ -218,20 +218,16 @@ OSCL_EXPORT_REF int32 CPvMP3_Decoder::StartL(tPVMP3DecoderExternal * pExt,
 
     if (iAllocateOutputBuffer)
     {
-        iOutputBuf = OSCL_ARRAY_NEW(int16, (KMP3_MAX_OUTPUT_SIZE >> 1));
+        iOutputBuf = OSCL_ARRAY_NEW(int16, 2304);
 
         if (iOutputBuf == NULL)
         {
             return KCAI_CODEC_INIT_FAILURE;
         }
-
-        pExt->outputFrameSize = (KMP3_MAX_OUTPUT_SIZE >> 1);
     }
     else
     {
         iOutputBuf = NULL;
-        pExt->outputFrameSize = 0;
-
     }
     pExt->pOutputBuffer = iOutputBuf;
 
@@ -291,11 +287,6 @@ OSCL_EXPORT_REF int32 CPvMP3_Decoder::ExecuteL(tPVMP3DecoderExternal * pExt)
         case NO_ENOUGH_MAIN_DATA_ERROR:
 
             status = MP3DEC_INCOMPLETE_FRAME;
-            break;
-
-        case OUTPUT_BUFFER_TOO_SMALL:
-
-            status = MP3DEC_OUTPUT_BUFFER_TOO_SMALL;
             break;
 
         case UNSUPPORTED_LAYER:

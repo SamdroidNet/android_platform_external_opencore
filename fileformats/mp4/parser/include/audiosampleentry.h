@@ -99,6 +99,25 @@ class AudioSampleEntry : public SampleEntry
 
         virtual uint8 getObjectTypeIndication() const
         {
+			/* Mobile Media Lab. Start */        
+#if 1
+			uint8 obj_type;
+			if (_pes != NULL)
+			{
+				obj_type = _pes->getObjectTypeIndication();
+				if (obj_type == 0xD0)	/* 0xD0 : AMR */
+				{
+					/* change object type from AMR to Unknown */
+					obj_type = 0xFF;
+				}
+
+				return obj_type;
+			}
+			else
+			{
+				return 0xFF;
+			}
+#else
             if (_pes != NULL)
             {
                 return _pes->getObjectTypeIndication();
@@ -107,6 +126,8 @@ class AudioSampleEntry : public SampleEntry
             {
                 return 0xFF;
             }
+#endif
+			/* Mobile Media Lab. End */			
         }
 
         virtual DecoderSpecificInfo *getDecoderSpecificInfo() const

@@ -10,7 +10,7 @@ LOCAL_SRC_FILES := \
 
 LOCAL_MODULE := libpvmp3ff
 
-LOCAL_CFLAGS :=  $(PV_CFLAGS)
+LOCAL_CFLAGS :=   $(PV_CFLAGS)
 
 
 
@@ -21,6 +21,7 @@ LOCAL_SHARED_LIBRARIES :=
 LOCAL_C_INCLUDES := \
 	$(PV_TOP)/fileformats/mp3/parser/src \
  	$(PV_TOP)/fileformats/mp3/parser/include \
+ 	$(PV_TOP)/common/parser/include \
  	$(PV_INCLUDES)
 
 LOCAL_COPY_HEADERS_TO := $(PV_COPY_HEADERS_TO)

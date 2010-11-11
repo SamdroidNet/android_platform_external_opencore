@@ -68,6 +68,18 @@
 #if BUILD_MP3_FF_PARSER_NODE
 #include "pvmf_mp3ffparser_factory.h"
 #endif
+#if BUILD_AC3_FF_PARSER_NODE
+#include "pvmf_ac3ffparser_factory.h"
+#endif
+#if BUILD_G711_FF_PARSER_NODE
+#include "pvmf_g711ffparser_factory.h"
+#endif
+#if BUILD_EVRC_FF_PARSER_NODE
+#include "pvmf_evrcffparser_factory.h"
+#endif
+#if BUILD_G729_FF_PARSER_NODE
+#include "pvmf_g729ffparser_factory.h"
+#endif
 #if BUILD_WAV_FF_PARSER_NODE
 #include "pvmf_wavffparser_factory.h"
 #endif
@@ -105,6 +117,18 @@
 #endif
 #if BUILD_MP3_FF_REC
 #include "pvmp3ffrec_factory.h"
+#endif
+#if BUILD_AC3_FF_REC
+#include "pvac3ffrec_factory.h"
+#endif
+#if BUILD_G711_FF_REC
+#include "pvg711ffrec_factory.h"
+#endif
+#if BUILD_EVRC_FF_REC
+#include "pvevrcffrec_factory.h"
+#endif
+#if BUILD_G729_FF_REC
+#include "pvg729ffrec_factory.h"
 #endif
 #if BUILD_WAV_FF_REC
 #include "pvwavffrec_factory.h"
@@ -150,9 +174,7 @@ void PVPlayerRegistryPopulator::RegisterAllNodes(PVPlayerNodeRegistryInterface* 
     nodeinfo.iNodeUUID = KPVMFOMXVideoDecNodeUuid;
     nodeinfo.iOutputType.clear();
     nodeinfo.iOutputType.push_back(PVMF_MIME_YUV420);
-    // Only CreatePVMFOMXVideoDecNode has a different funtional pointer type
-    // we do a cast here so that iNodeCreateFunc can be used uniformly for other types of nodes
-    nodeinfo.iNodeCreateFunc = (PVMFNodeInterface*(*)(int32))PVMFOMXVideoDecNodeFactory::CreatePVMFOMXVideoDecNode;
+    nodeinfo.iNodeCreateFunc = PVMFOMXVideoDecNodeFactory::CreatePVMFOMXVideoDecNode;
     nodeinfo.iNodeReleaseFunc = PVMFOMXVideoDecNodeFactory::DeletePVMFOMXVideoDecNode;
     aRegistry->RegisterNode(nodeinfo);
 #endif
@@ -171,6 +193,10 @@ void PVPlayerRegistryPopulator::RegisterAllNodes(PVPlayerNodeRegistryInterface* 
     nodeinfo.iInputTypes.push_back(PVMF_MIME_LATM);
     nodeinfo.iInputTypes.push_back(PVMF_MIME_WMA);
     nodeinfo.iInputTypes.push_back(PVMF_MIME_MP3);
+    nodeinfo.iInputTypes.push_back(PVMF_MIME_AC3);
+    nodeinfo.iInputTypes.push_back(PVMF_MIME_G711);
+    nodeinfo.iInputTypes.push_back(PVMF_MIME_EVRC);
+    nodeinfo.iInputTypes.push_back(PVMF_MIME_G729);
     nodeinfo.iNodeUUID = KPVMFOMXAudioDecNodeUuid;
     nodeinfo.iOutputType.clear();
     nodeinfo.iOutputType.push_back(PVMF_MIME_PCM16);
@@ -290,6 +316,53 @@ void PVPlayerRegistryPopulator::RegisterAllNodes(PVPlayerNodeRegistryInterface* 
     nodeinfo.iNodeReleaseFunc = PVMFMP3DecNodeFactory::DeletePVMFMP3DecNode;
     aRegistry->RegisterNode(nodeinfo);
 #endif
+#if BUILD_AC3_DEC_NODE
+    //For PVMFAC3DecNode
+    nodeinfo.iInputTypes.clear();
+    nodeinfo.iInputTypes.push_back(PVMF_MIME_AC3);
+    nodeinfo.iNodeUUID = KPVMFAC3DecNodeUuid;
+    nodeinfo.iOutputType.clear();
+    nodeinfo.iOutputType.push_back(PVMF_MIME_PCM16);
+    nodeinfo.iNodeCreateFunc = PVMFAC3DecNodeFactory::CreatePVMFAC3DecNode;
+    nodeinfo.iNodeReleaseFunc = PVMFAC3DecNodeFactory::DeletePVMFAC3DecNode;
+    aRegistry->RegisterNode(nodeinfo);
+#endif
+
+#if BUILD_G711_DEC_NODE
+    //For PVMFG711DecNode
+    nodeinfo.iInputTypes.clear();
+    nodeinfo.iInputTypes.push_back(PVMF_MIME_G711);
+    nodeinfo.iNodeUUID = KPVMFG711DecNodeUuid;
+    nodeinfo.iOutputType.clear();
+    nodeinfo.iOutputType.push_back(PVMF_MIME_PCM16);
+    nodeinfo.iNodeCreateFunc = PVMFG711DecNodeFactory::CreatePVMFG711DecNode;
+    nodeinfo.iNodeReleaseFunc = PVMFG711DecNodeFactory::DeletePVMFG711DecNode;
+    aRegistry->RegisterNode(nodeinfo);
+#endif
+#if BUILD_EVRC_DEC_NODE
+    //For PVMFEVRCDecNode
+    nodeinfo.iInputTypes.clear();
+    nodeinfo.iInputTypes.push_back(PVMF_MIME_EVRC);
+    nodeinfo.iNodeUUID = KPVMFEVRCDecNodeUuid;
+    nodeinfo.iOutputType.clear();
+    nodeinfo.iOutputType.push_back(PVMF_MIME_PCM16);
+    nodeinfo.iNodeCreateFunc = PVMFEVRCDecNodeFactory::CreatePVMFEVRCDecNode;
+    nodeinfo.iNodeReleaseFunc = PVMFEVRCDecNodeFactory::DeletePVMFEVRCDecNode;
+    aRegistry->RegisterNode(nodeinfo);
+#endif
+
+#if BUILD_G729_DEC_NODE
+    //For PVMFG729DecNode
+    nodeinfo.iInputTypes.clear();
+    nodeinfo.iInputTypes.push_back(PVMF_MIME_G729);
+    nodeinfo.iNodeUUID = KPVMFG729DecNodeUuid;
+    nodeinfo.iOutputType.clear();
+    nodeinfo.iOutputType.push_back(PVMF_MIME_PCM16);
+    nodeinfo.iNodeCreateFunc = PVMFG729DecNodeFactory::CreatePVMFG729DecNode;
+    nodeinfo.iNodeReleaseFunc = PVMFG729DecNodeFactory::DeletePVMFG729DecNode;
+    aRegistry->RegisterNode(nodeinfo);
+#endif
+
 #if BUILD_RA8_DEC_NODE
     //For PVMFRA8DecNode
     nodeinfo.iInputTypes.clear();
@@ -343,6 +416,50 @@ void PVPlayerRegistryPopulator::RegisterAllNodes(PVPlayerNodeRegistryInterface* 
     nodeinfo.iOutputType.push_back(PVMF_MIME_FORMAT_UNKNOWN);
     nodeinfo.iNodeCreateFunc = PVMFMP3FFParserNodeFactory::CreatePVMFMP3FFParserNode;
     nodeinfo.iNodeReleaseFunc = PVMFMP3FFParserNodeFactory::DeletePVMFMP3FFParserNode;
+    aRegistry->RegisterNode(nodeinfo);
+#endif
+#if BUILD_AC3_FF_PARSER_NODE
+    //For PVMFAC3FFParserNode
+    nodeinfo.iInputTypes.clear();
+    nodeinfo.iInputTypes.push_back(PVMF_MIME_AC3FF);
+    nodeinfo.iNodeUUID = KPVMFAC3FFParserNodeUuid;
+    nodeinfo.iOutputType.clear();
+    nodeinfo.iOutputType.push_back(PVMF_MIME_FORMAT_UNKNOWN);
+    nodeinfo.iNodeCreateFunc = PVMFAC3FFParserNodeFactory::CreatePVMFAC3FFParserNode;
+    nodeinfo.iNodeReleaseFunc = PVMFAC3FFParserNodeFactory::DeletePVMFAC3FFParserNode;
+    aRegistry->RegisterNode(nodeinfo);
+#endif
+#if BUILD_G711_FF_PARSER_NODE
+    //For PVMFG711FFParserNode
+    nodeinfo.iInputTypes.clear();
+    nodeinfo.iInputTypes.push_back(PVMF_MIME_G711FF);
+    nodeinfo.iNodeUUID = KPVMFG711FFParserNodeUuid;
+    nodeinfo.iOutputType.clear();
+    nodeinfo.iOutputType.push_back(PVMF_MIME_FORMAT_UNKNOWN);
+    nodeinfo.iNodeCreateFunc = PVMFG711FFParserNodeFactory::CreatePVMFG711FFParserNode;
+    nodeinfo.iNodeReleaseFunc = PVMFG711FFParserNodeFactory::DeletePVMFG711FFParserNode;
+    aRegistry->RegisterNode(nodeinfo);
+#endif
+#if BUILD_EVRC_FF_PARSER_NODE
+    //For PVMFEVRCFFParserNode
+    nodeinfo.iInputTypes.clear();
+    nodeinfo.iInputTypes.push_back(PVMF_MIME_EVRCFF);
+    nodeinfo.iNodeUUID = KPVMFEVRCFFParserNodeUuid;
+    nodeinfo.iOutputType.clear();
+    nodeinfo.iOutputType.push_back(PVMF_MIME_FORMAT_UNKNOWN);
+    nodeinfo.iNodeCreateFunc = PVMFEVRCFFParserNodeFactory::CreatePVMFEVRCFFParserNode;
+    nodeinfo.iNodeReleaseFunc = PVMFEVRCFFParserNodeFactory::DeletePVMFEVRCFFParserNode;
+    aRegistry->RegisterNode(nodeinfo);
+#endif
+#if BUILD_G729_FF_PARSER_NODE
+    //For PVMFG729FFParserNode
+    nodeinfo.iInputTypes.clear();
+    nodeinfo.iInputTypes.push_back(PVMF_MIME_G729FF);
+    nodeinfo.iNodeUUID = KPVMFG729FFParserNodeUuid;
+    nodeinfo.iOutputType.clear();
+    nodeinfo.iOutputType.push_back(PVMF_MIME_FORMAT_UNKNOWN);
+    nodeinfo.iNodeCreateFunc = PVMFG729FFParserNodeFactory::CreatePVMFG729FFParserNode;
+    nodeinfo.iNodeReleaseFunc = PVMFG729FFParserNodeFactory::DeletePVMFG729FFParserNode;
     aRegistry->RegisterNode(nodeinfo);
 #endif
 #if BUILD_WAV_FF_PARSER_NODE
@@ -525,6 +642,66 @@ void PVPlayerRegistryPopulator::RegisterAllRecognizers(PVPlayerRecognizerRegistr
         return;
     }
 #endif
+#if BUILD_AC3_FF_REC
+    tmpfac = OSCL_STATIC_CAST(PVMFRecognizerPluginFactory*, OSCL_NEW(PVAC3FFRecognizerFactory, ()));
+    if (PVMFRecognizerRegistry::RegisterPlugin(*tmpfac) == PVMFSuccess)
+    {
+        aRegistry->RegisterRecognizer(tmpfac);
+        nodeList->push_back(tmpfac);
+    }
+    else
+    {
+        OSCL_DELETE(((PVAC3FFRecognizerFactory*)tmpfac));
+        tmpfac = NULL;
+        return;
+    }
+#endif
+
+#if BUILD_G711_FF_REC
+    tmpfac = OSCL_STATIC_CAST(PVMFRecognizerPluginFactory*, OSCL_NEW(PVG711FFRecognizerFactory, ()));
+    if (PVMFRecognizerRegistry::RegisterPlugin(*tmpfac) == PVMFSuccess)
+    {
+        aRegistry->RegisterRecognizer(tmpfac);
+        nodeList->push_back(tmpfac);
+    }
+    else
+    {
+        OSCL_DELETE(((PVG711FFRecognizerFactory*)tmpfac));
+        tmpfac = NULL;
+        return;
+    }
+#endif
+
+#if BUILD_EVRC_FF_REC
+    tmpfac = OSCL_STATIC_CAST(PVMFRecognizerPluginFactory*, OSCL_NEW(PVEVRCFFRecognizerFactory, ()));
+    if (PVMFRecognizerRegistry::RegisterPlugin(*tmpfac) == PVMFSuccess)
+    {
+        aRegistry->RegisterRecognizer(tmpfac);
+        nodeList->push_back(tmpfac);
+    }
+    else
+    {
+        OSCL_DELETE(((PVEVRCFFRecognizerFactory*)tmpfac));
+        tmpfac = NULL;
+        return;
+    }
+#endif
+
+#if BUILD_G729_FF_REC
+    tmpfac = OSCL_STATIC_CAST(PVMFRecognizerPluginFactory*, OSCL_NEW(PVG729FFRecognizerFactory, ()));
+    if (PVMFRecognizerRegistry::RegisterPlugin(*tmpfac) == PVMFSuccess)
+    {
+        aRegistry->RegisterRecognizer(tmpfac);
+        nodeList->push_back(tmpfac);
+    }
+    else
+    {
+        OSCL_DELETE(((PVG729FFRecognizerFactory*)tmpfac));
+        tmpfac = NULL;
+        return;
+    }
+#endif
+
 #if BUILD_WAV_FF_REC
     tmpfac = OSCL_STATIC_CAST(PVMFRecognizerPluginFactory*, OSCL_NEW(PVWAVFFRecognizerFactory, ()));
     if (PVMFRecognizerRegistry::RegisterPlugin(*tmpfac) == PVMFSuccess)

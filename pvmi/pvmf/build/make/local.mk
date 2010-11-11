@@ -25,8 +25,7 @@ SRCS := pvmf_format_type.cpp \
 	pvmf_mempool.cpp \
 	pvmf_media_clock.cpp \
 	pvmf_duration_infomessage.cpp \
-	pvmf_metadata_infomessage.cpp \
-	pvmf_return_codes.cpp
+	pvmf_metadata_infomessage.cpp
 
 HDRS :=  pv_interface.h \
          pvmf_node_interface.h \
@@ -58,6 +57,7 @@ HDRS :=  pv_interface.h \
          pvmf_meta_data_types.h \
          pvmf_timestamp.h \
          pv_uuid.h \
+         pvmf_node_cmd_msg.h \
          pvmf_video.h \
          pvmf_basic_errorinfomessage.h \
          pvmf_errorinfomessage_extension.h \
@@ -73,6 +73,7 @@ HDRS :=  pv_interface.h \
          pvmf_media_clock.h \
          pvmf_duration_infomessage.h \
          pvmf_durationinfomessage_extension.h \
+         pvmf_counted_ptr.h \
          pvmf_metadata_infomessage.h \
          pvmf_metadatainfomessage_extension.h \
          pvmi_fileio_kvp.h  \

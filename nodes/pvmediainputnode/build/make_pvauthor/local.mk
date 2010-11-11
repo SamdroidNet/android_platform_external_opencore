@@ -9,7 +9,8 @@ TARGET := pvmediainputnode
 
 XCXXFLAGS += $(FLAG_COMPILE_WARNINGS_AS_ERRORS)
 
-XCPPFLAGS += -DTEXT_TRACK_DESC_INFO
+#XCPPFLAGS += -DTEXT_TRACK_DESC_INFO -D_TEST_AE_ERROR_HANDLING
+XCPPFLAGS += -D_TEST_AE_ERROR_HANDLING
 
 XINCDIRS += ../../../../pvmi/pvmf/include ../../../../nodes/common/include ../../include 
 

@@ -42,24 +42,16 @@
 #define LOG_ERR(m) PVLOGGER_LOGMSG(PVLOGMSG_INST_REL,iLogger,PVLOGMSG_ERR,m)
 
 /** Structure to contain a node and all ports and extensions associated to it */
-class PVAENodeContainer
+struct PVAENodeContainer
 {
-    public:
-        PVAENodeContainer()
-        {
-            iNode = NULL;
-            iSessionId = 0;
-            iNodeCapConfigIF = NULL;
-        };
-
-        PVMFNodeInterface* iNode;
-        PVMFSessionId iSessionId;
-        PVUuid iUuid;
-        Oscl_Vector<PVMFPortInterface*, OsclMemAllocator> iInputPorts;
-        Oscl_Vector<PVMFPortInterface*, OsclMemAllocator> iOutputPorts;
-        Oscl_Vector<PVInterface*, OsclMemAllocator> iExtensions;
-        Oscl_Vector<PVUuid, OsclMemAllocator> iExtensionUuids;
-        PVInterface* iNodeCapConfigIF;
+    PVMFNodeInterface* iNode;
+    PVMFSessionId iSessionId;
+    PVUuid iUuid;
+    Oscl_Vector<PVMFPortInterface*, OsclMemAllocator> iInputPorts;
+    Oscl_Vector<PVMFPortInterface*, OsclMemAllocator> iOutputPorts;
+    Oscl_Vector<PVInterface*, OsclMemAllocator> iExtensions;
+    Oscl_Vector<PVUuid, OsclMemAllocator> iExtensionUuids;
+    PVInterface* iNodeCapConfigIF;
 };
 
 /** A vector of node container structures */
@@ -270,7 +262,7 @@ class PVAENodeUtilObserver
  * of this utility.
  */
 class PVAuthorEngineNodeUtility : public OsclTimerObject,
-        public PVMFNodeCmdStatusObserver
+            public PVMFNodeCmdStatusObserver
 {
     public:
         PVAuthorEngineNodeUtility();

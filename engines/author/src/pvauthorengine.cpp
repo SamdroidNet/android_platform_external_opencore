@@ -39,7 +39,7 @@
 #ifndef PVAE_TUNEABLES_H_INCLUDED
 #include "pvae_tuneables.h"
 #endif
-
+#include <utils/Log.h>
 #ifndef PVMI_CONFIG_AND_CAPABILITY_OBSERVER_H_INCLUDED
 #include "pvmi_config_and_capability_observer.h"
 #endif
@@ -54,6 +54,28 @@
 #define PVAE_NUM_PENDING_EVENTS 10
 
 #include "pv_author_sdkinfo.h"
+
+#define TURN_ON_VERBOSE_LOGS 0
+
+//#define LOG_NDEBUG 0
+//#define LOG_NDDEBUG 0
+//#define LOG_NIDEBUG 0
+
+#if TURN_ON_VERBOSE_LOGS
+//#include <utils/Log.h>
+#undef LOG_TAG
+#define LOG_TAG "PVAE"
+#undef PVLOGGER_LOGMSG
+#define PVLOGGER_LOGMSG(IL, LOGGER, LEVEL, MESSAGE) JJLOGE MESSAGE
+#define LOG_STACK_TRACE(m) PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE, m);
+#define LOG_DEBUG(m) PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_DEBUG, m);
+#define LOG_ERR(m) PVLOGGER_LOGMSG(PVLOGMSG_INST_REL,iLogger,PVLOGMSG_ERR,m);
+#define JJLOGE(id, ...) LOGE(__VA_ARGS__)
+#else
+#define LOG_STACK_TRACE(m) PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE, m);
+#define LOG_DEBUG(m) PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_DEBUG, m);
+#define LOG_ERR(m) PVLOGGER_LOGMSG(PVLOGMSG_INST_REL,iLogger,PVLOGMSG_ERR,m);
+#endif
 
 // Define entry point for this DLL
 OSCL_DLL_ENTRY_POINT_DEFAULT()
@@ -102,7 +124,6 @@ PVAuthorEngine::PVAuthorEngine() :
 {
     iLogger = PVLogger::GetLoggerObject("PVAuthorEngine");
     iDoResetNodeContainers = false;
-    lastNodeCommandError = PVMFFailure;
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -118,11 +139,6 @@ void PVAuthorEngine::Construct(PVCommandStatusObserver* aCmdStatusObserver,
     iPendingEvents.reserve(PVAE_NUM_PENDING_EVENTS);
 
     iNodeUtil.SetObserver(*this);
-
-    iAuthorClock.SetClockTimebase(iAuthorClockTimebase);
-    uint32 starttime = 0;
-    bool overflow = 0;
-    iAuthorClock.SetStartTime32(starttime, PVMF_MEDIA_CLOCK_MSEC, overflow);
 
     AddToScheduler();
     return;
@@ -485,13 +501,12 @@ void PVAuthorEngine::HandleNodeErrorEvent(const PVMFAsyncEvent& aEvent)
         else
         {
             SetPVAEState(PVAE_STATE_ERROR);
+            CompleteEngineCommand(iPendingCmds[0], PVMFFailure);
         }
     }
     else if (iState != PVAE_STATE_ERROR) //no pending command*
     {
         SetPVAEState(PVAE_STATE_ERROR);
-        PVAsyncErrorEvent event(aEvent.GetEventType(), aEvent.GetEventData());
-        iErrorEventObserver->HandleErrorEvent(event);
     }
 }
 
@@ -522,14 +537,6 @@ void PVAuthorEngine::HandleNodeInformationalEvent(const PVMFAsyncEvent& aEvent)
             PushCmdInFront(cmd);
         }
         break;
-
-        case PVMFInfoOverflow:
-        {
-            PVAsyncInformationalEvent event(aEvent.GetEventType(), NULL, aEvent.GetEventExtensionInterface());
-            iInfoEventObserver->HandleInformationalEvent(event);
-        }
-        break;
-
         case PVMF_COMPOSER_FILESIZE_PROGRESS:
         case PVMF_COMPOSER_DURATION_PROGRESS:
         {
@@ -551,19 +558,7 @@ void PVAuthorEngine::NodeUtilCommandCompleted(const PVMFCmdResp& aResponse)
     PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,
                     (0, "PVAuthorEngine::NodeUtilCommandCompleted"));
 
-    if (iPendingCmds.empty())
-    {
-        // Prevent from out-of-boundary access to iPendingCmds queue
-        PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_ERR,
-                        (0, "PVAuthorEngine::NodeUtilCommandCompleted: empty pending command queue while receiving response for command: id(%d), status(%d) and context(%p)!", aResponse.GetCmdId(), aResponse.GetCmdStatus(), aResponse.GetContext()));
-        SetPVAEState(PVAE_STATE_ERROR);
-        PVAsyncErrorEvent event(PVMFFailure);
-        iErrorEventObserver->HandleErrorEvent(event);
-        OSCL_ASSERT(false);  // debugging build does abort; release build does nothing
-        return;
-    }
-
-    // Now it is safe to retrieve the first pending command from queue
+    // Retrieve the first pending command from queue
     PVEngineCommand cmd(iPendingCmds[0]);
     PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,
                     (0, "PVAuthorEngine::NodeUtilCommandCompleted cmdType:%d", cmd.GetCmdType()));
@@ -576,10 +571,7 @@ void PVAuthorEngine::NodeUtilCommandCompleted(const PVMFCmdResp& aResponse)
             return;
         }
         else
-        {
-            lastNodeCommandError = aResponse.GetCmdStatus();
             SetPVAEState(PVAE_STATE_ERROR);
-        }
     }
     //RESET needs to be handled seperately, if the EngineState is ERROR, ignore all cmds till
     //there are more pending commands, else send out commandComplete Failure
@@ -591,7 +583,7 @@ void PVAuthorEngine::NodeUtilCommandCompleted(const PVMFCmdResp& aResponse)
         }
         else
         {
-            CompleteEngineCommand(cmd, lastNodeCommandError); //Send Failure to this command, engine is in error state
+            CompleteEngineCommand(cmd, PVMFFailure); //Send Failure to this command, engine is in error state
             return;
         }
     }
@@ -632,14 +624,9 @@ void PVAuthorEngine::NodeUtilCommandCompleted(const PVMFCmdResp& aResponse)
 
         case PVAE_CMD_INIT:
             if (iNodeUtil.GetCommandQueueSize() > 0)
-            {
                 status = PVMFPending;
-            }
             else
-            {
                 SetPVAEState(PVAE_STATE_INITIALIZED); // Init done. Change state
-                SendAuthoringClockToDataSources();
-            }
             break;
 
         case PVAE_CMD_RESET:
@@ -670,14 +657,9 @@ void PVAuthorEngine::NodeUtilCommandCompleted(const PVMFCmdResp& aResponse)
         case PVAE_CMD_START:
         case PVAE_CMD_RESUME:
             if (iNodeUtil.GetCommandQueueSize() > 0)
-            {
                 status = PVMFPending;
-            }
             else
-            {
                 SetPVAEState(PVAE_STATE_RECORDING); // Start done. Change state
-                iAuthorClock.Start();
-            }
             break;
 
         case PVAE_CMD_PAUSE:
@@ -705,7 +687,7 @@ void PVAuthorEngine::NodeUtilCommandCompleted(const PVMFCmdResp& aResponse)
     {
         if (iState == PVAE_STATE_ERROR)
         {
-            CompleteEngineCommand(cmd, status);
+            CompleteEngineCommand(cmd, PVMFFailure);
         }
         else
         {
@@ -736,6 +718,7 @@ void PVAuthorEngine::Run()
     PVEngineCommand cmd(iPendingCmds[0]);
 
     PVMFStatus status = PVMFFailure;
+    //LOGE("PVAuthorEngine::Run:cmd:%d", cmd.GetCmdType());
     switch (cmd.GetCmdType())
     {
         case PVAE_CMD_GET_SDK_INFO:
@@ -1401,9 +1384,6 @@ PVMFStatus PVAuthorEngine::DoReset(PVEngineCommand& aCmd)
             ResetNodeContainers();
             return PVMFSuccess;
         }
-        //Notify data sources to stop using author clock
-        iAuthorClock.Stop();
-        SendAuthoringClockToDataSources(true);
         ResetGraph();
     }
     return PVMFPending;
@@ -1440,8 +1420,6 @@ PVMFStatus PVAuthorEngine::DoPause(PVEngineCommand& aCmd)
         return PVMFErrInvalidState;
     }
 
-    iAuthorClock.Pause();
-
     iNodeUtil.Pause(iDataSourceNodes);
     if (iEncoderNodes.size() > 0)
         iNodeUtil.Pause(iEncoderNodes);
@@ -1477,11 +1455,8 @@ PVMFStatus PVAuthorEngine::DoStop(PVEngineCommand& aCmd)
 
     switch (GetPVAEState())
     {
-        case PVAE_STATE_INITIALIZED:
-            return PVMFSuccess;
         case PVAE_STATE_RECORDING:
         case PVAE_STATE_PAUSED:
-            iAuthorClock.Stop();
             iNodeUtil.Flush(iDataSourceNodes);
             if (iEncoderNodes.size() > 0)
                 iNodeUtil.Flush(iEncoderNodes);
@@ -1548,6 +1523,7 @@ void PVAuthorEngine::ResetNodeContainers()
         PVAuthorEngineNodeFactoryUtility::Delete(uuid, node);
 
     }
+
     return;
 }
 
@@ -1601,7 +1577,6 @@ PVMFStatus PVAuthorEngine::DoStopMaxSizeDuration()
             iNodeUtil.Stop(iDataSourceNodes);
             if (iEncoderNodes.size() > 0)
                 iNodeUtil.Stop(iEncoderNodes);
-            iNodeUtil.Stop(iComposerNodes);
             return PVMFPending;
 
         default:
@@ -1750,6 +1725,26 @@ PVMFStatus PVAuthorEngine::GetPvmfFormatString(PvmfMimeString& aMimeType, const 
     else if (aNodeMimeType == KTextEncMimeType)
     {
         aMimeType = PVMF_MIME_3GPP_TIMEDTEXT;
+    }
+	else if (aNodeMimeType == KG711EncMimeType ||
+             aNodeMimeType == KG711ComposerMimeType)
+    {
+        aMimeType = PVMF_MIME_G711;
+    }
+    else if (aNodeMimeType == KEVRCEncMimeType ||
+	         aNodeMimeType == KEVRCComposerMimeType)
+	{
+	    aMimeType = PVMF_MIME_EVRC;
+    }
+    else if (aNodeMimeType == KG729EncMimeType ||
+             aNodeMimeType == KG729ComposerMimeType)
+    {
+        aMimeType = PVMF_MIME_G729;
+    }
+    else if (aNodeMimeType == KMP3EncMimeType ||
+	         aNodeMimeType == KMP3ComposerMimeType)
+	{
+	    aMimeType = PVMF_MIME_MP3;
     }
     ////////////////////////////////////////////////////////////////////////////
     // Future development: When integrating support for a new format, add a
@@ -2916,56 +2911,4 @@ PVAuthorEngineInterface::GetSDKInfo
     aSdkInfo.iLabel = PVAUTHOR_ENGINE_SDKINFO_LABEL;
     aSdkInfo.iDate  = PVAUTHOR_ENGINE_SDKINFO_DATE;
 }
-
-PVMFStatus PVAuthorEngine::SendAuthoringClockToDataSources(bool aReset)
-{
-    // Create the kvp for the Authoring clock
-    OsclMemAllocator alloc;
-    PvmiKvp kvp;
-    kvp.key = NULL;
-    kvp.length = oscl_strlen(PVMF_AUTHORING_CLOCK_KEY) + 1; // +1 for \0
-    kvp.key = (PvmiKeyType)alloc.ALLOCATE(kvp.length);
-    if (kvp.key == NULL)
-    {
-        return PVMFErrNoMemory;
-    }
-    oscl_strncpy(kvp.key, PVMF_AUTHORING_CLOCK_KEY, kvp.length);
-    if (aReset)
-    {
-        kvp.value.key_specific_value = NULL;
-    }
-    else
-    {
-        kvp.value.key_specific_value = (OsclAny*)(&iAuthorClock);
-    }
-    kvp.capacity = 1;
-    PvmiKvp* retKvp = NULL; // for return value
-    int32 err;
-
-    OSCL_TRY (err,
-              for (uint index = 0; index < iDataSourceNodes.size(); index++)
-              {
-                  //use data source node capconfig to pass the clock pointer to
-                  //source nodes. if reset is true, we send NULL. author does this
-                  //to notify that clock pointer should no longer be used
-                  if (iDataSourceNodes[index]->iNodeCapConfigIF != NULL)
-                  {
-                      PvmiCapabilityAndConfig* dataSrcCapConfig =
-                          OSCL_STATIC_CAST(PvmiCapabilityAndConfig*, iDataSourceNodes[index]->iNodeCapConfigIF);
-                      dataSrcCapConfig->setParametersSync(NULL, &kvp, 1, retKvp);
-                  }
-              }
-             );
-
-    if (err != OsclErrNone)
-    {
-        /* ignore the error */
-        PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR,
-            (0, "PVAuthorEngine::SendAuthoringClockToDataSources() SetParameterSync for AuthorClock failed"));
-    }
-
-    alloc.deallocate((OsclAny*)(kvp.key));
-    return PVMFSuccess;
-}
-
 
